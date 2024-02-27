@@ -33,6 +33,8 @@ add_library(AScript STATIC
         as/core/LanguageProcessor.h
         as/languages/lua/LuaLanguageProcessor.cpp
         as/languages/lua/LuaLanguageProcessor.h
+        sandbox/main.cpp
+        sandbox/main2.cpp
 )
 target_include_directories(AScript PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 
@@ -68,5 +70,11 @@ foreach(target ${LLVM_TARGETS_TO_BUILD})
     list(APPEND llvm_libs "LLVM${target}CodeGen")
 endforeach()
 
-# Link against LLVM libraries
 target_link_libraries(REPL ${llvm_libs})
+
+
+add_executable(Sandbox sandbox/main.cpp)
+target_link_libraries(Sandbox ${llvm_libs})
+
+add_executable(Sandbox2 sandbox/main2.cpp)
+target_link_libraries(Sandbox2 ${llvm_libs})
