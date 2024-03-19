@@ -40,12 +40,12 @@
 #include <string>
 #include <vector>
 
-#include "as/compiler/jit.h"
-#include "as/kaleidoscope/ast.h"
-#include "as/kaleidoscope/interpreter.h"
-#include "as/kaleidoscope/parser_loop.h"
+#include "compiler/jit.h"
+#include "kaleidoscope/ast.h"
+#include "kaleidoscope/interpreter.h"
+#include "kaleidoscope/parser_loop.h"
 
-#include "as/compiler/compiler.h"
+#include "compiler/compiler.h"
 
 int main() {
 //  llvm::InitializeNativeTarget();

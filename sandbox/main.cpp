@@ -38,6 +38,14 @@ using namespace llvm::orc;
 
 ExitOnError ExitOnErr;
 
+extern "C"
+{
+  int add(int x)
+  {
+    return x + 100;
+  }
+}
+
 Function* createAdd(Module& module, const char* name, int constant)
 {
   auto& context = module.getContext();
@@ -99,23 +107,37 @@ int main(int argc, char *argv[]) {
 
   ts_module_1.withModuleDo([](Module& module) {
     createAdd(module, "add", 1);
+
+    outs() << module;
   });
+
 
   Function* add_func = ts_module_1.getModuleUnlocked()->getFunction("add");
 
-  ts_module_1.withModuleDo([add_func](Module& module) {
-    createFoo(module, add_func, "foo", 20);
+  ts_module_2.withModuleDo([add_func](Module& module) {
+
+    Function* add =
+        Function::Create(FunctionType::get(Type::getInt32Ty(module.getContext()),
+                                           {Type::getInt32Ty(module.getContext())}, false),
+                         Function::ExternalLinkage, "add", module);
+
+    createFoo(module, add, "foo", 20);
+
+    outs() << module;
   });
 
   // Create an LLJIT instance.
-  auto jit = ExitOnErr(LLJITBuilder().create());
+  std::unique_ptr<LLJIT> jit = ExitOnErr(LLJITBuilder().create());
 
-  ExitOnErr(jit->addIRModule(std::move(ts_module_1)));
-  ExitOnErr(jit->addIRModule(std::move(ts_module_2)));
+  auto rt = jit->getMainJITDylib().createResourceTracker();
+
+  ExitOnErr(jit->addIRModule(rt, std::move(ts_module_1)));
+  ExitOnErr(jit->addIRModule(rt, std::move(ts_module_2)));
 
   // Look up the JIT'd function, cast it to a function pointer, then call it.
   auto add_addr = ExitOnErr(jit->lookup("add"));
   auto foo_addr = ExitOnErr(jit->lookup("foo"));
+
   int (*add)(int) = add_addr.toPtr<int(int)>();
   int (*foo)() = foo_addr.toPtr<int()>();
 
@@ -123,6 +145,16 @@ int main(int argc, char *argv[]) {
   int result_2 = foo();
   outs() << result_1 << "\n";
   outs() << result_2 << "\n";
+
+  ExitOnErr(rt->remove());
+
+  std::unordered_map<const char*, Function*> t;
+
+  t["add"] = add_func;
+
+  Function* check1 = t["add"];
+  Function* check2 = t["foo"];
+
 
   return 0;
 }
