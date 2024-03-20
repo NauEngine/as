@@ -5,4 +5,4 @@ add_executable(Sandbox2 main2.cpp)
 target_link_libraries(Sandbox2 ${llvm_libs})
 
 add_executable(SandboxLua main_lua.cpp)
-target_link_libraries(SandboxLua)
+target_link_libraries(SandboxLua LuaIntegration)
