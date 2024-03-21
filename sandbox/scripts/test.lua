@@ -5,3 +5,5 @@ function update()
     print("Info from lua " .. counter)
     counter = counter + 1
 end
+
+print("Global print")

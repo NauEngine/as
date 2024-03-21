@@ -6,5 +6,6 @@ add_library(AScript STATIC
 )
 
 target_include_directories(AScript PUBLIC "${CMAKE_SOURCE_DIR}")
+target_link_libraries(AScript ${llvm_libs})
 
 add_subdirectory(languages/lua)
