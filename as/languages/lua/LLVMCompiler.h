@@ -2,14 +2,11 @@
 #ifndef LLVMCOMPILER_h
 #define LLVMCOMPILER_h
 
-#include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/LLVMContext.h"
 
 #include "VMModule.h"
-
-//#include "lua_core.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,6 +29,8 @@ class Timer;
 
 namespace as
 {
+
+class VMModuleForwardDecl;
 
 class LLVMCompiler
 {
@@ -73,12 +72,7 @@ private:
 	};
 
 private:
-	VMModule vm_module;
-	llvm::orc::ThreadSafeModule ts_vm_module;
-	llvm::orc::ThreadSafeContext ts_context;
-	std::unique_ptr<llvm::orc::LLJIT> jit;
-
-	bool strip_code;
+	bool strip_code = false;
 
 	// count compiled opcodes.
 	int* opcode_stats;
@@ -88,12 +82,6 @@ private:
 	std::vector<std::unique_ptr<OPValues>> op_values;
 	std::vector<llvm::BasicBlock*> op_blocks;
 	std::vector<bool> need_op_block;
-
-	std::unordered_map<Proto*, llvm::orc::ResourceTrackerSP> trackers;
-	std::unordered_map<Proto*, std::unique_ptr<llvm::Module>> modules; // TODO make one module for parent proto
-	std::unordered_map<Proto*, std::string> proto_ir_map;
-
-	llvm::orc::ResourceTrackerSP vm_module_tracker;
 
 	// Options
 	bool dump_compiled = false;
@@ -114,30 +102,22 @@ private:
 	void InsertDebugCalls(VMModuleForwardDecl* decl, llvm::LLVMContext& context, llvm::IRBuilder<>& builder,
 												BuildContext& bcontext, int i);
 
-	void CompileSingleProto(lua_State* L, Proto* p);
+	void CompileSingleProto(llvm::LLVMContext& context, VMModule& vm_module, llvm::Module* module, VMModuleForwardDecl* decl, lua_State* L, Proto* p);
 
 public:
-	explicit LLVMCompiler(int useJIT);
+	explicit LLVMCompiler();
 
 	~LLVMCompiler();
 
 	void SetStripCode(bool strip) { strip_code = strip; }
 	void SetDumpCompiled(bool dump) { dump_compiled = dump; }
 
-	VMModule& GetVMModule() { return vm_module; }
-
-	std::unique_ptr<llvm::Module> LinkAllModulesIntoOne();
-
-
-	llvm::Value* GetProtoConstant(TValue* constant);
+	llvm::Value* GetProtoConstant(llvm::LLVMContext& context, TValue* constant);
 
   std::string GenerateModuleName(Proto* p);
 	std::string GenerateFunctionName(Proto* p);
 
-	const std::string& GetFunctionName(Proto* p) { return proto_ir_map[p]; }
-
-	void Compile(lua_State* L, Proto* p);
-	void Free(lua_State* L, Proto* p);
+	std::unique_ptr<llvm::Module> Compile(llvm::LLVMContext& context, VMModule& vm_module, lua_State* L, Proto* p);
 };
 
 } // namespace as

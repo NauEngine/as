@@ -3,23 +3,45 @@
 //
 
 #include <iostream>
+
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/ManagedStatic.h"
+#include "llvm/ExecutionEngine/Orc/LLJIT.h"
+
 #include "Core.h"
 #include "LanguageProcessor.h"
 
+namespace
+{
+  llvm::ExitOnError ExitOnErr;
+}
+
 namespace as
 {
-  Core::Core() = default;
-  Core::~Core() = default;
+  Core::Core()
+  {
+    llvm::InitializeAllTargets();
+    llvm::InitializeAllTargetMCs();
+    llvm::InitializeAllAsmPrinters();
+    llvm::InitializeAllAsmParsers();
+
+    jit = ExitOnErr(llvm::orc::LLJITBuilder().create());
+  }
+
+  Core::~Core()
+  {
+    llvm::llvm_shutdown();
+  }
 
   void Core::RegisterLanguage(const std::string& language_name, std::unique_ptr<ILanguageProcessor> processor)
   {
     processors[language_name] = std::move(processor);
   }
 
-  void Core::RegisterScriptFile(const std::string& filename, const std::string& language_name)
+  std::shared_ptr<IScriptModule>  Core::RegisterScriptModule(const std::string& filename, const std::string& language_name)
   {
     // TODO make error handling
-    processors[language_name]->RegisterScriptFile(filename);
+    return processors[language_name]->RegisterScriptModule(filename);
   }
 
   void Core::Init()
@@ -29,11 +51,11 @@ namespace as
 
   void Core::Update()
   {
-    std::cout << "Script Core Update" << std::endl;
-
-    for (auto& [name, processor] : processors)
-    {
-      processor->Update();
-    }
+//    std::cout << "Script Core Update" << std::endl;
+//
+//    for (auto& [name, processor] : processors)
+//    {
+//      processor->Update();
+//    }
   }
 } // as

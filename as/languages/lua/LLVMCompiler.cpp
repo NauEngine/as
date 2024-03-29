@@ -22,6 +22,7 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
+#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/DerivedTypes.h"
@@ -43,6 +44,8 @@
 #include <math.h>
 
 #include "LLVMCompiler.h"
+#include "VMModule.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -115,8 +118,6 @@ static llvm::cl::opt<bool> OptLevelO3("O3",
                    llvm::cl::desc("Optimization level 3."),
                    llvm::cl::init(false));
 
-llvm::ExitOnError ExitOnErr;
-
 
 #define BRANCH_COND -1
 #define BRANCH_NONE -2
@@ -128,16 +129,16 @@ llvm::ExitOnError ExitOnErr;
 namespace as
 {
 
-llvm::Value* LLVMCompiler::GetProtoConstant(TValue *constant)
+llvm::Value* LLVMCompiler::GetProtoConstant(llvm::LLVMContext& context, TValue *constant)
 {
 	llvm::Value* val = nullptr;
 	switch(ttype(constant))
 	{
 	case LUA_TBOOLEAN:
-		val = llvm::ConstantInt::get(*ts_context.getContext(), llvm::APInt(sizeof(LUA_NUMBER), !l_isfalse(constant)));
+		val = llvm::ConstantInt::get(context, llvm::APInt(sizeof(LUA_NUMBER), !l_isfalse(constant)));
 		break;
 	case LUA_TNUMBER:
-		val = llvm::ConstantFP::get(*ts_context.getContext(), llvm::APFloat(nvalue(constant)));
+		val = llvm::ConstantFP::get(context, llvm::APFloat(nvalue(constant)));
 		break;
 	case LUA_TSTRING:
 		break;
@@ -149,29 +150,10 @@ llvm::Value* LLVMCompiler::GetProtoConstant(TValue *constant)
 	return val;
 }
 
-LLVMCompiler::LLVMCompiler(int useJIT) :
-  ts_context(std::make_unique<llvm::LLVMContext>())
+LLVMCompiler::LLVMCompiler()
 {
-	std::string error;
-	llvm::Timer load_ops("load_ops", "Load OPs");
-	llvm::Timer load_jit("load_jit", "Load JIT");
-	llvm::FunctionType *func_type;
-	llvm::Function *func;
-	std::vector<llvm::Type*> func_args;
-	const vm_func_info *func_info;
-	int opcode;
-
-	// set OptLevel
-	if(OptLevelO1) OptLevel = 1;
-	if(OptLevelO2) OptLevel = 2;
-	if(OptLevelO3) OptLevel = 3;
-	if(DisableOpt) OptLevel = 0;
-
-	strip_code = false;
-
-	if(llvm::TimePassesIsEnabled) load_ops.startTimer();
-
-	if (OpCodeStats) {
+	if (OpCodeStats)
+  {
 		opcode_stats = new int[NUM_OPCODES];
 		for(int i = 0; i < NUM_OPCODES; i++) {
 			opcode_stats[i] = 0;
@@ -185,21 +167,6 @@ LLVMCompiler::LLVMCompiler(int useJIT) :
 			vm_op_run_count[i] = 0;
 		}
 	}
-
-	if (llvm::TimePassesIsEnabled) load_ops.stopTimer();
-	if (llvm::TimePassesIsEnabled) load_jit.startTimer();
-
-	ts_vm_module = vm_module.Load(ts_context);
-
-	// Create the JIT.
-	if (useJIT)
-	{
-		jit = ExitOnErr(llvm::orc::LLJITBuilder().create());
-		vm_module_tracker = jit->getMainJITDylib().createResourceTracker();
-		ExitOnErr(jit->addIRModule(vm_module_tracker, std::move(ts_vm_module)));
-	}
-
-	if (llvm::TimePassesIsEnabled) load_jit.stopTimer();
 }
 
 void print_opcode_stats(int *stats, const char *stats_name) {
@@ -548,10 +515,10 @@ std::vector<llvm::Value*> LLVMCompiler::GetOpCallArgs(llvm::LLVMContext& context
 				val = llvm::ConstantInt::get(context, llvm::APInt(32,luaO_fb2int(GETARG_C(op_intr))));
 				break;
 			case VAR_T_ARG_Bx_NUM_CONSTANT:
-				val = GetProtoConstant(bcontext.k + INDEXK(GETARG_Bx(op_intr)));
+				val = GetProtoConstant(context, bcontext.k + INDEXK(GETARG_Bx(op_intr)));
 				break;
 			case VAR_T_ARG_C_NUM_CONSTANT:
-				val = GetProtoConstant(bcontext.k + INDEXK(GETARG_C(op_intr)));
+				val = GetProtoConstant(context, bcontext.k + INDEXK(GETARG_C(op_intr)));
 				break;
 			case VAR_T_ARG_C_NEXT_INSTRUCTION: {
 				int c = GETARG_C(op_intr);
@@ -650,17 +617,28 @@ void LLVMCompiler::InsertDebugCalls(VMModuleForwardDecl* decl, llvm::LLVMContext
 	}
 }
 
-void LLVMCompiler::Compile(lua_State *L, Proto *parent)
+std::unique_ptr<llvm::Module> LLVMCompiler::Compile(llvm::LLVMContext& context, VMModule& vm_module, lua_State *L, Proto *p)
 {
-  CompileSingleProto(L, parent);
+	auto func_name = GenerateModuleName(p);
+	auto module = std::make_unique<llvm::Module>(func_name, context);
+	auto decl = vm_module.PrepareForwardDeclarations(module.get());
 
-	for(int i = 0; i < parent->sizep; i++)
+  CompileSingleProto(context, vm_module, module.get(), decl.get(), L, p);
+
+	for (int i = 0; i < p->sizep; ++i)
 	{
-		Compile(L, parent->p[i]);
+		Compile(context, vm_module, L, p->p[i]);
 	}
+
+	if (dump_compiled)
+	{
+		llvm::errs() << *module;
+	}
+
+	return std::move(module);
 }
 
-void LLVMCompiler::CompileSingleProto(lua_State *L, Proto *p)
+void LLVMCompiler::CompileSingleProto(llvm::LLVMContext& context, VMModule& vm_module, llvm::Module* module, VMModuleForwardDecl* decl, lua_State* L, Proto* p)
 {
 	BuildContext bcontext;
 
@@ -671,12 +649,11 @@ void LLVMCompiler::CompileSingleProto(lua_State *L, Proto *p)
 	llvm::BasicBlock *true_block = nullptr;
 	llvm::BasicBlock *false_block = nullptr;
 	llvm::BasicBlock *current_block = nullptr;
-	llvm::Value *brcond=NULL;
+	llvm::Value* brcond = nullptr;
 	std::vector<llvm::CallInst *> inlineList;
-	//char locals[LUAI_MAXVARS];
-	bool inline_call=false;
+	bool inline_call = false;
 
-	llvm::IRBuilder builder(*ts_context.getContext());
+	llvm::IRBuilder builder(context);
 
 #ifndef COCO_DISABLE
 	// Don't run the JIT from a coroutine.
@@ -688,12 +665,9 @@ void LLVMCompiler::CompileSingleProto(lua_State *L, Proto *p)
 	ResizeOpcodeData(bcontext.code_len);
 
 
-	llvm::LLVMContext& context = *ts_context.getContext();
   auto func_name = GenerateFunctionName(p);
-	auto module = std::make_unique<llvm::Module>(func_name, context);
-	auto decl = vm_module.PrepareForwardDeclarations(module.get());
 
-  llvm::Function* func = llvm::Function::Create(vm_module.t_lua_func, llvm::Function::ExternalLinkage, func_name, module.get());
+  llvm::Function* func = llvm::Function::Create(vm_module.t_lua_func, llvm::Function::ExternalLinkage, func_name, module);
 	// name arg1 = "L"
 	bcontext.func_L = func->arg_begin();
 	bcontext.func_L->setName("L");
@@ -791,7 +765,7 @@ void LLVMCompiler::CompileSingleProto(lua_State *L, Proto *p)
 			opcode_stats[opcode]++;
 		}
 
-		InsertDebugCalls(decl.get(), context, builder, bcontext, i);
+		InsertDebugCalls(decl, context, builder, bcontext, i);
 
 		if (op_hints[i] & HINT_SKIP_OP)
 		{
@@ -1116,65 +1090,15 @@ void LLVMCompiler::CompileSingleProto(lua_State *L, Proto *p)
 		p->sizeupvalues = 0;
 	}
 
-	if (dump_compiled) func->print(llvm::errs());
-
 	// only run function inliner & optimization passes on same functions.
-	if(OptLevel > 0 && !DontInlineOpcodes) {
+	if (OptLevel > 0 && !DontInlineOpcodes)
+  {
 		llvm::InlineFunctionInfo IFI;
-		for(std::vector<llvm::CallInst *>::iterator I=inlineList.begin(); I != inlineList.end() ; I++) {
+		for (std::vector<llvm::CallInst *>::iterator I=inlineList.begin(); I != inlineList.end() ; I++)
+    {
 			llvm::InlineFunction(**I, IFI);
 		}
 	}
-
-	if (jit)
-	{
-		auto rt = jit->getMainJITDylib().createResourceTracker();
-		ExitOnErr(jit->addIRModule(rt, {std::move(module), ts_context}));
-		trackers[p] = rt;
-
-		auto func_addr = ExitOnErr(jit->lookup(func_name));
-		//p->jit_func = func_addr.toPtr<lua_CFunction>();
-	}
-	else
-	{
-		//p->jit_func = nullptr;
-	}
-
-	modules[p] = std::move(module);
-	proto_ir_map[p] = func_name;
-}
-
-void LLVMCompiler::Free(lua_State *L, Proto *p)
-{
-	if (trackers.contains(p))
-	{
-		ExitOnErr(trackers[p]->remove());
-		trackers.erase(p);
-	}
-}
-
-std::unique_ptr<llvm::Module> LLVMCompiler::LinkAllModulesIntoOne()
-{
-	assert(jit == nullptr);
-
-	std::unique_ptr<llvm::Module> final_module = ts_vm_module.consumingModuleDo([](std::unique_ptr<llvm::Module> module) {
-		return std::move(module);
-	});
-
-	auto data_layout = final_module->getDataLayout();
-
-	for (auto& [key, module]: modules)
-	{
-		module->setDataLayout(data_layout);
-		if (llvm::Linker::linkModules(*final_module, std::move(module)))
-		{
-			// TODO: print correct error
-			fprintf(stderr, "Failed to link compiled Lua scripts together': %s", "unknown");
-			exit(1);
-		}
-	}
-
-	return final_module;
 }
 
 }	// namespace as

@@ -7,15 +7,22 @@
 
 #include <string>
 
+namespace llvm::orc
+{
+  class LLJIT;
+}
+
 namespace as
 {
+  class IScriptModule;
+
   class ILanguageProcessor
   {
   public:
     virtual ~ILanguageProcessor() = default;
 
-    virtual void RegisterScriptFile(const std::string& filename) = 0;
-    virtual void Update() = 0;
+    virtual std::shared_ptr<IScriptModule> RegisterScriptModule(const std::string& filename) = 0;
+    virtual void InsertModulesInto(llvm::orc::LLJIT* jit) = 0;
   };
 } // namespace as
 

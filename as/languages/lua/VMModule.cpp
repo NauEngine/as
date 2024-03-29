@@ -21,6 +21,7 @@ llvm::orc::ThreadSafeModule VMModule::Load(llvm::orc::ThreadSafeContext ts_conte
 {
   llvm::LLVMContext& context = *ts_context.getContext();
   auto module = LoadEmbeddedBitcode(context, "lua_vm_ops_bc", lua_vm_ops_bc, sizeof(lua_vm_ops_bc));
+  llvm::errs() << *module;
 
   CollectVMTypes(context, module->getDataLayout());
 

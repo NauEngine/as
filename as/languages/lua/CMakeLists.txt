@@ -10,6 +10,8 @@ add_library(LuaIntegration STATIC
     Utils.cpp
     Utils.h
     lua_vm_ops_static.c
+    LuaScriptModule.cpp
+    LuaScriptModule.h
 )
 
 target_compile_definitions(LuaIntegration PUBLIC _XOPEN_SOURCE=600)

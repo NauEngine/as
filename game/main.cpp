@@ -17,7 +17,7 @@ void InitLanguages(engine::Runtime& runtime)
   auto lua_processor = std::make_unique<as::LuaLanguageProcessor>();
 
   script_core->RegisterLanguage("lua", std::move(lua_processor));
-  script_core->RegisterScriptFile("../game/scripts/lua/main.lua", "lua");
+  script_core->RegisterScriptModule("../game/scripts/lua/main.lua", "lua");
 }
 
 int main()

@@ -7,9 +7,15 @@
 
 #include <map>
 
+namespace llvm::orc
+{
+  class LLJIT;
+}
+
 namespace as
 {
   class ILanguageProcessor;
+  class IScriptModule;
 
   class Core
   {
@@ -18,12 +24,14 @@ namespace as
     ~Core();
 
     void RegisterLanguage(const std::string& language_name, std::unique_ptr<ILanguageProcessor> processor);
-    void RegisterScriptFile(const std::string& filename, const std::string& language_name);
+    std::shared_ptr<IScriptModule> RegisterScriptModule(const std::string& filename, const std::string& language_name);
 
     void Init();
     void Update();
   private:
     std::unordered_map<std::string, std::unique_ptr<ILanguageProcessor>> processors;
+
+    std::unique_ptr<llvm::orc::LLJIT> jit;
   };
 
 } // as

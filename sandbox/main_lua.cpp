@@ -1,9 +1,9 @@
 #include <iostream>
 
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/Support/ManagedStatic.h"
-
-#include "LLVMCompiler.h"
+#include "as/core/Core.h"
+#include "as/languages/lua/LuaLanguageProcessor.h"
+#include "as/languages/lua/LuaScriptModule.h"
+#include "as/languages/lua/LLVMCompiler.h"
 
 extern "C"
 {
@@ -18,37 +18,18 @@ extern "C"
 
 int main()
 {
-  llvm::llvm_shutdown_obj llvm_shutdown;   // Call llvm_shutdown() on exit.
+  as::Core script_core;
 
-  llvm::InitializeAllTargets();
-  llvm::InitializeAllTargetMCs();
-  llvm::InitializeAllAsmPrinters();
-  llvm::InitializeAllAsmParsers();
+  auto lua_processor = std::make_unique<as::LuaLanguageProcessor>();
 
+  script_core.RegisterLanguage("lua", std::move(lua_processor));
+  auto script_module = script_core.RegisterScriptModule("../../sandbox/scripts/test.lua", "lua");
 
-  as::LLVMCompiler compiler(true);
-  compiler.SetDumpCompiled(true);
+  script_module->RunScript();
+  script_module->RunFunction();
+  script_module->RunFunction();
+  script_module->RunFunction();
+  script_module->RunFunction();
 
-  lua_State *l = luaL_newstate();
-  luaL_openlibs(l);
-
-  luaL_loadfile(l, "../../sandbox/scripts/test.lua");
-
-  Proto* p = toproto(l, -1);
-
-  compiler.Compile(l, p);
-
-  lua_pcall(l, 0, LUA_MULTRET, 0);
-
-  lua_getglobal(l, "update");
-  lua_call(l, 0, 0);
-  lua_getglobal(l, "update");
-  lua_call(l, 0, 0);
-  lua_getglobal(l, "update");
-  lua_call(l, 0, 0);
-  lua_getglobal(l, "update");
-  lua_call(l, 0, 0);
-
-  lua_close(l);
   return 0;
 }
