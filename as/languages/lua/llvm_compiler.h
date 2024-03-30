@@ -6,7 +6,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/LLVMContext.h"
 
-#include "VMModule.h"
+#include "base_lua_module.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -102,7 +102,7 @@ private:
 	void InsertDebugCalls(VMModuleForwardDecl* decl, llvm::LLVMContext& context, llvm::IRBuilder<>& builder,
 												BuildContext& bcontext, int i);
 
-	void CompileSingleProto(llvm::LLVMContext& context, VMModule& vm_module, llvm::Module* module, VMModuleForwardDecl* decl, lua_State* L, Proto* p);
+	void CompileSingleProto(llvm::LLVMContext& context, BaseLuaModule& vm_module, llvm::Module* module, VMModuleForwardDecl* decl, lua_State* L, Proto* p);
 
 public:
 	explicit LLVMCompiler();
@@ -117,7 +117,7 @@ public:
   std::string GenerateModuleName(Proto* p);
 	std::string GenerateFunctionName(Proto* p);
 
-	std::unique_ptr<llvm::Module> Compile(llvm::LLVMContext& context, VMModule& vm_module, lua_State* L, Proto* p);
+	std::unique_ptr<llvm::Module> Compile(llvm::LLVMContext& context, BaseLuaModule& vm_module, lua_State* L, Proto* p);
 };
 
 } // namespace as

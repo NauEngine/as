@@ -2,8 +2,8 @@
 // Created by Alex Zelenshikov on 21.03.2024.
 //
 
-#ifndef AS_PROTO_SCRIPTMODULE_H
-#define AS_PROTO_SCRIPTMODULE_H
+#ifndef AS_PROTO_SCRIPT_MODULE_H
+#define AS_PROTO_SCRIPT_MODULE_H
 
 namespace as
 {
@@ -19,4 +19,4 @@ namespace as
 
 } // as
 
-#endif //AS_PROTO_SCRIPTMODULE_H
+#endif //AS_PROTO_SCRIPT_MODULE_H

@@ -2,8 +2,8 @@
 // Created by Alex Zelenshikov on 20.03.2024.
 //
 
-#ifndef AS_PROTO_LUACORE_H
-#define AS_PROTO_LUACORE_H
+#ifndef AS_PROTO_LUA_CORE_H
+#define AS_PROTO_LUA_CORE_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,7 +25,7 @@ extern "C" {
 //	lua_CFunction jit_func; /* jit compiled function */ \
 
 #include "lua/lua.h"
-/* extern all lua core functions. */
+/* extern all lua Core functions. */
 #undef LUAI_FUNC
 #define LUAI_FUNC extern
 
@@ -33,4 +33,4 @@ extern "C" {
 }
 #endif
 
-#endif //AS_PROTO_LUACORE_H
+#endif //AS_PROTO_LUA_CORE_H

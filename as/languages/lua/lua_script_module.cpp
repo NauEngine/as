@@ -2,7 +2,7 @@
 // Created by Alex Zelenshikov on 21.03.2024.
 //
 
-#include "LuaScriptModule.h"
+#include "lua_script_module.h"
 
 extern "C"
 {

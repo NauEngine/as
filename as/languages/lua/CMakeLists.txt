@@ -1,17 +1,15 @@
 add_library(LuaIntegration STATIC
-    LuaLanguageProcessor.cpp
-    LuaLanguageProcessor.h
-    LuaCore.cpp
-    LuaCore.h
-    LLVMCompiler.cpp
-    LLVMCompiler.h
-    VMModule.cpp
-    VMModule.h
-    Utils.cpp
-    Utils.h
+    lua_language_processor.cpp
+    lua_language_processor.h
+    lua_core.cpp
+    lua_core.h
+    llvm_compiler.cpp
+    llvm_compiler.h
+    base_lua_module.cpp
+    base_lua_module.h
     lua_vm_ops_static.c
-    LuaScriptModule.cpp
-    LuaScriptModule.h
+    lua_script_module.cpp
+    lua_script_module.h
 )
 
 target_compile_definitions(LuaIntegration PUBLIC _XOPEN_SOURCE=600)

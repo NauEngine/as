@@ -43,8 +43,8 @@
 #include <vector>
 #include <math.h>
 
-#include "LLVMCompiler.h"
-#include "VMModule.h"
+#include "llvm_compiler.h"
+#include "base_lua_module.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -617,7 +617,7 @@ void LLVMCompiler::InsertDebugCalls(VMModuleForwardDecl* decl, llvm::LLVMContext
 	}
 }
 
-std::unique_ptr<llvm::Module> LLVMCompiler::Compile(llvm::LLVMContext& context, VMModule& vm_module, lua_State *L, Proto *p)
+std::unique_ptr<llvm::Module> LLVMCompiler::Compile(llvm::LLVMContext& context, BaseLuaModule& vm_module, lua_State *L, Proto *p)
 {
 	auto func_name = GenerateModuleName(p);
 	auto module = std::make_unique<llvm::Module>(func_name, context);
@@ -638,7 +638,7 @@ std::unique_ptr<llvm::Module> LLVMCompiler::Compile(llvm::LLVMContext& context, 
 	return std::move(module);
 }
 
-void LLVMCompiler::CompileSingleProto(llvm::LLVMContext& context, VMModule& vm_module, llvm::Module* module, VMModuleForwardDecl* decl, lua_State* L, Proto* p)
+void LLVMCompiler::CompileSingleProto(llvm::LLVMContext& context, BaseLuaModule& vm_module, llvm::Module* module, VMModuleForwardDecl* decl, lua_State* L, Proto* p)
 {
 	BuildContext bcontext;
 

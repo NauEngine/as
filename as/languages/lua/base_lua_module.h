@@ -29,7 +29,7 @@ public:
 
 class VMModuleForwardDecl;
 
-class VMModule
+class BaseLuaModule
 {
 public:
   struct ConstStruct
@@ -74,7 +74,7 @@ public:
   llvm::StructType* t_jit_proto;
   llvm::Type* t_jit_proto_ptr;
 
-  VMModule();
+  BaseLuaModule();
 
   llvm::orc::ThreadSafeModule Load(llvm::orc::ThreadSafeContext context);
 
@@ -95,9 +95,9 @@ public:
 
   OPFunctionVariant* op_func(int opcode, hint_t hint);
 
-  void PrepareVMFunctions(VMModule& vm, llvm::Module* module);
+  void PrepareVMFunctions(BaseLuaModule& vm, llvm::Module* module);
 
-  void PrepareVMOpcodes(VMModule& vm, llvm::LLVMContext& context, llvm::Module* module);
+  void PrepareVMOpcodes(BaseLuaModule& vm, llvm::LLVMContext& context, llvm::Module* module);
 
 private:
   std::unordered_map<const char*, llvm::Function*> functions;
@@ -106,7 +106,7 @@ private:
   void
   CreateFunctionDecl(llvm::Module* module, llvm::Type* result, llvm::ArrayRef<llvm::Type*> params, const char* name);
 
-  llvm::Type* GetVarType(VMModule& vm, llvm::LLVMContext& context, val_t type, hint_t hints);
+  llvm::Type* GetVarType(BaseLuaModule& vm, llvm::LLVMContext& context, val_t type, hint_t hints);
 };
 
 }

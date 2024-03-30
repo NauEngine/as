@@ -10,9 +10,9 @@
 
 #include <string>
 
-#include "Utils.h"
+#include "core_utils.h"
 
-namespace as
+namespace as::utils
 {
   std::string GetErrorMessage(llvm::Error error)
   {

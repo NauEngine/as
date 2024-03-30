@@ -5,7 +5,7 @@
 #include <chrono>
 #include <thread>
 
-#include "as/core/Core.h"
+#include "as/core/core.h"
 #include "Runtime.h"
 #include "Logger.h"
 

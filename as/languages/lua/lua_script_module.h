@@ -2,10 +2,10 @@
 // Created by Alex Zelenshikov on 21.03.2024.
 //
 
-#ifndef AS_PROTO_LUASCRIPTMODULE_H
-#define AS_PROTO_LUASCRIPTMODULE_H
+#ifndef AS_PROTO_LUA_SCRIPT_MODULE_H
+#define AS_PROTO_LUA_SCRIPT_MODULE_H
 
-#include "as/core/ScriptModule.h"
+#include "as/core/script_module.h"
 
 struct lua_State;
 
@@ -24,4 +24,4 @@ namespace as
   };
 }
 
-#endif //AS_PROTO_LUASCRIPTMODULE_H
+#endif //AS_PROTO_LUA_SCRIPT_MODULE_H

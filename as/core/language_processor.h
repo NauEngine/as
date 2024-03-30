@@ -2,8 +2,8 @@
 // Created by Alex Zelenshikov on 06.02.2024.
 //
 
-#ifndef AS_PROTO_LANGUAGEPROCESSOR_H
-#define AS_PROTO_LANGUAGEPROCESSOR_H
+#ifndef AS_PROTO_LANGUAGE_PROCESSOR_H
+#define AS_PROTO_LANGUAGE_PROCESSOR_H
 
 #include <string>
 
@@ -26,4 +26,4 @@ namespace as
   };
 } // namespace as
 
-#endif //AS_PROTO_LANGUAGEPROCESSOR_H
+#endif //AS_PROTO_LANGUAGE_PROCESSOR_H

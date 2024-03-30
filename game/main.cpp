@@ -3,8 +3,8 @@
 //
 #include <string>
 #include "engine/Runtime.h"
-#include "as/core/Core.h"
-#include "as/languages/lua/LuaLanguageProcessor.h"
+#include "as/core/core.h"
+#include "as/languages/lua/lua_language_processor.h"
 
 //extern "C"
 //{

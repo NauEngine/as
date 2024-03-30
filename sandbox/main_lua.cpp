@@ -1,9 +1,9 @@
 #include <iostream>
 
-#include "as/core/Core.h"
-#include "as/languages/lua/LuaLanguageProcessor.h"
-#include "as/languages/lua/LuaScriptModule.h"
-#include "as/languages/lua/LLVMCompiler.h"
+#include "as/core/core.h"
+#include "as/languages/lua/lua_language_processor.h"
+#include "as/languages/lua/lua_script_module.h"
+#include "as/languages/lua/llvm_compiler.h"
 
 extern "C"
 {

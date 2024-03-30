@@ -5,9 +5,9 @@
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 
 #include <iostream>
-#include "LuaLanguageProcessor.h"
-#include "LuaScriptModule.h"
-#include "LLVMCompiler.h"
+#include "lua_language_processor.h"
+#include "lua_script_module.h"
+#include "llvm_compiler.h"
 
 extern "C"
 {

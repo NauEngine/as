@@ -1,9 +1,11 @@
 
 add_library(AScript STATIC
-    core/Core.cpp
-    core/Core.h
-    core/ScriptModule.h
-    core/LanguageProcessor.h
+    core/core.cpp
+    core/core.h
+    core/script_module.h
+    core/language_processor.h
+    core/core_utils.cpp
+    core/core_utils.h
 )
 
 target_include_directories(AScript PUBLIC "${CMAKE_SOURCE_DIR}")

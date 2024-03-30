@@ -144,10 +144,10 @@
 
 
 /*
-@@ LUA_API is a mark for all core API functions.
+@@ LUA_API is a mark for all Core API functions.
 @@ LUALIB_API is a mark for all standard library functions.
 ** CHANGE them if you need to define those functions in some special way.
-** For instance, if you want to create one Windows DLL with the core and
+** For instance, if you want to create one Windows DLL with the Core and
 ** the libraries, you may want to use the following definition (define
 ** LUA_BUILD_AS_DLL to get it).
 */
@@ -165,7 +165,7 @@
 
 #endif
 
-/* more often than not the libs go together with the core */
+/* more often than not the libs go together with the Core */
 #define LUALIB_API	LUA_API
 
 

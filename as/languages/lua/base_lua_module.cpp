@@ -5,22 +5,22 @@
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
 #include <assert.h>
 
-#include "VMModule.h"
-#include "Utils.h"
+#include "base_lua_module.h"
+#include "as/core/core_utils.h"
 #include "lua_vm_ops_bc.h"
 
 namespace as
 {
 
-VMModule::VMModule()
+BaseLuaModule::BaseLuaModule()
 {
 
 }
 
-llvm::orc::ThreadSafeModule VMModule::Load(llvm::orc::ThreadSafeContext ts_context)
+llvm::orc::ThreadSafeModule BaseLuaModule::Load(llvm::orc::ThreadSafeContext ts_context)
 {
   llvm::LLVMContext& context = *ts_context.getContext();
-  auto module = LoadEmbeddedBitcode(context, "lua_vm_ops_bc", lua_vm_ops_bc, sizeof(lua_vm_ops_bc));
+  auto module = utils::LoadEmbeddedBitcode(context, "lua_vm_ops_bc", lua_vm_ops_bc, sizeof(lua_vm_ops_bc));
   llvm::errs() << *module;
 
   CollectVMTypes(context, module->getDataLayout());
@@ -28,7 +28,7 @@ llvm::orc::ThreadSafeModule VMModule::Load(llvm::orc::ThreadSafeContext ts_conte
   return {std::move(module), ts_context};
 }
 
-std::unique_ptr<VMModuleForwardDecl>  VMModule::PrepareForwardDeclarations(llvm::Module* module)
+std::unique_ptr<VMModuleForwardDecl>  BaseLuaModule::PrepareForwardDeclarations(llvm::Module* module)
 {
   auto decls = std::make_unique<VMModuleForwardDecl>();
 
@@ -38,7 +38,7 @@ std::unique_ptr<VMModuleForwardDecl>  VMModule::PrepareForwardDeclarations(llvm:
   return std::move(decls);
 }
 
-void VMModule::CollectVMTypes(llvm::LLVMContext& context, const llvm::DataLayout& data_layout)
+void BaseLuaModule::CollectVMTypes(llvm::LLVMContext& context, const llvm::DataLayout& data_layout)
 {
   t_int8 = llvm::Type::getInt8Ty(context);
   t_int16 = llvm::Type::getInt16Ty(context);
@@ -125,7 +125,7 @@ void VMModule::CollectVMTypes(llvm::LLVMContext& context, const llvm::DataLayout
   t_jit_proto_ptr = llvm::PointerType::get(t_jit_proto, 0);
 }
 
-std::unique_ptr<VMModule::ConstStruct> VMModule::CreateConstStruct(llvm::LLVMContext& context, unsigned pad_size, const char* name, llvm::Type* type)
+std::unique_ptr<BaseLuaModule::ConstStruct> BaseLuaModule::CreateConstStruct(llvm::LLVMContext& context, unsigned pad_size, const char* name, llvm::Type* type)
 {
   auto const_struct = std::make_unique<ConstStruct>();
 
@@ -148,7 +148,7 @@ std::unique_ptr<VMModule::ConstStruct> VMModule::CreateConstStruct(llvm::LLVMCon
 }
 
 
-void VMModuleForwardDecl::PrepareVMFunctions(VMModule& vm, llvm::Module* module)
+void VMModuleForwardDecl::PrepareVMFunctions(BaseLuaModule& vm, llvm::Module* module)
 {
   CreateFunctionDecl(module, vm.t_void, {vm.t_lua_State_ptr, vm.t_LClosure_ptr, vm.t_int32}, "vm_next_OP");
   CreateFunctionDecl(module, vm.t_void, {vm.t_lua_State_ptr, vm.t_LClosure_ptr, vm.t_int32, vm.t_int32}, "vm_print_OP");
@@ -170,7 +170,7 @@ void VMModuleForwardDecl::CreateFunctionDecl(llvm::Module* module, llvm::Type *r
                                       llvm::Function::ExternalLinkage, name, module);
 }
 
-void VMModuleForwardDecl::PrepareVMOpcodes(VMModule& vm, llvm::LLVMContext& context, llvm::Module* module)
+void VMModuleForwardDecl::PrepareVMOpcodes(BaseLuaModule& vm, llvm::LLVMContext& context, llvm::Module* module)
 {
   for (int i = 0; true; ++i)
   {
@@ -198,7 +198,7 @@ void VMModuleForwardDecl::PrepareVMOpcodes(VMModule& vm, llvm::LLVMContext& cont
   }
 }
 
-llvm::Type* VMModuleForwardDecl::GetVarType(VMModule& vm, llvm::LLVMContext& context, val_t type, hint_t hints)
+llvm::Type* VMModuleForwardDecl::GetVarType(BaseLuaModule& vm, llvm::LLVMContext& context, val_t type, hint_t hints)
 {
   switch(type) {
     case VAR_T_VOID:

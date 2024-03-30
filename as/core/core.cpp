@@ -8,8 +8,8 @@
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 
-#include "Core.h"
-#include "LanguageProcessor.h"
+#include "core.h"
+#include "language_processor.h"
 
 namespace
 {

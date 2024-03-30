@@ -2,14 +2,14 @@
 // Created by Alex Zelenshikov on 06.02.2024.
 //
 
-#ifndef AS_PROTO_LUALANGUAGEPROCESSOR_H
-#define AS_PROTO_LUALANGUAGEPROCESSOR_H
+#ifndef AS_PROTO_LUA_LANGUAGE_PROCESSOR_H
+#define AS_PROTO_LUA_LANGUAGE_PROCESSOR_H
 
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/ExecutionEngine/Orc/Core.h"
 
-#include "as/core/LanguageProcessor.h"
-#include "VMModule.h"
+#include "as/core/language_processor.h"
+#include "base_lua_module.h"
 
 struct lua_State;
 
@@ -27,7 +27,7 @@ namespace as
     std::shared_ptr<IScriptModule> RegisterScriptModule(const std::string& filename) override;
     void InsertModulesInto(llvm::orc::LLJIT* jit) override;
   private:
-    VMModule vm_module;
+    BaseLuaModule vm_module;
     llvm::orc::ThreadSafeContext ts_context;
 
     llvm::orc::ThreadSafeModule ts_vm_module;
@@ -43,4 +43,4 @@ namespace as
 
 } // as
 
-#endif //AS_PROTO_LUALANGUAGEPROCESSOR_H
+#endif //AS_PROTO_LUA_LANGUAGE_PROCESSOR_H

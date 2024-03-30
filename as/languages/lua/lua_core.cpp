@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-#include "LuaCore.h"
+#include "lua_core.h"
 
 #include "lua/lapi.c"
 #include "lua/lcode.c"
