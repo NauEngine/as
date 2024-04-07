@@ -6,6 +6,7 @@ add_library(AScript STATIC
     core/language_processor.h
     core/core_utils.cpp
     core/core_utils.h
+        core/errors.h
 )
 
 target_include_directories(AScript PUBLIC "${CMAKE_SOURCE_DIR}")

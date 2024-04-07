@@ -10,12 +10,14 @@
 
 #include "as/core/language_processor.h"
 #include "base_lua_module.h"
+#include "llvm_compiler.h"
 
 struct lua_State;
 
 namespace as
 {
   class LLVMCompiler;
+  class LuaScriptModule;
 
   class LuaLanguageProcessor : public ILanguageProcessor
   {
@@ -24,19 +26,24 @@ namespace as
     ~LuaLanguageProcessor() override;
 
     // TODO shared or unique here?
-    std::shared_ptr<IScriptModule> RegisterScriptModule(const std::string& filename) override;
-    void InsertModulesInto(llvm::orc::LLJIT* jit) override;
+    std::shared_ptr<IScriptModule> newScriptModule() override;
+    void insertModulesInto(llvm::orc::LLJIT* jit) override;
+
+    llvm::Expected<std::string> getFunctionName(const std::string& filename, const std::string& name) override;
+
   private:
-    BaseLuaModule vm_module;
+    BaseLuaModule base_lua_module;
     llvm::orc::ThreadSafeContext ts_context;
 
     llvm::orc::ThreadSafeModule ts_vm_module;
     std::unordered_map<std::string, std::unique_ptr<llvm::Module>> modules;
 
-    llvm::orc::ResourceTrackerSP vm_module_tracker;
-    std::unordered_map<std::string, llvm::orc::ResourceTrackerSP> trackers;
+//    llvm::orc::ResourceTrackerSP vm_module_tracker;
+//    std::unordered_map<std::string, llvm::orc::ResourceTrackerSP> trackers;
 
-    std::unique_ptr<LLVMCompiler> compiler;
+    LLVMCompiler compiler;
+
+    std::vector<std::shared_ptr<LuaScriptModule>> script_modules;
 
     lua_State* lua_state = nullptr;
   };

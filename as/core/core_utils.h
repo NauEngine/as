@@ -11,6 +11,8 @@ namespace as::utils
 
   std::unique_ptr<llvm::Module> LoadEmbeddedBitcode(llvm::LLVMContext &context,
                                                     const char *name, const unsigned char *start, size_t len);
+
+  std::string GenerateModuleName(std::string filename);
 }
 
 #endif //AS_PROTO_CORE_UTILS_H

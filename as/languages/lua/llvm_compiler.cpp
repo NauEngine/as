@@ -46,6 +46,8 @@
 #include "llvm_compiler.h"
 #include "base_lua_module.h"
 
+#include "as/core/core_utils.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -152,21 +154,8 @@ llvm::Value* LLVMCompiler::GetProtoConstant(llvm::LLVMContext& context, TValue *
 
 LLVMCompiler::LLVMCompiler()
 {
-	if (OpCodeStats)
-  {
-		opcode_stats = new int[NUM_OPCODES];
-		for(int i = 0; i < NUM_OPCODES; i++) {
-			opcode_stats[i] = 0;
-		}
-	}
-
-	if (RunOpCodeStats)
-	{
-		for (int i = 0; i < NUM_OPCODES; i++)
-		{
-			vm_op_run_count[i] = 0;
-		}
-	}
+	memset(opcode_stats, 0, NUM_OPCODES * sizeof(int));
+	memset(vm_op_run_count, 0, NUM_OPCODES * sizeof(int)); // TODO wierd init of external global
 }
 
 void print_opcode_stats(int *stats, const char *stats_name) {
@@ -197,14 +186,13 @@ void print_opcode_stats(int *stats, const char *stats_name) {
 	}
 }
 
-LLVMCompiler::~LLVMCompiler() {
-	std::string error;
-	// print opcode stats.
+LLVMCompiler::~LLVMCompiler()
+{
 	if (OpCodeStats)
 	{
 		print_opcode_stats(opcode_stats, "Compiled OpCode counts");
-		delete opcode_stats;
 	}
+
 	if (RunOpCodeStats)
 	{
 		print_opcode_stats(vm_op_run_count, "Compiled OpCode counts");
@@ -221,8 +209,10 @@ void LLVMCompiler::ResizeOpcodeData(int code_len)
 	ClearOpcodeData(code_len);
 }
 
-void LLVMCompiler::ClearOpcodeData(int code_len) {
-	for(int i = 0; i < code_len; i++) {
+void LLVMCompiler::ClearOpcodeData(int code_len)
+{
+	for (int i = 0; i < code_len; ++i)
+	{
 		op_hints[i] = HINT_NONE;
 		op_values[i] = nullptr;
 		op_blocks[i] = nullptr;
@@ -230,38 +220,34 @@ void LLVMCompiler::ClearOpcodeData(int code_len) {
 	}
 }
 
-std::string LLVMCompiler::GenerateModuleName(Proto *p)
+std::string LLVMCompiler::GenerateFunctionName(Proto *p)
 {
-  std::string name = getstr(p->source);
+  std::string filename = getstr(p->source);
 
-  if(name.size() > 32) {
-    name = name.substr(0,32);
-  }
-  // replace non-alphanum characters with '_'
-  for(size_t n = 0; n < name.size(); n++) {
-    char c = name[n];
-    if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
-      continue;
-    }
-    if(c == '\n' || c == '\r') {
-      name = name.substr(0,n);
-      break;
-    }
-    name[n] = '_';
-  }
+  std::string name = utils::GenerateModuleName(filename);
+
+  char name_buf[128];
+  snprintf(name_buf, 128, "_%d_%d", p->linedefined, p->lastlinedefined);
+  name += name_buf;
+
+	char name_buf_2[128];
+	memset(name_buf_2, 0, 128);
+	luaO_chunkid(name_buf_2, getstr(p->source), 128);
 
   return name;
 }
 
-std::string LLVMCompiler::GenerateFunctionName(Proto *p)
+llvm::Expected<std::string> LLVMCompiler::getFunctionName(const std::string& filename, const std::string& name)
 {
-  std::string name = GenerateModuleName(p);
+	if (function_aliases.contains(filename))
+	{
+		if (function_aliases[filename].contains(name))
+		{
+			return function_aliases[filename][name];
+		}
+	}
 
-  char name_buf[128];
-  snprintf(name_buf,128,"_%d_%d",p->linedefined, p->lastlinedefined);
-  name += name_buf;
-
-  return name;
+	return llvm::createStringError(llvm::inconvertibleErrorCode(), "Function not found");
 }
 
 void LLVMCompiler::FindBasicBlockPoints(llvm::LLVMContext& context, llvm::IRBuilder<>& builder, BuildContext& bcontext)
@@ -619,8 +605,8 @@ void LLVMCompiler::InsertDebugCalls(VMModuleForwardDecl* decl, llvm::LLVMContext
 
 std::unique_ptr<llvm::Module> LLVMCompiler::Compile(llvm::LLVMContext& context, BaseLuaModule& vm_module, lua_State *L, Proto *p)
 {
-	auto func_name = GenerateModuleName(p);
-	auto module = std::make_unique<llvm::Module>(func_name, context);
+	auto module_name = utils::GenerateModuleName(getstr(p->source));
+	auto module = std::make_unique<llvm::Module>(module_name, context);
 	auto decl = vm_module.PrepareForwardDeclarations(module.get());
 
   CompileSingleProto(context, vm_module, module.get(), decl.get(), L, p);

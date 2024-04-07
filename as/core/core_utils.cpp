@@ -51,5 +51,26 @@ namespace as::utils
 
     return nullptr;
   }
+
+  std::string GenerateModuleName(std::string filename)
+  {
+    if(filename.size() > 32) {
+      filename = filename.substr(0,32);
+    }
+    // replace non-alphanum characters with '_'
+    for(size_t n = 0; n < filename.size(); n++) {
+      char c = filename[n];
+      if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
+        continue;
+      }
+      if(c == '\n' || c == '\r') {
+        filename = filename.substr(0,n);
+        break;
+      }
+      filename[n] = '_';
+    }
+
+    return filename;
+  }
 }
 

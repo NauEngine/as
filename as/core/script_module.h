@@ -15,6 +15,15 @@ namespace as
 
     virtual void RunScript() = 0;
     virtual void RunFunction() = 0;
+
+    // TODO [AZ] add function signature
+    virtual void setInterface(const std::vector<std::string>& func_names) = 0;
+    virtual void load(const std::string& filename) = 0;
+
+    virtual llvm::Expected<std::string> getEntryPointAlias() = 0;
+    virtual llvm::Expected<std::string> getFunctionAlias(const std::string& func_name) = 0;
+
+    //virtual void InsertModuleInto(llvm::orc::LLJIT* jit) = 0;
   };
 
 } // as

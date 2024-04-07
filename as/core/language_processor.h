@@ -5,7 +5,10 @@
 #ifndef AS_PROTO_LANGUAGE_PROCESSOR_H
 #define AS_PROTO_LANGUAGE_PROCESSOR_H
 
+#include "llvm/Support/Error.h"
+
 #include <string>
+#include "errors.h"
 
 namespace llvm::orc
 {
@@ -21,8 +24,11 @@ namespace as
   public:
     virtual ~ILanguageProcessor() = default;
 
-    virtual std::shared_ptr<IScriptModule> RegisterScriptModule(const std::string& filename) = 0;
-    virtual void InsertModulesInto(llvm::orc::LLJIT* jit) = 0;
+    virtual std::shared_ptr<IScriptModule> newScriptModule() = 0;
+    virtual void insertModulesInto(llvm::orc::LLJIT* jit) = 0;
+
+    // empty name for entry point
+    virtual llvm::Expected<std::string> getFunctionName(const std::string& filename, const std::string& name) = 0;
   };
 } // namespace as
 

@@ -11,4 +11,15 @@ function update()
     counter = counter + 1
 end
 
+local function test()
+    print("test 1")
+end
+
+local function test()
+    print("test 2")
+end
+
 print("Global print")
+--_G["test"]()
+test()
+

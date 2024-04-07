@@ -18,18 +18,22 @@ extern "C"
 
 int main()
 {
-  as::Core script_core;
+  auto script_core = std::make_shared<as::Core>();
 
   auto lua_processor = std::make_unique<as::LuaLanguageProcessor>();
 
-  script_core.RegisterLanguage("lua", std::move(lua_processor));
-  auto script_module = script_core.RegisterScriptModule("../../sandbox/scripts/test.lua", "lua");
+  script_core->registerLanguage("lua", std::move(lua_processor));
+  auto script_module = script_core->registerScriptModule("../../sandbox/scripts/test.lua", "lua");
+
+  script_core->loadModulesIntoJit();
 
   script_module->RunScript();
   script_module->RunFunction();
   script_module->RunFunction();
   script_module->RunFunction();
   script_module->RunFunction();
+
+  script_core = nullptr;
 
   return 0;
 }

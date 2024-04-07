@@ -63,7 +63,7 @@ private:
 	{
 		Instruction* code = nullptr;
 		TValue* k = nullptr;
-		int code_len;
+		int code_len = 0;
 		int strip_ops = 0;
 
 		llvm::Value* func_L = nullptr;
@@ -75,13 +75,15 @@ private:
 	bool strip_code = false;
 
 	// count compiled opcodes.
-	int* opcode_stats;
+	int opcode_stats[NUM_OPCODES];
 
 	// opcode hints/values/blocks/need_block arrays used in compile() method.
 	std::vector<hint_t> op_hints;
 	std::vector<std::unique_ptr<OPValues>> op_values;
 	std::vector<llvm::BasicBlock*> op_blocks;
 	std::vector<bool> need_op_block;
+
+	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> function_aliases;
 
 	// Options
 	bool dump_compiled = false;
@@ -112,9 +114,10 @@ public:
 	void SetStripCode(bool strip) { strip_code = strip; }
 	void SetDumpCompiled(bool dump) { dump_compiled = dump; }
 
+	llvm::Expected<std::string> getFunctionName(const std::string& filename, const std::string& name);
+
 	llvm::Value* GetProtoConstant(llvm::LLVMContext& context, TValue* constant);
 
-  std::string GenerateModuleName(Proto* p);
 	std::string GenerateFunctionName(Proto* p);
 
 	std::unique_ptr<llvm::Module> Compile(llvm::LLVMContext& context, BaseLuaModule& vm_module, lua_State* L, Proto* p);

@@ -7,7 +7,6 @@
 #include <iostream>
 #include "lua_language_processor.h"
 #include "lua_script_module.h"
-#include "llvm_compiler.h"
 
 extern "C"
 {
@@ -23,8 +22,6 @@ namespace
   llvm::ExitOnError ExitOnErr;
 }
 
-#define toproto(L,i) (clvalue(L->top+(i))->l.p)
-
 namespace as
 {
   LuaLanguageProcessor::LuaLanguageProcessor()
@@ -32,11 +29,10 @@ namespace as
     lua_state = luaL_newstate();
     luaL_openlibs(lua_state);
 
-    compiler = std::make_unique<LLVMCompiler>();
-    compiler->SetDumpCompiled(true);
+    compiler.SetDumpCompiled(true);
 
     ts_context = std::make_unique<llvm::LLVMContext>();
-    ts_vm_module = vm_module.Load(ts_context);
+    ts_vm_module = base_lua_module.Load(ts_context);
   }
 
   LuaLanguageProcessor::~LuaLanguageProcessor()
@@ -48,34 +44,30 @@ namespace as
     }
   }
 
-  std::shared_ptr<IScriptModule> LuaLanguageProcessor::RegisterScriptModule(const std::string& filename)
+  std::shared_ptr<IScriptModule> LuaLanguageProcessor::newScriptModule()
   {
-    luaL_loadfile(lua_state, filename.c_str());
-    Proto* proto = toproto(lua_state, -1);
-    auto module = compiler->Compile(*ts_context.getContext(), vm_module, lua_state, proto);
-    modules[filename] = std::move(module);
-
-    // TODO [AZ]
-    //		auto func_addr = ExitOnErr(jit->lookup(func_name));
-    //		//p->jit_func = func_addr.toPtr<lua_CFunction>();
-
-
-    auto script_module = std::make_shared<LuaScriptModule>(lua_state);
+    auto script_module = std::make_shared<LuaScriptModule>(ts_context, lua_state, compiler, base_lua_module);
+    script_modules.push_back(script_module);
     return script_module;
   }
 
-  void LuaLanguageProcessor::InsertModulesInto(llvm::orc::LLJIT* jit)
+  void LuaLanguageProcessor::insertModulesInto(llvm::orc::LLJIT* jit)
   {
-    vm_module_tracker = jit->getMainJITDylib().createResourceTracker();
+    auto vm_module_tracker = jit->getMainJITDylib().createResourceTracker();
     ExitOnErr(jit->addIRModule(vm_module_tracker, std::move(ts_vm_module)));
 
-    for (auto& [file, module] : modules)
+    for (auto& script_module : script_modules)
     {
       auto rt = jit->getMainJITDylib().createResourceTracker();
-      ExitOnErr(jit->addIRModule(rt, {std::move(module), ts_context}));
-      trackers[file] = rt;
+      ExitOnErr(jit->addIRModule(rt, {std::move(script_module->acquireModule()), ts_context}));
+      //trackers[file] = rt;
     }
 
     modules.clear();
+  }
+
+  llvm::Expected<std::string> LuaLanguageProcessor::getFunctionName(const std::string& filename, const std::string& name)
+  {
+    return compiler.getFunctionName(filename, name);
   }
 } // as

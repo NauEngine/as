@@ -10,6 +10,7 @@
 
 #include "core.h"
 #include "language_processor.h"
+#include "script_module.h"
 
 namespace
 {
@@ -26,6 +27,10 @@ namespace as
     llvm::InitializeAllAsmParsers();
 
     jit = ExitOnErr(llvm::orc::LLJITBuilder().create());
+
+//    auto func_addr = ExitOnErr(jit->lookup("test"));
+//    p->jit_func = func_addr.toPtr<lua_CFunction>();
+
   }
 
   Core::~Core()
@@ -33,15 +38,25 @@ namespace as
     llvm::llvm_shutdown();
   }
 
-  void Core::RegisterLanguage(const std::string& language_name, std::unique_ptr<ILanguageProcessor> processor)
+  void Core::registerLanguage(const std::string& language_name, std::unique_ptr<ILanguageProcessor> processor)
   {
     processors[language_name] = std::move(processor);
   }
 
-  std::shared_ptr<IScriptModule>  Core::RegisterScriptModule(const std::string& filename, const std::string& language_name)
+  std::shared_ptr<IScriptModule> Core::registerScriptModule(const std::string& filename, const std::string& language_name)
   {
     // TODO make error handling
-    return processors[language_name]->RegisterScriptModule(filename);
+    auto script_module = processors[language_name]->newScriptModule();
+    script_module->load(filename);
+    return script_module;
+  }
+
+  void Core::loadModulesIntoJit()
+  {
+    for (auto& [name, processor] : processors)
+    {
+      processor->insertModulesInto(jit.get());
+    }
   }
 
   void Core::Init()

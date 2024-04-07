@@ -6,6 +6,7 @@
 #define AS_PROTO_CORE_H
 
 #include <map>
+#include <unordered_set>
 
 namespace llvm::orc
 {
@@ -23,15 +24,18 @@ namespace as
     Core();
     ~Core();
 
-    void RegisterLanguage(const std::string& language_name, std::unique_ptr<ILanguageProcessor> processor);
-    std::shared_ptr<IScriptModule> RegisterScriptModule(const std::string& filename, const std::string& language_name);
+    void registerLanguage(const std::string& language_name, std::unique_ptr<ILanguageProcessor> processor);
+    std::shared_ptr<IScriptModule> registerScriptModule(const std::string& filename, const std::string& language_name);
+
+    // TODO temporary function until reimport is not implemented
+    void loadModulesIntoJit();
 
     void Init();
     void Update();
   private:
     std::unordered_map<std::string, std::unique_ptr<ILanguageProcessor>> processors;
 
-    std::unique_ptr<llvm::orc::LLJIT> jit;
+    std::shared_ptr<llvm::orc::LLJIT> jit;
   };
 
 } // as
