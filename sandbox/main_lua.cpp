@@ -32,9 +32,9 @@ int main()
 
   script_module->runScript();
   script_module->runFunction("update_1");
-  script_module->runFunction("update_2");
+  script_module->runFunctionN1("update_2", 1000);
   script_module->runFunction("update_1");
-  script_module->runFunction("update_2");
+  script_module->runFunctionN1("update_2", 2000);
 
   script_core = nullptr;
 

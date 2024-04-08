@@ -15,6 +15,7 @@ namespace as
 
     virtual void runScript() = 0;
     virtual void runFunction(const std::string& func) = 0;
+    virtual void runFunctionN1(const std::string& func, int n) = 0; // TODO experiment
 
     // TODO [AZ] add function signature
     virtual void setInterface(const std::vector<std::string>& interface) = 0;

@@ -32,5 +32,4 @@ int main()
       (std::make_index_sequence<MFA::ArgCount>{}));
 
   FunT func = &TestAppObject::TestMethod;
-
 }

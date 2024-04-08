@@ -7,7 +7,7 @@
 
 #include "base_lua_module.h"
 #include "as/core/core_utils.h"
-#include "lua_vm_ops_bc.h"
+#include "bc/lua_vm_ops_bc.h"
 
 namespace as
 {

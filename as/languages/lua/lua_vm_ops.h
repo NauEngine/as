@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-//#include "lua_core.h"
+#include "lua_core.h"
 #include "lua/lobject.h"
 
 typedef struct {

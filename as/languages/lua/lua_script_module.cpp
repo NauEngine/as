@@ -93,4 +93,14 @@ namespace as
       lua_call(lua_state, 0, LUA_MULTRET);
     }
   }
+
+  void LuaScriptModule::runFunctionN1(const std::string& func, int n)
+  {
+    if (func_refs[func] != LUA_NOREF)
+    {
+      lua_rawgeti(lua_state, LUA_REGISTRYINDEX, func_refs[func]);
+      lua_pushinteger(lua_state, n);
+      lua_call(lua_state, 1, LUA_MULTRET);
+    }
+  }
 }

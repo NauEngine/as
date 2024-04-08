@@ -7,9 +7,9 @@ function update_1()
     counter_1 = counter_1 + 1
 end
 
-function update_2()
-    print("Info from lua N2 " .. counter_2)
-    counter_2 = counter_2 + 1
+function update_2(num)
+    print("Info from lua N2 " .. counter_1 .. "  [" .. num .. "]")
+    counter_1 = counter_1 + 1
 end
 
 print("Global print")

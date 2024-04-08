@@ -36,6 +36,7 @@ namespace as
 
     void runScript() override;
     void runFunction(const std::string& func) override;
+    void runFunctionN1(const std::string& func, int n) override;
 
     // LuaScriptModule
     std::unique_ptr<llvm::Module> acquireModule();
