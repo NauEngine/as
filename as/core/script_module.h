@@ -13,11 +13,11 @@ namespace as
   public:
     virtual ~IScriptModule() = default;
 
-    virtual void RunScript() = 0;
-    virtual void RunFunction() = 0;
+    virtual void runScript() = 0;
+    virtual void runFunction(const std::string& func) = 0;
 
     // TODO [AZ] add function signature
-    virtual void setInterface(const std::vector<std::string>& func_names) = 0;
+    virtual void setInterface(const std::vector<std::string>& interface) = 0;
     virtual void load(const std::string& filename) = 0;
 
     virtual llvm::Expected<std::string> getEntryPointAlias() = 0;

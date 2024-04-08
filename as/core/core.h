@@ -25,7 +25,7 @@ namespace as
     ~Core();
 
     void registerLanguage(const std::string& language_name, std::unique_ptr<ILanguageProcessor> processor);
-    std::shared_ptr<IScriptModule> registerScriptModule(const std::string& filename, const std::string& language_name);
+    std::shared_ptr<IScriptModule> newScriptModule(const std::string& language_name);
 
     // TODO temporary function until reimport is not implemented
     void loadModulesIntoJit();

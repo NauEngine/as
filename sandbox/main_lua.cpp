@@ -23,15 +23,18 @@ int main()
   auto lua_processor = std::make_unique<as::LuaLanguageProcessor>();
 
   script_core->registerLanguage("lua", std::move(lua_processor));
-  auto script_module = script_core->registerScriptModule("../../sandbox/scripts/test.lua", "lua");
+  auto script_module = script_core->newScriptModule("lua");
+
+  script_module->setInterface({"update_1", "update_2"});
+  script_module->load("../../sandbox/scripts/test.lua");
 
   script_core->loadModulesIntoJit();
 
-  script_module->RunScript();
-  script_module->RunFunction();
-  script_module->RunFunction();
-  script_module->RunFunction();
-  script_module->RunFunction();
+  script_module->runScript();
+  script_module->runFunction("update_1");
+  script_module->runFunction("update_2");
+  script_module->runFunction("update_1");
+  script_module->runFunction("update_2");
 
   script_core = nullptr;
 

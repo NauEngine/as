@@ -43,11 +43,10 @@ namespace as
     processors[language_name] = std::move(processor);
   }
 
-  std::shared_ptr<IScriptModule> Core::registerScriptModule(const std::string& filename, const std::string& language_name)
+  std::shared_ptr<IScriptModule> Core::newScriptModule(const std::string& language_name)
   {
     // TODO make error handling
     auto script_module = processors[language_name]->newScriptModule();
-    script_module->load(filename);
     return script_module;
   }
 

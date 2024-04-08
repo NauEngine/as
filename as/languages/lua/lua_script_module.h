@@ -28,14 +28,14 @@ namespace as
     LuaScriptModule(llvm::orc::ThreadSafeContext& context, lua_State* state, LLVMCompiler& compiler, BaseLuaModule& base_lua_module);
 
     // IScriptModule
-    void setInterface(const std::vector<std::string>& func_names) override;
+    void setInterface(const std::vector<std::string>& funcs) override;
     void load(const std::string& filename) override;
 
     llvm::Expected<std::string> getEntryPointAlias() override;
     llvm::Expected<std::string> getFunctionAlias(const std::string& func_name) override;
 
-    void RunScript() override;
-    void RunFunction() override;
+    void runScript() override;
+    void runFunction(const std::string& func) override;
 
     // LuaScriptModule
     std::unique_ptr<llvm::Module> acquireModule();
@@ -47,6 +47,9 @@ namespace as
     LLVMCompiler& compiler;
     BaseLuaModule& base_lua_module;
     std::unique_ptr<llvm::Module> module;
+
+    std::vector<std::string> interface;
+    std::unordered_map<std::string, int> func_refs;
   };
 }
 

@@ -26,9 +26,9 @@ namespace as
 
   }
 
-  void LuaScriptModule::setInterface(const std::vector<std::string>& func_names)
+  void LuaScriptModule::setInterface(const std::vector<std::string>& funcs)
   {
-
+    interface = funcs;
   }
 
   void LuaScriptModule::load(const std::string& src)
@@ -38,6 +38,26 @@ namespace as
     luaL_loadfile(lua_state, filename.c_str());
     Proto* proto = toproto(lua_state, -1);
     module = compiler.Compile(*ts_context.getContext(), base_lua_module, lua_state, proto);
+
+    func_refs[""] = luaL_ref(lua_state, LUA_REGISTRYINDEX);
+    runScript();
+
+    for (const auto& signature : interface)
+    {
+      lua_getglobal(lua_state, signature.c_str());
+
+      auto t = lua_type(lua_state, -1);
+      t;
+
+      if (lua_type(lua_state, -1) == LUA_TFUNCTION)
+      {
+        func_refs[signature] = luaL_ref(lua_state, LUA_REGISTRYINDEX);
+      }
+      else
+      {
+        func_refs[signature] = LUA_NOREF;
+      }
+    }
 
     // TODO [AZ]
     //auto func_addr = ExitOnErr(jit->lookup(func_name));
@@ -59,14 +79,18 @@ namespace as
     return std::move(module);
   }
 
-  void LuaScriptModule::RunScript()
+  void LuaScriptModule::runScript()
   {
+    lua_rawgeti(lua_state, LUA_REGISTRYINDEX, func_refs[""]);
     lua_call(lua_state, 0, LUA_MULTRET);
   }
 
-  void LuaScriptModule::RunFunction()
+  void LuaScriptModule::runFunction(const std::string& func)
   {
-    lua_getglobal(lua_state, "update");
-    lua_call(lua_state, 0, 0);
+    if (func_refs[func] != LUA_NOREF)
+    {
+      lua_rawgeti(lua_state, LUA_REGISTRYINDEX, func_refs[func]);
+      lua_call(lua_state, 0, LUA_MULTRET);
+    }
   }
 }
