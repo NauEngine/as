@@ -16,6 +16,16 @@ extern "C"
 
 #define toproto(L,i) (clvalue(L->top+(i))->l.p)
 
+#define DEFINE_SCRIPT_INTERFACE(Class, I) I const char* __source_##Class = #I;
+
+DEFINE_SCRIPT_INTERFACE(TestScript,
+    struct TestScript
+    {
+      virtual void update_1() = 0;
+      virtual void update_2(int n) = 0;
+    };
+)
+
 int main()
 {
   auto script_core = std::make_shared<as::Core>();
