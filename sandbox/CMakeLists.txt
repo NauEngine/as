@@ -10,6 +10,7 @@ target_link_libraries(SandboxInterface ${llvm_libs}
     clangBasic
     clangFrontend
     clangCodeGen
+    clangAST
 )
 
 add_executable(Sandbox3 main3.cpp)

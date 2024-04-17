@@ -9,6 +9,12 @@
 //#include "clang/FrontendTool/Utils.h"
 //#include "clang/Tooling/Tooling.h"
 
+#include "clang/Frontend/Utils.h"
+#include "clang/Frontend/ASTConsumers.h"
+#include "clang/AST/ASTContext.h"
+#include "clang/AST/RecursiveASTVisitor.h"
+//#include "clang/Frontend/ASTFrontendAction.h"
+
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/CompilerInvocation.h"
 #include "clang/Frontend/TextDiagnosticPrinter.h"
@@ -47,12 +53,21 @@
 
 using namespace clang;
 
+template <typename T> const char* get_source_code();
+
+#define DEFINE_SCRIPT_INTERFACE(Name, I) \
+I \
+template <typename Name> const char* get_source_code() { return #I; }
+
+DEFINE_SCRIPT_INTERFACE(ScriptBase,
 struct ScriptBase
 {
   virtual int test1() = 0;
   virtual int test2(int n) = 0;
   virtual int test3(int a, int b) = 0;
+  virtual int test4(int a, int b, double c) = 0;
 };
+)
 
 // Implement in IR:
 //struct Script : public ScriptBase
@@ -62,16 +77,86 @@ struct ScriptBase
 //  int test3(int a, int b) override { return a + b; }
 //};
 
-std::unique_ptr<llvm::Module> compile_cpp_to_ir(llvm::LLVMContext& context, const std::string &code)
+class SimpleASTVisitor : public RecursiveASTVisitor<SimpleASTVisitor> {
+public:
+  explicit SimpleASTVisitor(ASTContext *Context)
+      : Context(Context) {}
+
+  void parse_function(FunctionDecl *FD)
+  {
+    if (FD->isPure())
+    {
+      llvm::outs() << " " << FD->getReturnType();
+      llvm::outs() << " " << FD->getNameInfo().getName().getAsString() << "(";
+
+      unsigned num_params = FD->getNumParams();
+      for (int i = 0; i < num_params; ++i)
+      {
+        llvm::outs() << FD->getParamDecl(i)->getType();
+
+        if (i < num_params - 1)
+        {
+          llvm::outs() << ", ";
+        }
+      }
+      llvm::outs() << ");\n";
+    }
+  }
+
+  bool VisitRecordDecl(RecordDecl *RD) {
+    if (RD->isThisDeclarationADefinition())
+    {
+      if (RD->isStruct())
+      {
+        llvm::outs() << "Struct: ";
+      } else if (RD->isClass()) {
+        llvm::outs() << "Class: ";
+      }
+      llvm::outs() << RD->getNameAsString() << "\n";
+
+      for (auto it = RD->decls_begin(); it != RD->decls_end(); ++it)
+      {
+        if (it->isFunctionOrFunctionTemplate())
+        {
+          parse_function(it->getAsFunction());
+        }
+      }
+    }
+    return true;
+  }
+
+private:
+  ASTContext *Context;
+};
+
+class SimpleASTConsumer : public ASTConsumer {
+public:
+  explicit SimpleASTConsumer(ASTContext *Context)
+      : Visitor(Context) {}
+
+  void HandleTranslationUnit(ASTContext &Context) override {
+    Visitor.TraverseDecl(Context.getTranslationUnitDecl());
+  }
+
+private:
+  SimpleASTVisitor Visitor;
+};
+
+class SimpleFrontendAction : public ASTFrontendAction {
+public:
+  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
+                                                 StringRef file) override {
+    return std::make_unique<SimpleASTConsumer>(&CI.getASTContext());
+  }
+};
+
+void parse_cpp(llvm::LLVMContext& context, const std::string &code)
 {
   CompilerInstance compiler;
   compiler.createDiagnostics();
 
   auto invocation= std::make_shared<CompilerInvocation>();
   auto mem_buffer = llvm::MemoryBuffer::getMemBuffer(code);
-
-//  CompilerInvocation::CreateFromArgs(*invocation, {"", "-x", "c++", "-std=c++17"}, compiler.getDiagnostics());
-  //CompilerInvocation::CreateFromArgs(*invocation, {}, compiler.getDiagnostics());
 
   invocation->getLangOpts()->CPlusPlus = true;
   invocation->getLangOpts()->CPlusPlus17 = true;
@@ -82,31 +167,12 @@ std::unique_ptr<llvm::Module> compile_cpp_to_ir(llvm::LLVMContext& context, cons
   invocation->getCodeGenOpts().CodeModel = "default";
   invocation->getTargetOpts().Triple = llvm::sys::getDefaultTargetTriple();
 
-//  invocation->getTargetOpts().Triple = "x86_64-unknown-linux-gnu";
-
-  for (const FrontendInputFile &FIF : invocation->getFrontendOpts().Inputs)
-  {
-    if (FIF.isBuffer())
-    {
-      int y = 5;
-    }
-    else
-    {
-      int y = 100;
-    }
-  }
-
-
   compiler.setInvocation(std::move(invocation));
 
-  EmitLLVMOnlyAction emitLLVM(&context);
-  if (!compiler.ExecuteAction(emitLLVM))
-  {
-    llvm::errs() << "Compilation failed!\n";
-    return nullptr;
+  SimpleFrontendAction Action;
+  if (!compiler.ExecuteAction(Action)) {
+    llvm::errs() << "Failed to parse!\n";
   }
-
-  return emitLLVM.takeModule();
 }
 
 std::unique_ptr<llvm::Module> create_module(llvm::LLVMContext& context)
@@ -182,19 +248,9 @@ int main()
 
   auto context = std::make_unique<llvm::LLVMContext>();
 
-  std::string code = R"cpp(
-      struct MyClass {
-      public:
-          int test1() { return 10; }
-          int test2(int n) { return n + 20; }
-      };
+  std::string code = get_source_code<ScriptBase>();
 
-      static const MyClass a;
-  )cpp";
-
-  // Компиляция кода в LLVM IR
-  auto cpp_module = compile_cpp_to_ir(*context.get(), code);
-  cpp_module->print(llvm::errs(), nullptr);
+  parse_cpp(*context.get(), code);
 
   auto module = create_module(*context.get());
 
@@ -208,4 +264,5 @@ int main()
   std::cout << script_instance->test1() << std::endl;
   std::cout << script_instance->test2(100) << std::endl;
   std::cout << script_instance->test3(3, 4) << std::endl;
+
 }
