@@ -4,13 +4,28 @@
 
 #include <iostream>
 
+//#include "clang/Frontend/ASTUnit.h"
+//#include "clang/Frontend/CompilerInstance.h"
+//#include "clang/FrontendTool/Utils.h"
+//#include "clang/Tooling/Tooling.h"
+
+#include "clang/Frontend/CompilerInstance.h"
+#include "clang/Frontend/CompilerInvocation.h"
+#include "clang/Frontend/TextDiagnosticPrinter.h"
+#include "clang/Basic/DiagnosticOptions.h"
+#include "clang/Basic/TargetOptions.h"
+#include "clang/Basic/TargetInfo.h"
+#include "clang/Frontend/Utils.h"
+#include "clang/Lex/PreprocessorOptions.h"
+#include "clang/CodeGen/CodeGenAction.h"
+
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/ExecutionEngine/GenericValue.h"
 #include "llvm/ExecutionEngine/MCJIT.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/Orc/Core.h"
-#include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
+#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/IR/Argument.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
@@ -27,6 +42,10 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/TargetParser/Host.h"
+
+
+using namespace clang;
 
 struct ScriptBase
 {
@@ -42,6 +61,53 @@ struct ScriptBase
 //  int test2(int n) override { return 20 + n; }
 //  int test3(int a, int b) override { return a + b; }
 //};
+
+std::unique_ptr<llvm::Module> compile_cpp_to_ir(llvm::LLVMContext& context, const std::string &code)
+{
+  CompilerInstance compiler;
+  compiler.createDiagnostics();
+
+  auto invocation= std::make_shared<CompilerInvocation>();
+  auto mem_buffer = llvm::MemoryBuffer::getMemBuffer(code);
+
+//  CompilerInvocation::CreateFromArgs(*invocation, {"", "-x", "c++", "-std=c++17"}, compiler.getDiagnostics());
+  //CompilerInvocation::CreateFromArgs(*invocation, {}, compiler.getDiagnostics());
+
+  invocation->getLangOpts()->CPlusPlus = true;
+  invocation->getLangOpts()->CPlusPlus17 = true;
+
+  invocation->getFrontendOpts().Inputs.push_back(FrontendInputFile(*mem_buffer, Language::CXX));
+  invocation->getFrontendOpts().ProgramAction = frontend::EmitLLVMOnly;
+  invocation->getFrontendOpts().DashX = InputKind(Language::CXX);
+  invocation->getCodeGenOpts().CodeModel = "default";
+  invocation->getTargetOpts().Triple = llvm::sys::getDefaultTargetTriple();
+
+//  invocation->getTargetOpts().Triple = "x86_64-unknown-linux-gnu";
+
+  for (const FrontendInputFile &FIF : invocation->getFrontendOpts().Inputs)
+  {
+    if (FIF.isBuffer())
+    {
+      int y = 5;
+    }
+    else
+    {
+      int y = 100;
+    }
+  }
+
+
+  compiler.setInvocation(std::move(invocation));
+
+  EmitLLVMOnlyAction emitLLVM(&context);
+  if (!compiler.ExecuteAction(emitLLVM))
+  {
+    llvm::errs() << "Compilation failed!\n";
+    return nullptr;
+  }
+
+  return emitLLVM.takeModule();
+}
 
 std::unique_ptr<llvm::Module> create_module(llvm::LLVMContext& context)
 {
@@ -115,6 +181,20 @@ int main()
   LLVMInitializeNativeAsmPrinter();
 
   auto context = std::make_unique<llvm::LLVMContext>();
+
+  std::string code = R"cpp(
+      struct MyClass {
+      public:
+          int test1() { return 10; }
+          int test2(int n) { return n + 20; }
+      };
+
+      static const MyClass a;
+  )cpp";
+
+  // Компиляция кода в LLVM IR
+  auto cpp_module = compile_cpp_to_ir(*context.get(), code);
+  cpp_module->print(llvm::errs(), nullptr);
 
   auto module = create_module(*context.get());
 
