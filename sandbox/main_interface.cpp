@@ -24,6 +24,8 @@
 #include "clang/Frontend/Utils.h"
 #include "clang/Lex/PreprocessorOptions.h"
 #include "clang/CodeGen/CodeGenAction.h"
+#include "clang/CodeGen/ModuleBuilder.h"
+#include "clang/CodeGen/CodeGenABITypes.h"
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
@@ -55,9 +57,9 @@ using namespace clang;
 
 template <typename T> const char* get_source_code();
 
-#define DEFINE_SCRIPT_INTERFACE(Name, I) \
+#define DEFINE_SCRIPT_INTERFACE(Type, I) \
 I \
-template <typename Name> const char* get_source_code() { return #I; }
+template <> const char* get_source_code<Type>() { return #I; }
 
 DEFINE_SCRIPT_INTERFACE(ScriptBase,
 struct ScriptBase
@@ -69,111 +71,151 @@ struct ScriptBase
 };
 )
 
-// Implement in IR:
-//struct Script : public ScriptBase
-//{
-//  int test1() override { return 10; }
-//  int test2(int n) override { return 20 + n; }
-//  int test3(int a, int b) override { return a + b; }
-//};
+DEFINE_SCRIPT_INTERFACE(ScriptFoo,
+struct ScriptFoo
+{
+  virtual void test1() = 0;
+  virtual int* test2(int a, int b, double c) = 0;
+};
+)
 
-class SimpleASTVisitor : public RecursiveASTVisitor<SimpleASTVisitor> {
+
+struct CPPInterface
+{
+  std::string name;
+  std::unordered_map<std::string, llvm::FunctionType*> methods;
+};
+
+using CPPInterfaces = std::unordered_map<std::string, std::unique_ptr<CPPInterface>>;
+
+class CollectInterfaceASTVisitor : public RecursiveASTVisitor<CollectInterfaceASTVisitor> {
 public:
-  explicit SimpleASTVisitor(ASTContext *Context)
-      : Context(Context) {}
+  CollectInterfaceASTVisitor(ASTContext *context, CPPInterfaces& interfaces,  CodeGen::CodeGenModule& cgm)
+      : context(context), interfaces(interfaces), cgm(cgm) {}
 
-  void parse_function(FunctionDecl *FD)
+  bool VisitRecordDecl(RecordDecl *RD)
   {
-    if (FD->isPure())
-    {
-      llvm::outs() << " " << FD->getReturnType();
-      llvm::outs() << " " << FD->getNameInfo().getName().getAsString() << "(";
-
-      unsigned num_params = FD->getNumParams();
-      for (int i = 0; i < num_params; ++i)
-      {
-        llvm::outs() << FD->getParamDecl(i)->getType();
-
-        if (i < num_params - 1)
-        {
-          llvm::outs() << ", ";
-        }
-      }
-      llvm::outs() << ");\n";
-    }
-  }
-
-  bool VisitRecordDecl(RecordDecl *RD) {
     if (RD->isThisDeclarationADefinition())
     {
-      if (RD->isStruct())
-      {
-        llvm::outs() << "Struct: ";
-      } else if (RD->isClass()) {
-        llvm::outs() << "Class: ";
-      }
-      llvm::outs() << RD->getNameAsString() << "\n";
+      auto interface = std::make_unique<CPPInterface>();
+      interface->name = RD->getNameAsString();
 
       for (auto it = RD->decls_begin(); it != RD->decls_end(); ++it)
       {
         if (it->isFunctionOrFunctionTemplate())
         {
-          parse_function(it->getAsFunction());
+          auto function = it->getAsFunction();
+
+          if (function->isPure())
+          {
+            auto function_type = convertFreeFunctionType(cgm, function);
+            auto func_name = function->getNameInfo().getName().getAsString();
+            interface->methods[func_name] = function_type;
+          }
         }
       }
+
+      interfaces[interface->name] = std::move(interface);
     }
+
     return true;
   }
 
 private:
-  ASTContext *Context;
+  ASTContext *context;
+  CPPInterfaces& interfaces;
+  CodeGen::CodeGenModule& cgm;
 };
 
-class SimpleASTConsumer : public ASTConsumer {
+class CollectInterfaceASTConsumer : public ASTConsumer {
 public:
-  explicit SimpleASTConsumer(ASTContext *Context)
-      : Visitor(Context) {}
+  explicit CollectInterfaceASTConsumer(ASTContext *Context, CPPInterfaces& interfaces, CodeGen::CodeGenModule& cgm)
+      : visitor(Context, interfaces, cgm) {}
 
   void HandleTranslationUnit(ASTContext &Context) override {
-    Visitor.TraverseDecl(Context.getTranslationUnitDecl());
+    visitor.TraverseDecl(Context.getTranslationUnitDecl());
   }
 
 private:
-  SimpleASTVisitor Visitor;
+  CollectInterfaceASTVisitor visitor;
 };
 
-class SimpleFrontendAction : public ASTFrontendAction {
+class CollectInterfaceAction : public ASTFrontendAction {
 public:
-  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
-                                                 StringRef file) override {
-    return std::make_unique<SimpleASTConsumer>(&CI.getASTContext());
+  explicit CollectInterfaceAction(CPPInterfaces& interfaces, llvm::LLVMContext& context)
+  : interfaces(interfaces), context(context) {}
+
+  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &compiler, StringRef file) override
+  {
+    code_gen.reset(CreateLLVMCodeGen(
+        compiler.getDiagnostics(), "types-converter",
+        &compiler.getVirtualFileSystem(), compiler.getHeaderSearchOpts(),
+        compiler.getPreprocessorOpts(), compiler.getCodeGenOpts(), context));
+
+    code_gen->Initialize(compiler.getASTContext());
+
+    CodeGen::CodeGenModule& cgm = code_gen->CGM();
+
+    return std::make_unique<CollectInterfaceASTConsumer>(&compiler.getASTContext(), interfaces, cgm);
   }
+private:
+  CPPInterfaces& interfaces;
+  std::unique_ptr<CodeGenerator> code_gen;
+  llvm::LLVMContext& context;
 };
 
-void parse_cpp(llvm::LLVMContext& context, const std::string &code)
+class CPPStructInterfaceParser
 {
-  CompilerInstance compiler;
-  compiler.createDiagnostics();
+public:
+  bool parse(llvm::LLVMContext& context, const std::string &code)
+  {
+    CompilerInstance compiler;
 
-  auto invocation= std::make_shared<CompilerInvocation>();
-  auto mem_buffer = llvm::MemoryBuffer::getMemBuffer(code);
+    auto invocation = std::make_shared<CompilerInvocation>();
+    auto mem_buffer = llvm::MemoryBuffer::getMemBuffer(code);
 
-  invocation->getLangOpts()->CPlusPlus = true;
-  invocation->getLangOpts()->CPlusPlus17 = true;
+    invocation->getLangOpts()->CPlusPlus = true;
+    invocation->getLangOpts()->CPlusPlus17 = true;
 
-  invocation->getFrontendOpts().Inputs.push_back(FrontendInputFile(*mem_buffer, Language::CXX));
-  invocation->getFrontendOpts().ProgramAction = frontend::EmitLLVMOnly;
-  invocation->getFrontendOpts().DashX = InputKind(Language::CXX);
-  invocation->getCodeGenOpts().CodeModel = "default";
-  invocation->getTargetOpts().Triple = llvm::sys::getDefaultTargetTriple();
+    invocation->getFrontendOpts().Inputs.push_back(FrontendInputFile(*mem_buffer, Language::CXX));
+    invocation->getFrontendOpts().ProgramAction = frontend::EmitLLVMOnly;
+    invocation->getFrontendOpts().DashX = InputKind(Language::CXX);
+    invocation->getCodeGenOpts().CodeModel = "default";
+    invocation->getTargetOpts().Triple = llvm::sys::getDefaultTargetTriple();
 
-  compiler.setInvocation(std::move(invocation));
+    compiler.setInvocation(std::move(invocation));
 
-  SimpleFrontendAction Action;
-  if (!compiler.ExecuteAction(Action)) {
-    llvm::errs() << "Failed to parse!\n";
+    compiler.createDiagnostics();
+    compiler.setTarget(TargetInfo::CreateTargetInfo(compiler.getDiagnostics(), compiler.getInvocation().TargetOpts));
+    compiler.createFileManager();
+    compiler.createSourceManager(compiler.getFileManager());
+    compiler.createPreprocessor(TU_Complete);
+
+    CollectInterfaceAction action(parsed_interfaces, context);
+    if (!compiler.ExecuteAction(action)) {
+      llvm::errs() << "Failed to parse!\n";
+      return false;
+    }
+
+    return true;
   }
-}
+
+  const CPPInterfaces& get_parsed_interfaces() { return parsed_interfaces; }
+  void dump(llvm::raw_fd_ostream& stream)
+  {
+    for(const auto& [name, interface] : parsed_interfaces)
+    {
+      stream << "Interface: " << name << "\n";
+
+      for(const auto& [method, signature] : interface->methods)
+      {
+        stream << "  " << method << " " << *signature << "\n";
+      }
+    }
+  }
+private:
+  CPPInterfaces parsed_interfaces;
+};
 
 std::unique_ptr<llvm::Module> create_module(llvm::LLVMContext& context)
 {
@@ -248,9 +290,15 @@ int main()
 
   auto context = std::make_unique<llvm::LLVMContext>();
 
-  std::string code = get_source_code<ScriptBase>();
+  std::string sb_code = get_source_code<ScriptBase>();
+  std::string foo_code = get_source_code<ScriptFoo>();
 
-  parse_cpp(*context.get(), code);
+  CPPStructInterfaceParser cpp_parser;
+
+  cpp_parser.parse(*context.get(), sb_code);
+  cpp_parser.parse(*context.get(), foo_code);
+
+  cpp_parser.dump(llvm::outs());
 
   auto module = create_module(*context.get());
 
@@ -264,5 +312,4 @@ int main()
   std::cout << script_instance->test1() << std::endl;
   std::cout << script_instance->test2(100) << std::endl;
   std::cout << script_instance->test3(3, 4) << std::endl;
-
 }
