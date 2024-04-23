@@ -5,6 +5,12 @@ macro(add_llvm_bc_library _target)
         set(_llvm_cflags ${_llvm_cflags} -I${_idir})
     endforeach(_idir)
 
+    #TODO make crossplatform temporary solution for macos only
+    set(_llvm_cflags ${_llvm_cflags} -isysroot ${CMAKE_OSX_SYSROOT})
+
+#    message("LLVM CFLAGS: ${_llvm_cflags}")
+#    message("CMAKE_OSX_SYSROOT: ${CMAKE_OSX_SYSROOT}")
+
     if(${ARGC} GREATER 2)
         message("BC 1")
         set(_bc_files)

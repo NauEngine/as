@@ -25,8 +25,8 @@ extern "C" {
 #include "lua/ltable.h"
 #include "lua/ltm.h"
 #include "lua/lvm.h"
-#include <stdio.h>
-#include <assert.h>
+//#include <stdio.h>
+//#include <assert.h>
 
 void vm_OP_MOVE(lua_State *L, int a, int b) {
   TValue *base = L->base;
