@@ -6,8 +6,9 @@ add_executable(Sandbox2 main2.cpp)
 target_link_libraries(Sandbox2 ${llvm_libs})
 
 add_executable(SandboxInterface main_interface.cpp)
-target_compile_options(SandboxInterface PUBLIC -fno-rtti)
-target_link_libraries(SandboxInterface ${llvm_libs}
+target_link_libraries(SandboxInterface
+    AScript
+    ${llvm_libs}
     clangBasic
     clangFrontend
     clangCodeGen
