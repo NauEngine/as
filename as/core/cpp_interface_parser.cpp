@@ -56,7 +56,7 @@ std::unique_ptr<clang::ASTConsumer> CollectInterfaceAction::CreateASTConsumer(cl
   return std::make_unique<CollectInterfaceASTConsumer>(&compiler.getASTContext(), interfaces, cgm);
 }
 
-std::shared_ptr<CPPInterface> CPPParser::get_interface(std::string_view name, std::string_view source_code)
+std::shared_ptr<CPPInterface> CPPParser::get_interface(const std::string& name, const std::string& source_code)
 {
   if (!parsed_interfaces.contains(name)) {
     parse(source_code);
@@ -65,7 +65,7 @@ std::shared_ptr<CPPInterface> CPPParser::get_interface(std::string_view name, st
   return parsed_interfaces[name];
 }
 
-void CPPParser::parse(std::string_view code)
+void CPPParser::parse(const std::string& code)
 {
   clang::CompilerInstance compiler;
 

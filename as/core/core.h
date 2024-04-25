@@ -28,7 +28,7 @@ namespace as
     ~Core();
 
     void registerLanguage(const std::string& language_name, std::shared_ptr<ILanguageProcessor> processor);
-    std::shared_ptr<ScriptModule> newScriptModule(const std::string& language_name);
+    std::shared_ptr<ScriptModule> newScriptModule(const std::string& language);
 
     std::shared_ptr<CPPParser> get_cpp_parser() { return cpp_interface_parser; }
 

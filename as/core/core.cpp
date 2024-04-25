@@ -44,7 +44,7 @@ namespace as
 
   void Core::registerLanguage(const std::string& language_name, std::shared_ptr<ILanguageProcessor> processor)
   {
-    processor->init(ts_context, cpp_interface_parser);
+    processor->init(jit, ts_context, cpp_interface_parser);
     processors[language_name] = std::move(processor);
   }
 
@@ -56,10 +56,10 @@ namespace as
 
   void Core::loadModulesIntoJit()
   {
-    for (auto& [name, processor] : processors)
-    {
-      processor->insertModulesInto(jit.get());
-    }
+//    for (auto& [name, processor] : processors)
+//    {
+//      processor->insertModulesInto(jit.get());
+//    }
   }
 
   void Core::Init()

@@ -55,7 +55,7 @@ namespace as
     lua_State* lua_state = nullptr;
 
     std::unique_ptr<llvm::Module> build_cpp_interface_module(std::shared_ptr<CPPInterface> interface);
-    std::unique_ptr<llvm::Module> build_cpp_interface_instance_module(std::string_view instance_name);
+    std::unique_ptr<llvm::Module> build_cpp_interface_instance_module(const std::string& instance_name);
   };
 
 } // as

@@ -61,7 +61,7 @@ namespace as
     return nullptr;
   }
 
-  std::unique_ptr<llvm::Module> LuaLanguageProcessor::build_cpp_interface_instance_module(std::string_view instance_name)
+  std::unique_ptr<llvm::Module> LuaLanguageProcessor::build_cpp_interface_instance_module(const std::string& instance_name)
   {
     return nullptr;
   }
