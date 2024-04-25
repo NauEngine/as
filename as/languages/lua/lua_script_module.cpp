@@ -64,16 +64,6 @@ namespace as
     //p->jit_func = func_addr.toPtr<lua_CFunction>();
   }
 
-  llvm::Expected<std::string> LuaScriptModule::getEntryPointAlias()
-  {
-    return compiler.getFunctionName(filename, "");
-  }
-
-  llvm::Expected<std::string> LuaScriptModule::getFunctionAlias(const std::string& func_name)
-  {
-    return compiler.getFunctionName(filename, func_name);
-  }
-
   std::unique_ptr<llvm::Module> LuaScriptModule::acquireModule()
   {
     return std::move(module);

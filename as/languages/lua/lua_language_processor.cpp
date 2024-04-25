@@ -3,10 +3,13 @@
 //
 
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
+#include "llvm/ExecutionEngine/Orc/Shared/ExecutorAddress.h"
 
 #include <iostream>
 #include "lua_language_processor.h"
 #include "lua_script_module.h"
+
+#include "as/core/cpp_interface_parser.h"
 
 extern "C"
 {
@@ -30,8 +33,12 @@ namespace as
     luaL_openlibs(lua_state);
 
     compiler.SetDumpCompiled(true);
+  }
 
-    ts_context = std::make_unique<llvm::LLVMContext>();
+  void LuaLanguageProcessor::init(llvm::orc::ThreadSafeContext context, std::shared_ptr<CPPParser> parser)
+  {
+    cpp_parser = parser;
+    ts_context = context;
     ts_vm_module = base_lua_module.Load(ts_context);
   }
 
@@ -42,6 +49,21 @@ namespace as
       lua_close(lua_state);
       lua_state = nullptr;
     }
+  }
+
+  llvm::Expected<llvm::orc::ExecutorAddr> LuaLanguageProcessor::new_instance(const char* type_name, const char* source_code)
+  {
+    auto cpp_interface = cpp_parser->get_interface(type_name, source_code);
+  }
+
+  std::unique_ptr<llvm::Module> LuaLanguageProcessor::build_cpp_interface_module(std::shared_ptr<CPPInterface> interface)
+  {
+    return nullptr;
+  }
+
+  std::unique_ptr<llvm::Module> LuaLanguageProcessor::build_cpp_interface_instance_module(std::string_view instance_name)
+  {
+    return nullptr;
   }
 
   std::shared_ptr<IScriptModule> LuaLanguageProcessor::newScriptModule()

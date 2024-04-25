@@ -119,15 +119,13 @@ int main()
 
   auto context = std::make_unique<llvm::LLVMContext>();
 
-  std::string sb_code = get_source_code<ScriptBase>();
-  std::string foo_code = get_source_code<ScriptFoo>();
+  as::CPPParser cpp_parser(*context.get());
 
-  as::CPPInterfaceParser cpp_parser;
+  auto iface_1 = cpp_parser.get_interface(get_type_name<ScriptBase>(), get_source_code<ScriptBase>());
+  auto iface_2 = cpp_parser.get_interface(get_type_name<ScriptFoo>(), get_source_code<ScriptFoo>());
 
-  cpp_parser.parse(*context.get(), sb_code);
-  cpp_parser.parse(*context.get(), foo_code);
-
-  cpp_parser.dump(llvm::outs());
+  iface_1->dump(llvm::outs());
+  iface_2->dump(llvm::outs());
 
   auto module = create_module(*context.get());
 

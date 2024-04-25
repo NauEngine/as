@@ -31,9 +31,6 @@ namespace as
     void setInterface(const std::vector<std::string>& funcs) override;
     void load(const std::string& filename) override;
 
-    llvm::Expected<std::string> getEntryPointAlias() override;
-    llvm::Expected<std::string> getFunctionAlias(const std::string& func_name) override;
-
     void runScript() override;
     void runFunction(const std::string& func) override;
     void runFunctionN1(const std::string& func, int n) override;

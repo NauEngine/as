@@ -9,10 +9,6 @@ add_executable(SandboxInterface main_interface.cpp)
 target_link_libraries(SandboxInterface
     AScript
     ${llvm_libs}
-    clangBasic
-    clangFrontend
-    clangCodeGen
-    clangAST
 )
 
 add_executable(Sandbox3 main3.cpp)

@@ -18,12 +18,17 @@ namespace as
 {
   class LLVMCompiler;
   class LuaScriptModule;
+  class CPPParser;
+  class CPPInterface;
 
   class LuaLanguageProcessor : public ILanguageProcessor
   {
   public:
     LuaLanguageProcessor();
     ~LuaLanguageProcessor() override;
+
+    void init(llvm::orc::ThreadSafeContext ts_context, std::shared_ptr<CPPParser> parser) override;
+    llvm::Expected<llvm::orc::ExecutorAddr> new_instance(const char* type_name, const char* source_code) override;
 
     // TODO shared or unique here?
     std::shared_ptr<IScriptModule> newScriptModule() override;
@@ -34,6 +39,8 @@ namespace as
   private:
     BaseLuaModule base_lua_module;
     llvm::orc::ThreadSafeContext ts_context;
+
+    std::shared_ptr<CPPParser> cpp_parser;
 
     llvm::orc::ThreadSafeModule ts_vm_module;
     std::unordered_map<std::string, std::unique_ptr<llvm::Module>> modules;
@@ -46,6 +53,9 @@ namespace as
     std::vector<std::shared_ptr<LuaScriptModule>> script_modules;
 
     lua_State* lua_state = nullptr;
+
+    std::unique_ptr<llvm::Module> build_cpp_interface_module(std::shared_ptr<CPPInterface> interface);
+    std::unique_ptr<llvm::Module> build_cpp_interface_instance_module(std::string_view instance_name);
   };
 
 } // as

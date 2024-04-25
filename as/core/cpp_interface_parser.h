@@ -36,20 +36,26 @@ namespace as
   struct CPPInterface
   {
     std::string name;
-    std::unordered_map<std::string, llvm::FunctionType*> methods;
+    std::unordered_map<std::string_view, llvm::FunctionType*> methods;
+
+    void dump(llvm::raw_fd_ostream& stream);
   };
 
-  using CPPInterfaces = std::unordered_map <std::string, std::unique_ptr<CPPInterface>>;
+  using CPPInterfaces = std::unordered_map <std::string_view, std::shared_ptr<CPPInterface>>;
 
-  class CPPInterfaceParser
+  class CPPParser
   {
   public:
-    bool parse(llvm::LLVMContext& context, const std::string& code);
-    const CPPInterfaces& get_parsed_interfaces() { return parsed_interfaces; }
+    explicit CPPParser(llvm::LLVMContext& context) : context(context) {}
+
+    std::shared_ptr<CPPInterface> get_interface(std::string_view name, std::string_view source_code);
     void dump(llvm::raw_fd_ostream& stream);
 
   private:
+    llvm::LLVMContext& context;
     CPPInterfaces parsed_interfaces;
+
+    void parse(std::string_view code);
   };
 
 

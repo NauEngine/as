@@ -11,6 +11,7 @@
 #include "core.h"
 #include "language_processor.h"
 #include "script_module.h"
+#include "cpp_interface_parser.h"
 
 namespace
 {
@@ -21,6 +22,9 @@ namespace as
 {
   Core::Core()
   {
+    ts_context = std::make_unique<llvm::LLVMContext>();
+    cpp_interface_parser = std::make_shared<CPPParser>(*ts_context.getContext());
+
     llvm::InitializeAllTargets();
     llvm::InitializeAllTargetMCs();
     llvm::InitializeAllAsmPrinters();
@@ -38,15 +42,15 @@ namespace as
     llvm::llvm_shutdown();
   }
 
-  void Core::registerLanguage(const std::string& language_name, std::unique_ptr<ILanguageProcessor> processor)
+  void Core::registerLanguage(const std::string& language_name, std::shared_ptr<ILanguageProcessor> processor)
   {
+    processor->init(ts_context, cpp_interface_parser);
     processors[language_name] = std::move(processor);
   }
 
-  std::shared_ptr<IScriptModule> Core::newScriptModule(const std::string& language_name)
+  std::shared_ptr<ScriptModule> Core::newScriptModule(const std::string& language_name)
   {
-    // TODO make error handling
-    auto script_module = processors[language_name]->newScriptModule();
+    auto script_module = std::make_shared<ScriptModule>(processors[language_name]);
     return script_module;
   }
 

@@ -8,6 +8,8 @@
 #include <map>
 #include <unordered_set>
 
+#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
+
 namespace llvm::orc
 {
   class LLJIT;
@@ -16,7 +18,8 @@ namespace llvm::orc
 namespace as
 {
   class ILanguageProcessor;
-  class IScriptModule;
+  class ScriptModule;
+  class CPPParser;
 
   class Core
   {
@@ -24,8 +27,10 @@ namespace as
     Core();
     ~Core();
 
-    void registerLanguage(const std::string& language_name, std::unique_ptr<ILanguageProcessor> processor);
-    std::shared_ptr<IScriptModule> newScriptModule(const std::string& language_name);
+    void registerLanguage(const std::string& language_name, std::shared_ptr<ILanguageProcessor> processor);
+    std::shared_ptr<ScriptModule> newScriptModule(const std::string& language_name);
+
+    std::shared_ptr<CPPParser> get_cpp_parser() { return cpp_interface_parser; }
 
     // TODO temporary function until reimport is not implemented
     void loadModulesIntoJit();
@@ -33,9 +38,10 @@ namespace as
     void Init();
     void Update();
   private:
-    std::unordered_map<std::string, std::unique_ptr<ILanguageProcessor>> processors;
-
+    std::unordered_map<std::string, std::shared_ptr<ILanguageProcessor>> processors;
     std::shared_ptr<llvm::orc::LLJIT> jit;
+    llvm::orc::ThreadSafeContext ts_context;
+    std::shared_ptr<CPPParser> cpp_interface_parser;
   };
 
 } // as

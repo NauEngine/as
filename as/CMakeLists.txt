@@ -2,6 +2,7 @@
 add_library(AScript STATIC
     core/core.cpp
     core/core.h
+    core/script_module.cpp
     core/script_module.h
     core/language_processor.h
     core/core_utils.cpp
@@ -14,6 +15,12 @@ add_library(AScript STATIC
 
 target_include_directories(AScript PUBLIC "${CMAKE_SOURCE_DIR}")
 target_compile_options(AScript PUBLIC -fno-rtti)
-target_link_libraries(AScript ${llvm_libs})
+target_link_libraries(AScript
+        ${llvm_libs}
+        clangBasic
+        clangFrontend
+        clangCodeGen
+        clangAST
+)
 
 add_subdirectory(languages/lua)

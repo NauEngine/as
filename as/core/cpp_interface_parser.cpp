@@ -56,7 +56,16 @@ std::unique_ptr<clang::ASTConsumer> CollectInterfaceAction::CreateASTConsumer(cl
   return std::make_unique<CollectInterfaceASTConsumer>(&compiler.getASTContext(), interfaces, cgm);
 }
 
-bool CPPInterfaceParser::parse(llvm::LLVMContext& context, const std::string& code)
+std::shared_ptr<CPPInterface> CPPParser::get_interface(std::string_view name, std::string_view source_code)
+{
+  if (!parsed_interfaces.contains(name)) {
+    parse(source_code);
+  }
+
+  return parsed_interfaces[name];
+}
+
+void CPPParser::parse(std::string_view code)
 {
   clang::CompilerInstance compiler;
 
@@ -84,22 +93,24 @@ bool CPPInterfaceParser::parse(llvm::LLVMContext& context, const std::string& co
   if (!compiler.ExecuteAction(action))
   {
     llvm::errs() << "Failed to parse!\n";
-    return false;
   }
-
-  return true;
 }
 
-void CPPInterfaceParser::dump(llvm::raw_fd_ostream& stream)
+void CPPParser::dump(llvm::raw_fd_ostream& stream)
 {
   for (const auto& [name, interface]: parsed_interfaces)
   {
-    stream << "Interface: " << name << "\n";
+    interface->dump(stream);
+  }
+}
 
-    for (const auto& [method, signature]: interface->methods)
-    {
-      stream << "  " << method << " " << *signature << "\n";
-    }
+void CPPInterface::dump(llvm::raw_fd_ostream& stream)
+{
+  stream << "Interface: " << name << "\n";
+
+  for (const auto& [method, signature]: methods)
+  {
+    stream << "  " << method << " " << *signature << "\n";
   }
 }
 
