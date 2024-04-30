@@ -17,7 +17,8 @@ namespace llvm::orc
 
 namespace as
 {
-  class ILanguageProcessor;
+  struct ILanguage;
+  class LanguageProcessor;
   class ScriptModule;
   class CPPParser;
 
@@ -27,7 +28,7 @@ namespace as
     Core();
     ~Core();
 
-    void registerLanguage(const std::string& language_name, std::shared_ptr<ILanguageProcessor> processor);
+    void registerLanguage(const std::string& language_name, std::unique_ptr<ILanguage> language);
     std::shared_ptr<ScriptModule> newScriptModule(const std::string& language);
 
     std::shared_ptr<CPPParser> get_cpp_parser() { return cpp_interface_parser; }
@@ -38,7 +39,7 @@ namespace as
     void Init();
     void Update();
   private:
-    std::unordered_map<std::string, std::shared_ptr<ILanguageProcessor>> processors;
+    std::unordered_map<std::string, std::shared_ptr<LanguageProcessor>> processors;
     std::shared_ptr<llvm::orc::LLJIT> jit;
     llvm::orc::ThreadSafeContext ts_context;
     std::shared_ptr<CPPParser> cpp_interface_parser;

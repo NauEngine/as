@@ -7,28 +7,61 @@
 
 #include "llvm/Support/Error.h"
 #include "llvm/ExecutionEngine/Orc/Shared/ExecutorAddress.h"
+#include "llvm/ExecutionEngine/Orc/LLJIT.h"
 
 #include <string>
 #include "errors.h"
 
-namespace llvm::orc
+namespace llvm
 {
-  class LLJIT;
-  class ThreadSafeContext;
+  class StructType;
+  class Module;
 }
 
 namespace as
 {
   class IScriptModule;
   class CPPParser;
+  struct CPPInterface;
+  struct ILanguage;
 
-  class ILanguageProcessor
+  struct LLVMScriptInterface
+  {
+    // Type of structure that presents binding of script functions to C++ abstract interface
+    llvm::StructType* interface_t = nullptr;
+    // Type of vtable for interface structure
+    llvm::StructType* vtable_t = nullptr;
+    // Name of GlobalVariable presenting vtable
+    std::string vtable_name;
+    // Module with script interface IR
+    std::unique_ptr<llvm::Module> module;
+  };
+
+  class LanguageProcessor
   {
   public:
-    virtual ~ILanguageProcessor() = default;
+    LanguageProcessor(std::unique_ptr<ILanguage> language, std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context,
+              std::shared_ptr<CPPParser> cpp_parser);
 
-    virtual void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context, std::shared_ptr<CPPParser> parser) = 0;
-    virtual llvm::Expected<llvm::orc::ExecutorAddr> new_instance(const std::string& instance_name, const std::string& type_name, const std::string& source_code) = 0;
+    ~LanguageProcessor() = default;
+
+    llvm::Expected<llvm::orc::ExecutorAddr> newInstance(const std::string& instance_name, const std::string& type_name, const std::string& source_code);
+
+  private:
+    llvm::orc::ThreadSafeContext ts_context;
+    std::shared_ptr<CPPParser> cpp_parser;
+    std::unordered_map<std::string, std::unique_ptr<LLVMScriptInterface>> llvm_interfaces;
+    std::shared_ptr<llvm::orc::LLJIT> jit;
+    std::unique_ptr<ILanguage> language;
+
+    std::unique_ptr<LLVMScriptInterface> buildInterfaceModule(const std::string& lang, const std::shared_ptr<CPPInterface>& interface);
+
+    // builds new module for script instance GlobalVariable
+    std::unique_ptr<llvm::Module> buildInstanceModule(const LLVMScriptInterface* llvm_interface, const std::string& instance_name);
+
+    // converts c++ interface signature into inner method type by adding 'this' pointer as first arg
+    static llvm::FunctionType* buildInstanceMethodType(llvm::FunctionType* signature, llvm::PointerType* interface_ptr_t);
+
   };
 } // namespace as
 

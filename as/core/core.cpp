@@ -10,6 +10,7 @@
 
 #include "core.h"
 #include "language_processor.h"
+#include "language.h"
 #include "script_module.h"
 #include "cpp_interface_parser.h"
 
@@ -42,9 +43,9 @@ namespace as
     llvm::llvm_shutdown();
   }
 
-  void Core::registerLanguage(const std::string& language_name, std::shared_ptr<ILanguageProcessor> processor)
+  void Core::registerLanguage(const std::string& language_name, std::unique_ptr<ILanguage> language)
   {
-    processor->init(jit, ts_context, cpp_interface_parser);
+    auto processor = std::make_shared<LanguageProcessor>(std::move(language), jit, ts_context, cpp_interface_parser);
     processors[language_name] = std::move(processor);
   }
 

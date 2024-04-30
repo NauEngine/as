@@ -12,28 +12,28 @@
 
 namespace as
 {
-class ILanguageProcessor;
+class LanguageProcessor;
 class Core;
 
 class ScriptModule
 {
 public:
-  explicit ScriptModule(std::shared_ptr<ILanguageProcessor> language_processor) :
+  explicit ScriptModule(std::shared_ptr<LanguageProcessor> language_processor) :
       language_processor(std::move(language_processor))
   {}
 
   void load(const std::string& filename);
 
-  template<typename Interface> Interface* new_instance(const std::string& instance_name)
+  template<typename Interface> Interface* newInstance(const std::string& instance_name)
   {
     const char* source_code = get_source_code<Interface>();
     const char* type_name = get_type_name<Interface>();
-    auto script_instance_sym = cantFail(language_processor->new_instance(instance_name, type_name, source_code));
+    auto script_instance_sym = cantFail(language_processor->newInstance(instance_name, type_name, source_code));
     return script_instance_sym.template toPtr<Interface*>();
   }
 
 private:
-  std::shared_ptr<ILanguageProcessor> language_processor;
+  std::shared_ptr<LanguageProcessor> language_processor;
 };
 
 class IScriptModule
