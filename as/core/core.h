@@ -31,13 +31,6 @@ namespace as
     void registerLanguage(const std::string& language_name, std::unique_ptr<ILanguage> language);
     std::shared_ptr<ScriptModule> newScriptModule(const std::string& language);
 
-    std::shared_ptr<CPPParser> get_cpp_parser() { return cpp_interface_parser; }
-
-    // TODO temporary function until reimport is not implemented
-    void loadModulesIntoJit();
-
-    void Init();
-    void Update();
   private:
     std::unordered_map<std::string, std::shared_ptr<LanguageProcessor>> processors;
     std::shared_ptr<llvm::orc::LLJIT> jit;

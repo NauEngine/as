@@ -4,16 +4,22 @@
 
 #include <string>
 #include "script_module.h"
-#include "cpp_interface.h"
+#include "language_processor.h"
 #include "core.h"
+#include "language_script.h"
 
 namespace as
 {
 
-void ScriptModule::load(const std::string& filename)
+ScriptModule::ScriptModule(std::shared_ptr<LanguageProcessor> language_processor) :
+    m_language_processor(std::move(language_processor))
 {
-
+    m_language_script = m_language_processor->newScript();
 }
 
+void ScriptModule::load(const std::string& filename)
+{
+    m_language_script->load(filename);
+}
 
 }

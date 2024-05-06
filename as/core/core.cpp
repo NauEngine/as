@@ -8,6 +8,8 @@
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 
+#include "llvm/IR/IRBuilder.h"
+
 #include "core.h"
 #include "language_processor.h"
 #include "language.h"
@@ -32,10 +34,6 @@ namespace as
     llvm::InitializeAllAsmParsers();
 
     jit = ExitOnErr(llvm::orc::LLJITBuilder().create());
-
-//    auto func_addr = ExitOnErr(jit->lookup("test"));
-//    p->jit_func = func_addr.toPtr<lua_CFunction>();
-
   }
 
   Core::~Core()
@@ -55,26 +53,4 @@ namespace as
     return script_module;
   }
 
-  void Core::loadModulesIntoJit()
-  {
-//    for (auto& [name, processor] : processors)
-//    {
-//      processor->insertModulesInto(jit.get());
-//    }
-  }
-
-  void Core::Init()
-  {
-    std::cout << "Script Core started!" << std::endl;
-  }
-
-  void Core::Update()
-  {
-//    std::cout << "Script Core Update" << std::endl;
-//
-//    for (auto& [name, processor] : processors)
-//    {
-//      processor->Update();
-//    }
-  }
 } // as

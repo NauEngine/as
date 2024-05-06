@@ -17,27 +17,24 @@ namespace llvm
 
 namespace as
 {
-  struct ILanguage
-  {
-    virtual ~ILanguage() = default;
 
-    /**
-    * @brief    Returns language specific prefix for symbols inside IR
-    * @return   Prefix
-    */
-    virtual const char* prefix() = 0;
+struct ILanguageScript;
 
-    /**
-    * @brief    Builds language specific IR function which emulates c++ interface
-    * @param    [in] signature  IR signature of C++ interface method
-    * @param    [in] name       Method name
-    * @param    [in] context    LLVM context
-    * @param    [in] module     LLVM module to insert function into
-    * @return                   Pointer to IR function inside Module
-    */
-    virtual llvm::Function* buildFunction(llvm::FunctionType* signature, const std::string& name,
-                                          llvm::LLVMContext& context, llvm::Module* module) = 0;
-  };
+struct ILanguage
+{
+  virtual ~ILanguage() = default;
+
+  /**
+  * @brief    Returns language specific prefix for symbols inside IR
+  * @return   Prefix
+  */
+  virtual const char* prefix() = 0;
+
+  virtual void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext context) = 0;
+
+  virtual std::shared_ptr<ILanguageScript> newScript() = 0;
+};
+
 } // namespace as
 
 

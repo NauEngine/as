@@ -9,54 +9,65 @@
 #include "language.h"
 #include "ir_names.h"
 #include "cpp_interface_parser.h"
+#include "language_script.h"
 
 namespace as
 {
 
 LanguageProcessor::LanguageProcessor(std::unique_ptr<ILanguage> language, std::shared_ptr<llvm::orc::LLJIT> jit,
   llvm::orc::ThreadSafeContext ts_context, std::shared_ptr<CPPParser> cpp_parser) :
-  ts_context(std::move(ts_context)),
-  cpp_parser(std::move(cpp_parser)),
-  jit(std::move(jit)),
-  language(std::move(language))
+  m_ts_context(std::move(ts_context)),
+  m_cpp_parser(std::move(cpp_parser)),
+  m_jit(std::move(jit)),
+  m_language(std::move(language))
 {
-
+  m_language->init(m_jit, m_ts_context);
 }
 
-llvm::Expected<llvm::orc::ExecutorAddr> LanguageProcessor::newInstance(const std::string& instance_name, const std::string& type_name, const std::string& source_code)
+std::shared_ptr<ILanguageScript> LanguageProcessor::newScript()
 {
-  auto cpp_interface = cpp_parser->get_interface(type_name, source_code);
+  return m_language->newScript();
+}
 
-  if (!llvm_interfaces.contains(cpp_interface->name))
+llvm::Expected<llvm::orc::ExecutorAddr> LanguageProcessor::newInstance(
+  const std::shared_ptr<ILanguageScript>& language_script,
+  const std::string& instance_name,
+  const std::string& type_name,
+  const std::string& source_code)
+{
+  auto cpp_interface = m_cpp_parser->get_interface(type_name, source_code);
+
+  if (!m_llvm_interfaces.contains(cpp_interface->name))
   {
-    auto llvm_interface = buildInterfaceModule("mock", cpp_interface);
+    auto llvm_interface = buildInterfaceModule(language_script, cpp_interface);
 
     llvm::errs() << "\nINTERFACE MODULE: \n" << *llvm_interface->module << "\n";
 
     std::string ErrStr;
     llvm::raw_string_ostream OS(ErrStr);
-    if (llvm::verifyModule(*llvm_interface->module, &OS)) {
-      llvm::errs() << "The module is broken!\n";
-      exit(1);
-    }
+    // if (llvm::verifyModule(*llvm_interface->module, &OS)) {
+    //   llvm::errs() << "The module is broken!\n";
+    //   llvm::errs() << ErrStr;
+    //   exit(1);
+    // }
 
-    if (auto error = jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(llvm_interface->module), ts_context)))
+    if (auto error = m_jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(llvm_interface->module), m_ts_context)))
     {
       return error;
     }
 
-    llvm_interfaces[cpp_interface->name] = std::move(llvm_interface);
+    m_llvm_interfaces[cpp_interface->name] = std::move(llvm_interface);
   }
 
-  if (!llvm_interfaces.contains(cpp_interface->name))
+  if (!m_llvm_interfaces.contains(cpp_interface->name))
   {
     return llvm::createStringError(llvm::inconvertibleErrorCode(), "Cannot build instance");
   }
 
-  auto instance_module = buildInstanceModule(llvm_interfaces[cpp_interface->name].get(),
+  auto instance_module = buildInstanceModule(m_llvm_interfaces[cpp_interface->name].get(),
                                                  instance_name);
 
-  llvm::outs() << "\nINSTANCE MODULE: \n" << *instance_module << "\n";
+  llvm::errs() << "\nINSTANCE MODULE: \n" << *instance_module << "\n";
   std::string ErrStr;
   llvm::raw_string_ostream OS(ErrStr);
   if (llvm::verifyModule(*instance_module, &OS)) {
@@ -64,26 +75,30 @@ llvm::Expected<llvm::orc::ExecutorAddr> LanguageProcessor::newInstance(const std
     exit(1);
   }
 
-  if (auto error = jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(instance_module), ts_context)))
+  if (auto error = m_jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(instance_module), m_ts_context)))
   {
     return error;
   }
 
-  return jit->lookup(instance_name);
+  return m_jit->lookup(instance_name);
 }
 
-std::unique_ptr<LLVMScriptInterface> LanguageProcessor::buildInterfaceModule(const std::string& lang, const std::shared_ptr<CPPInterface>& interface)
+std::unique_ptr<LLVMScriptInterface> LanguageProcessor::buildInterfaceModule(
+  const std::shared_ptr<ILanguageScript>& language_script,
+  const std::shared_ptr<CPPInterface>& interface)
 {
   auto llvm_interface = std::make_unique<LLVMScriptInterface>();
 
-  auto module_name = ir::interface_module_name(language->prefix(), interface->name);
-  auto type_name = ir::interface_type_name(language->prefix(), interface->name);
-  auto vtable_type_name = ir::interface_vtable_type_name(language->prefix(), interface->name);
-  llvm_interface->vtable_name = ir::interface_vtable_name(language->prefix(), interface->name);
+  auto module_name = ir::interface_module_name(m_language->prefix(), interface->name);
+  auto type_name = ir::interface_type_name(m_language->prefix(), interface->name);
+  auto vtable_type_name = ir::interface_vtable_type_name(m_language->prefix(), interface->name);
+  llvm_interface->vtable_name = ir::interface_vtable_name(m_language->prefix(), interface->name);
 
-  auto& context = *ts_context.getContext();
+  auto& context = *m_ts_context.getContext();
 
   std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>(module_name, context);
+
+  language_script->prepareModule(context, module.get());
 
   llvm_interface->interface_t = llvm::StructType::create(context, type_name);
   llvm::PointerType* interface_type_ptr = llvm::PointerType::get(llvm_interface->interface_t, 0);
@@ -96,7 +111,7 @@ std::unique_ptr<LLVMScriptInterface> LanguageProcessor::buildInterfaceModule(con
   for (const auto& [func_name, signature] : interface->methods)
   {
     llvm::FunctionType* func_type = buildInstanceMethodType(signature, interface_type_ptr);
-    llvm::Function* method = language->buildFunction(func_type, interface->name + "_" + func_name, context, module.get());
+    llvm::Function* method = language_script->buildFunction(func_type, interface->name, func_name, context, module.get());
     vtable_types[i] = llvm::PointerType::get(func_type, 0);
     vtable_methods[i] = method;
     i--;
@@ -120,7 +135,7 @@ std::unique_ptr<LLVMScriptInterface> LanguageProcessor::buildInterfaceModule(con
 
 std::unique_ptr<llvm::Module> LanguageProcessor::buildInstanceModule(const LLVMScriptInterface* llvm_interface, const std::string& instance_name)
 {
-  auto& context = *ts_context.getContext();
+  auto& context = *m_ts_context.getContext();
 
   std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>(ir::instance_module_name(instance_name), context);
 

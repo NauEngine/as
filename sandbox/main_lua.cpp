@@ -3,26 +3,13 @@
 #include "as/core/core.h"
 #include "as/core/script_module.h"
 #include "as/core/cpp_interface_parser.h"
-#include "as/languages/lua/lua_language_processor.h"
-#include "as/languages/lua/lua_script_module.h"
-#include "as/languages/lua/llvm_compiler.h"
-
-extern "C"
-{
-#include "lua/lobject.h"
-#include "lua/lua.h"
-#include "lua/lauxlib.h"
-#include "lua/lualib.h"
-#include "lua/lstate.h"
-}
-
-#define toproto(L,i) (clvalue(L->top+(i))->l.p)
+#include "as/languages/lua/lua_language.h"
 
 DEFINE_SCRIPT_INTERFACE(TestScript,
 struct TestScript
 {
-  virtual void update_1() = 0;
-  virtual void update_2(int n) = 0;
+  virtual double foo(int a, double b) = 0;
+  virtual int bar(int a) = 0;
 };
 )
 
@@ -30,28 +17,26 @@ int main()
 {
   auto script_core = std::make_shared<as::Core>();
 
-  auto lua_processor = std::make_unique<as::LuaLanguageProcessor>();
+  auto lua_language = std::make_unique<as::LuaLanguage>();
 
-  script_core->registerLanguage("lua", std::move(lua_processor));
-  auto script_module = script_core->newScriptModule("lua");
+  script_core->registerLanguage("lua", std::move(lua_language));
 
-  script_module->load("../../sandbox/scripts/test.lua");
+  auto script_module_1 = script_core->newScriptModule("lua");
+  auto script_module_2 = script_core->newScriptModule("lua");
 
-  script_core->loadModulesIntoJit();
+  script_module_1->load("../../sandbox/scripts/test_1.lua");
+  script_module_2->load("../../sandbox/scripts/test_2.lua");
 
-  auto test_script = script_module->new_instance<TestScript>();
-
-  test_script->update_1();
-  test_script->update_2(1000);
-  test_script->update_1();
-  test_script->update_2(2000);
+  auto instance_1 = script_module_1->newInstance<TestScript>("instance_1");
+  auto instance_2 = script_module_2->newInstance<TestScript>("instance_2");
 
 
-//  script_module->runScript();
-//  script_module->runFunction("update_1");
-//  script_module->runFunctionN1("update_2", 1000);
-//  script_module->runFunction("update_1");
-//  script_module->runFunctionN1("update_2", 2000);
+  std::cout << "Instance 1:" << std::endl;
+  std::cout << instance_1->foo(10, 20) << std::endl; // a + b
+  std::cout << instance_1->bar(10) << std::endl; // a * 100
+  std::cout << "Instance 2:" << std::endl;
+  std::cout << instance_2->foo(10, 20) << std::endl; // a + b + 100
+  std::cout << instance_2->bar(10) << std::endl; // a * 200
 
   script_core = nullptr;
 
