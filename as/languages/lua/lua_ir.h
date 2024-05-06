@@ -42,7 +42,7 @@ public:
   llvm::Function* lua_tonumber_f = nullptr;
   llvm::Function* lua_settop_f = nullptr;
 
-  void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context, lua_State*& lua_state);
+  void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context, lua_State* lua_state);
 
   void call_test(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context,
     const std::string& mod);

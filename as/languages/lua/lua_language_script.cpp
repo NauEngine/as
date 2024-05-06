@@ -88,11 +88,10 @@ llvm::Function* LuaLanguageScript::buildFunction(
   llvm::BasicBlock* block = llvm::BasicBlock::Create(context, "entry", func);
   builder.SetInsertPoint(block);
 
-  llvm::Value* lua_state_val = builder.CreateLoad(lua_ir->lua_State_ptr_t, lua_state_extern);
   llvm::Value* func_ref_val = builder.getInt32(func_ref);
   llvm::Value* LUA_REGISTRYINDEX_val = builder.getInt32(LUA_REGISTRYINDEX);
 
-  builder.CreateCall(lua_ir->lua_rawgeti_f, {lua_state_val, LUA_REGISTRYINDEX_val, func_ref_val});
+  builder.CreateCall(lua_ir->lua_rawgeti_f, {lua_state_extern, LUA_REGISTRYINDEX_val, func_ref_val});
 
   // 0 arg is pointer to structure, skip it
   for (int i = 1; i < signature->getNumParams(); ++i)
@@ -102,18 +101,18 @@ llvm::Function* LuaLanguageScript::buildFunction(
     if (arg_type == lua_ir->int32_t)
     {
       llvm::Value* arg64 = builder.CreateSExt(arg, lua_ir->int64_t);
-      builder.CreateCall(lua_ir->lua_pushinteger_f, {lua_state_val, arg64});
+      builder.CreateCall(lua_ir->lua_pushinteger_f, {lua_state_extern, arg64});
     }
     else if (arg_type == lua_ir->double_t)
     {
-      builder.CreateCall(lua_ir->lua_pushnumber_f, {lua_state_val, arg});
+      builder.CreateCall(lua_ir->lua_pushnumber_f, {lua_state_extern, arg});
     }
   }
 
   llvm::Constant* num_args = builder.getInt32(signature->getNumParams() - 1);
   llvm::Constant* num_rets = builder.getInt32(1);
 
-  builder.CreateCall(lua_ir->lua_call_f, {lua_state_val, num_args, num_rets});
+  builder.CreateCall(lua_ir->lua_call_f, {lua_state_extern, num_args, num_rets});
 
   llvm::Constant* stack_top = builder.getInt32(-1);
 
@@ -122,16 +121,16 @@ llvm::Function* LuaLanguageScript::buildFunction(
 
   if (ret_type == lua_ir->int32_t)
   {
-    llvm::Value* result = builder.CreateCall(lua_ir->lua_tointeger_f, {lua_state_val, stack_top});
+    llvm::Value* result = builder.CreateCall(lua_ir->lua_tointeger_f, {lua_state_extern, stack_top});
     ret = builder.CreateTrunc(result, lua_ir->int32_t);
   }
   else if (ret_type == lua_ir->double_t)
   {
-    ret = builder.CreateCall(lua_ir->lua_tonumber_f, {lua_state_val, stack_top});
+    ret = builder.CreateCall(lua_ir->lua_tonumber_f, {lua_state_extern, stack_top});
   }
 
   llvm::Constant* stack_pos = builder.getInt32(-(1)-1);
-  builder.CreateCall(lua_ir->lua_settop_f, {lua_state_val, stack_pos});
+  builder.CreateCall(lua_ir->lua_settop_f, {lua_state_extern, stack_pos});
 
   builder.CreateRet(ret);
 

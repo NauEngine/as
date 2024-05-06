@@ -46,7 +46,7 @@ namespace as
 
     ~LanguageProcessor() = default;
 
-    virtual std::shared_ptr<ILanguageScript> newScript();
+    std::shared_ptr<ILanguageScript> newScript();
 
     llvm::Expected<llvm::orc::ExecutorAddr> newInstance(
       const std::shared_ptr<ILanguageScript>& language_script,

@@ -18,7 +18,7 @@ extern "C"
 namespace as
 {
 
-void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context, lua_State*& lua_state)
+void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context, lua_State* lua_state)
 {
   llvm::LLVMContext& context = *ts_context.getContext();
   // init lapi bc
@@ -50,7 +50,7 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
   auto error = jit->getMainJITDylib().define(llvm::orc::absoluteSymbols({
     {
       jit->mangleAndIntern(LUA_STATE_GLOBAL_VAR),
-      { llvm::orc::ExecutorAddr::fromPtr(&lua_state), llvm::JITSymbolFlags::Exported }
+      { llvm::orc::ExecutorAddr::fromPtr(lua_state), llvm::JITSymbolFlags::Exported }
     }
   }));
 
