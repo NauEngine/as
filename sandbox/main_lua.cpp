@@ -34,6 +34,10 @@ int main()
   std::cout << "Instance 2:" << std::endl;
   std::cout << instance_2->foo(10, 20) << std::endl; // a + b + 100
   std::cout << instance_2->bar(10) << std::endl; // a * 200
+  std::cout << instance_2->bar(10) << std::endl; // a * 200
+  std::cout << instance_2->bar(10) << std::endl; // a * 200
+  std::cout << instance_2->bar(10) << std::endl; // a * 200
+  std::cout << instance_2->bar(10) << std::endl; // a * 200
 
   script_core = nullptr;
 

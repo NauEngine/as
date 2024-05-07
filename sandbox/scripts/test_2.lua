@@ -1,9 +1,13 @@
 
+local t = 10;
+
 function foo(a, b)
-    return a + b + 100
+    t = t + 1;
+    return a + b + t
 end
 
 function bar(a)
-    return a * 200
+    t = t + 1;
+    return a * 200 + t
 end
 
