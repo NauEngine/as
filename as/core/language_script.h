@@ -29,16 +29,16 @@ struct ILanguageScript
     /**
   * @brief    Builds language specific IR function which emulates c++ interface
   * @param    [in] signature  IR signature of C++ interface method
-  * @param    [in] interface_name Name of interface
-  * @param    [in] function_name Name of function
+  * @param    [in] bare_name  Bare name of function in interface
+  * @param    [in] decorated_name Unique decorated name of function in interface
   * @param    [in] context    LLVM context
   * @param    [in] module     LLVM module to insert function into
   * @return                   Pointer to IR function inside Module
   */
   virtual llvm::Function* buildFunction(
       llvm::FunctionType* signature,
-      const std::string& interface_name,
-      const std::string& function_name,
+      const std::string& bare_name,
+      const std::string& decorated_name,
       llvm::LLVMContext& context,
       llvm::Module* module) = 0;
 };

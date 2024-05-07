@@ -11,7 +11,6 @@
 #include "llvm/IR/IRBuilder.h"
 
 #include "core.h"
-#include "language_processor.h"
 #include "language.h"
 #include "script_module.h"
 #include "cpp_interface_parser.h"
@@ -23,7 +22,8 @@ namespace
 
 namespace as
 {
-  Core::Core()
+  Core::Core():
+    next_script_id(0)
   {
     ts_context = std::make_unique<llvm::LLVMContext>();
     cpp_interface_parser = std::make_shared<CPPParser>(*ts_context.getContext());
@@ -41,16 +41,31 @@ namespace as
     llvm::llvm_shutdown();
   }
 
-  void Core::registerLanguage(const std::string& language_name, std::unique_ptr<ILanguage> language)
+  void Core::registerLanguage(const std::string& language_name, std::shared_ptr<ILanguage> language)
   {
-    auto processor = std::make_shared<LanguageProcessor>(std::move(language), jit, ts_context, cpp_interface_parser);
-    processors[language_name] = std::move(processor);
+    language->init(jit, ts_context);
+    languages[language_name] = std::move(language);
   }
 
-  std::shared_ptr<ScriptModule> Core::newScriptModule(const std::string& language_name)
+  std::shared_ptr<ScriptModule> Core::newScriptModule(const std::string& language_name, const std::string& filename)
   {
-    auto script_module = std::make_shared<ScriptModule>(processors[language_name]);
+    auto script_id = getScriptId(filename);
+    auto script_module = std::make_shared<ScriptModule>(languages[language_name], jit, ts_context, cpp_interface_parser);
+    script_module->load(filename, script_id);
     return script_module;
+  }
+
+  ScriptId Core::getScriptId(const std::string& path)
+  {
+    if (script_ids.contains(path))
+    {
+      return script_ids[path];
+    }
+
+    next_script_id++;
+    script_ids[path] = next_script_id;
+
+    return next_script_id;
   }
 
 } // as

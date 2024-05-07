@@ -62,19 +62,19 @@ void LuaLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Module* 
 
 llvm::Function* LuaLanguageScript::buildFunction(
   llvm::FunctionType* signature,
-  const std::string& interface_name,
-  const std::string& function_name,
+  const std::string& bare_name,
+  const std::string& decorated_name,
   llvm::LLVMContext& context,
   llvm::Module* module)
 {
   LuaStackGuard stack_guard(lua_state);
 
-  lua_getglobal(lua_state, function_name.c_str());
+  lua_getglobal(lua_state, bare_name.c_str());
   int func_ref = LUA_NOREF;
   if (lua_type(lua_state, -1) == LUA_TFUNCTION)
   {
     func_ref = luaL_ref(lua_state, LUA_REGISTRYINDEX);
-    func_registry_ids[function_name] = func_ref;
+    func_registry_ids[bare_name] = func_ref;
   }
   else
   {
@@ -83,8 +83,7 @@ llvm::Function* LuaLanguageScript::buildFunction(
   }
 
   llvm::IRBuilder<> builder(context);
-  auto func_name = interface_name + "_" + function_name;
-  llvm::Function* func = llvm::Function::Create(signature, llvm::Function::ExternalLinkage, func_name, module);
+  llvm::Function* func = llvm::Function::Create(signature, llvm::Function::ExternalLinkage, decorated_name, module);
   llvm::BasicBlock* block = llvm::BasicBlock::Create(context, "entry", func);
   builder.SetInsertPoint(block);
 

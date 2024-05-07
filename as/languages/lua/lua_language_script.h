@@ -24,8 +24,12 @@ public:
 
   void prepareModule(llvm::LLVMContext& context, llvm::Module* module) override;
 
-  llvm::Function* buildFunction(llvm::FunctionType* signature, const std::string& interface_name,
-      const std::string& function_name, llvm::LLVMContext& context, llvm::Module* module) override;
+  llvm::Function* buildFunction(
+      llvm::FunctionType* signature,
+      const std::string& bare_name,
+      const std::string& decorated_name,
+      llvm::LLVMContext& context,
+      llvm::Module* module) override;
 
 private:
   lua_State* lua_state = nullptr;

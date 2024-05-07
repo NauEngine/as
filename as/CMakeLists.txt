@@ -1,13 +1,13 @@
 
 add_library(AScript STATIC
+    core/as.h
     core/core.cpp
     core/core.h
-    core/ir_names.h
+    core/ir.cpp
+    core/ir.h
     core/script_module.cpp
     core/script_module.h
     core/language.h
-    core/language_processor.h
-    core/language_processor.cpp
     core/language_script.h
     core/core_utils.cpp
     core/core_utils.h

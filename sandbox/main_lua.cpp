@@ -17,15 +17,12 @@ int main()
 {
   auto script_core = std::make_shared<as::Core>();
 
-  auto lua_language = std::make_unique<as::LuaLanguage>();
+  auto lua_language = std::make_shared<as::LuaLanguage>();
 
   script_core->registerLanguage("lua", std::move(lua_language));
 
-  auto script_module_1 = script_core->newScriptModule("lua");
-  auto script_module_2 = script_core->newScriptModule("lua");
-
-  script_module_1->load("../../sandbox/scripts/test_1.lua");
-  script_module_2->load("../../sandbox/scripts/test_2.lua");
+  auto script_module_1 = script_core->newScriptModule("lua", "../../sandbox/scripts/test_1.lua");
+  auto script_module_2 = script_core->newScriptModule("lua", "../../sandbox/scripts/test_2.lua");
 
   auto instance_1 = script_module_1->newInstance<TestScript>("instance_1");
   auto instance_2 = script_module_2->newInstance<TestScript>("instance_2");

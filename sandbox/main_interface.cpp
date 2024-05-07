@@ -10,7 +10,7 @@
 #include "as/core/language_processor.h"
 #include "as/core/language.h"
 #include "as/core/script_module.h"
-#include "as/core/ir_names.h"
+#include "as/core/ir.h"
 
 #include "clang/Basic/TargetInfo.h"
 
