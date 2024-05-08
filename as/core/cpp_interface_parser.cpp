@@ -31,14 +31,14 @@ bool CollectInterfaceASTVisitor::VisitRecordDecl(clang::RecordDecl *RD)
 
         if (function->isPure())
         {
-          auto function_type = clang::CodeGen::convertFreeFunctionType(cgm, function);
+          auto function_type = clang::CodeGen::convertFreeFunctionType(m_cgm, function);
           auto func_name = function->getNameInfo().getName().getAsString();
           interface->methods[func_name] = function_type;
         }
       }
     }
 
-    interfaces[interface->name] = std::move(interface);
+    m_interfaces[interface->name] = std::move(interface);
   }
 
   return true;
@@ -46,23 +46,23 @@ bool CollectInterfaceASTVisitor::VisitRecordDecl(clang::RecordDecl *RD)
 
 std::unique_ptr<clang::ASTConsumer> CollectInterfaceAction::CreateASTConsumer(clang::CompilerInstance &compiler, llvm::StringRef file)
 {
-  code_gen.reset(clang::CreateLLVMCodeGen(
+  m_code_gen.reset(clang::CreateLLVMCodeGen(
       compiler.getDiagnostics(), "types-converter",
       &compiler.getVirtualFileSystem(), compiler.getHeaderSearchOpts(),
-      compiler.getPreprocessorOpts(), compiler.getCodeGenOpts(), context));
+      compiler.getPreprocessorOpts(), compiler.getCodeGenOpts(), m_context));
 
-  code_gen->Initialize(compiler.getASTContext());
-  clang::CodeGen::CodeGenModule& cgm = code_gen->CGM();
-  return std::make_unique<CollectInterfaceASTConsumer>(&compiler.getASTContext(), interfaces, cgm);
+  m_code_gen->Initialize(compiler.getASTContext());
+  clang::CodeGen::CodeGenModule& cgm = m_code_gen->CGM();
+  return std::make_unique<CollectInterfaceASTConsumer>(&compiler.getASTContext(), m_interfaces, cgm);
 }
 
-std::shared_ptr<CPPInterface> CPPParser::get_interface(const std::string& name, const std::string& source_code)
+std::shared_ptr<CPPInterface> CPPParser::getInterface(const std::string& name, const std::string& source_code)
 {
-  if (!parsed_interfaces.contains(name)) {
+  if (!m_parsed_interfaces.contains(name)) {
     parse(source_code);
   }
 
-  return parsed_interfaces[name];
+  return m_parsed_interfaces[name];
 }
 
 void CPPParser::parse(const std::string& code)
@@ -89,7 +89,7 @@ void CPPParser::parse(const std::string& code)
   compiler.createSourceManager(compiler.getFileManager());
   compiler.createPreprocessor(clang::TU_Complete);
 
-  CollectInterfaceAction action(parsed_interfaces, context);
+  CollectInterfaceAction action(m_parsed_interfaces, m_context);
   if (!compiler.ExecuteAction(action))
   {
     llvm::errs() << "Failed to parse!\n";
@@ -98,7 +98,7 @@ void CPPParser::parse(const std::string& code)
 
 void CPPParser::dump(llvm::raw_fd_ostream& stream)
 {
-  for (const auto& [name, interface]: parsed_interfaces)
+  for (const auto& [name, interface]: m_parsed_interfaces)
   {
     interface->dump(stream);
   }

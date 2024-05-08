@@ -224,7 +224,7 @@ std::string LLVMCompiler::GenerateFunctionName(Proto *p)
 {
   std::string filename = getstr(p->source);
 
-  std::string name = utils::GenerateModuleName(filename);
+  std::string name = utils::generateModuleName(filename);
 
   char name_buf[128];
   snprintf(name_buf, 128, "_%d_%d", p->linedefined, p->lastlinedefined);
@@ -605,7 +605,7 @@ void LLVMCompiler::InsertDebugCalls(VMModuleForwardDecl* decl, llvm::LLVMContext
 
 std::unique_ptr<llvm::Module> LLVMCompiler::Compile(llvm::LLVMContext& context, BaseLuaModule& vm_module, lua_State *L, Proto *p)
 {
-	auto module_name = utils::GenerateModuleName(getstr(p->source));
+	auto module_name = utils::generateModuleName(getstr(p->source));
 	auto module = std::make_unique<llvm::Module>(module_name, context);
 	auto decl = vm_module.PrepareForwardDeclarations(module.get());
 

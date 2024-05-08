@@ -14,7 +14,7 @@
 
 namespace as::utils
 {
-  std::string GetErrorMessage(llvm::Error error)
+  std::string getErrorMessage(llvm::Error error)
   {
     std::string error_msg;
     handleAllErrors(std::move(error), [&](llvm::ErrorInfoBase &EIB) {
@@ -24,7 +24,7 @@ namespace as::utils
     return error_msg;
   }
 
-  std::unique_ptr<llvm::Module> LoadEmbeddedBitcode(llvm::LLVMContext &context,
+  std::unique_ptr<llvm::Module> loadEmbeddedBitcode(llvm::LLVMContext &context,
                                                     const char *name, const unsigned char *start, size_t len)
   {
     llvm::StringRef mem_ref((const char *)start, len - 1);
@@ -36,7 +36,7 @@ namespace as::utils
       {
         if (auto error = module.get()->materializeAll())
         {
-          printf("Failed to materialize embedded '%s' file: %s\n", name, GetErrorMessage(std::move(error)).c_str());
+          printf("Failed to materialize embedded '%s' file: %s\n", name, getErrorMessage(std::move(error)).c_str());
           exit(1);
         }
 
@@ -44,7 +44,7 @@ namespace as::utils
       }
       else
       {
-        printf("Failed to parse embedded '%s' file: %s\n", name, GetErrorMessage(module.takeError()).c_str());
+        printf("Failed to parse embedded '%s' file: %s\n", name, getErrorMessage(module.takeError()).c_str());
         exit(1);
       }
     }
@@ -52,7 +52,7 @@ namespace as::utils
     return nullptr;
   }
 
-  std::string GenerateModuleName(std::string filename)
+  std::string generateModuleName(std::string filename)
   {
     if(filename.size() > 32) {
       filename = filename.substr(0,32);

@@ -5,12 +5,12 @@
 #ifndef AS_PROTO_CPP_INTERFACE_H
 #define AS_PROTO_CPP_INTERFACE_H
 
-template <typename T> const char* get_source_code();
-template <typename T> const char* get_type_name();
+template <typename T> const char* getSourceCode();
+template <typename T> const char* getTypeName();
 
 #define DEFINE_SCRIPT_INTERFACE(Type, I) \
 I \
-template <> const char* get_source_code<Type>() { return #I; } \
-template <> const char* get_type_name<Type>() { return #Type; } \
+template <> const char* getSourceCode<Type>() { return #I; } \
+template <> const char* getTypeName<Type>() { return #Type; } \
 
 #endif //AS_PROTO_CPP_INTERFACE_H

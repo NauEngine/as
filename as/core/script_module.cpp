@@ -42,7 +42,7 @@ llvm::Expected<llvm::orc::ExecutorAddr> ScriptModule::newInstance(
     const std::string& type_name,
     const std::string& source_code)
 {
-    auto cpp_interface = m_cpp_parser->get_interface(type_name, source_code);
+    auto cpp_interface = m_cpp_parser->getInterface(type_name, source_code);
 
     if (!m_llvm_interfaces.contains(cpp_interface->name))
     {

@@ -50,8 +50,8 @@ public:
 
   template<typename Interface> Interface* newInstance(const std::string& instance_name)
   {
-    const char* source_code = get_source_code<Interface>();
-    const char* type_name = get_type_name<Interface>();
+    const char* source_code = getSourceCode<Interface>();
+    const char* type_name = getTypeName<Interface>();
     auto script_instance_sym = cantFail(newInstance(m_language_script, instance_name, type_name, source_code));
     return script_instance_sym.template toPtr<Interface*>();
   }

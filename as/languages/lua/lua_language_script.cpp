@@ -22,42 +22,42 @@ namespace as
 {
 
 LuaLanguageScript::LuaLanguageScript(lua_State* state, const std::shared_ptr<LuaIR>& lua_ir) :
-  lua_state(state),
-  lua_ir(lua_ir),
-  registry_index(LUA_NOREF)
+  m_lua_state(state),
+  m_lua_ir(lua_ir),
+  m_registry_index(LUA_NOREF)
 {
 
 }
 
 LuaLanguageScript::~LuaLanguageScript()
 {
-  if (registry_index != LUA_NOREF)
+  if (m_registry_index != LUA_NOREF)
   {
-    luaL_unref(lua_state, LUA_REGISTRYINDEX, registry_index);
+    luaL_unref(m_lua_state, LUA_REGISTRYINDEX, m_registry_index);
   }
 
-  for (const auto& [name, ref] : func_registry_ids)
+  for (const auto& [name, ref] : m_func_registry_ids)
   {
-    luaL_unref(lua_state, LUA_REGISTRYINDEX, ref);
+    luaL_unref(m_lua_state, LUA_REGISTRYINDEX, ref);
   }
 }
 
 
 void LuaLanguageScript::load(const std::string& filename)
 {
-  luaL_loadfile(lua_state, filename.c_str());
-  registry_index = luaL_ref(lua_state, LUA_REGISTRYINDEX);
+  luaL_loadfile(m_lua_state, filename.c_str());
+  m_registry_index = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
 }
 
 void LuaLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Module* module)
 {
-  lua_state_extern = new llvm::GlobalVariable(*module, lua_ir->lua_State_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
+  m_lua_state_extern = new llvm::GlobalVariable(*module, m_lua_ir->lua_State_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
                                                     nullptr,
                                                     LuaIR::LUA_STATE_GLOBAL_VAR);
 
   // TODO [AZ] check if registry_index exists
-  lua_rawgeti(lua_state, LUA_REGISTRYINDEX, registry_index);
-  lua_call(lua_state, 0, LUA_MULTRET);
+  lua_rawgeti(m_lua_state, LUA_REGISTRYINDEX, m_registry_index);
+  lua_call(m_lua_state, 0, LUA_MULTRET);
 }
 
 llvm::Function* LuaLanguageScript::buildFunction(
@@ -67,14 +67,14 @@ llvm::Function* LuaLanguageScript::buildFunction(
   llvm::LLVMContext& context,
   llvm::Module* module)
 {
-  LuaStackGuard stack_guard(lua_state);
+  LuaStackGuard stack_guard(m_lua_state);
 
-  lua_getglobal(lua_state, bare_name.c_str());
+  lua_getglobal(m_lua_state, bare_name.c_str());
   int func_ref = LUA_NOREF;
-  if (lua_type(lua_state, -1) == LUA_TFUNCTION)
+  if (lua_type(m_lua_state, -1) == LUA_TFUNCTION)
   {
-    func_ref = luaL_ref(lua_state, LUA_REGISTRYINDEX);
-    func_registry_ids[bare_name] = func_ref;
+    func_ref = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
+    m_func_registry_ids[bare_name] = func_ref;
   }
   else
   {
@@ -90,46 +90,46 @@ llvm::Function* LuaLanguageScript::buildFunction(
   llvm::Value* func_ref_val = builder.getInt32(func_ref);
   llvm::Value* LUA_REGISTRYINDEX_val = builder.getInt32(LUA_REGISTRYINDEX);
 
-  builder.CreateCall(lua_ir->lua_rawgeti_f, {lua_state_extern, LUA_REGISTRYINDEX_val, func_ref_val});
+  builder.CreateCall(m_lua_ir->lua_rawgeti_f, {m_lua_state_extern, LUA_REGISTRYINDEX_val, func_ref_val});
 
   // 0 arg is pointer to structure, skip it
   for (int i = 1; i < signature->getNumParams(); ++i)
   {
     llvm::Value* arg = func->getArg(i);
     const llvm::Type* arg_type = arg->getType();
-    if (arg_type == lua_ir->int32_t)
+    if (arg_type == m_lua_ir->int32_t)
     {
-      llvm::Value* arg64 = builder.CreateSExt(arg, lua_ir->int64_t);
-      builder.CreateCall(lua_ir->lua_pushinteger_f, {lua_state_extern, arg64});
+      llvm::Value* arg64 = builder.CreateSExt(arg, m_lua_ir->int64_t);
+      builder.CreateCall(m_lua_ir->lua_pushinteger_f, {m_lua_state_extern, arg64});
     }
-    else if (arg_type == lua_ir->double_t)
+    else if (arg_type == m_lua_ir->double_t)
     {
-      builder.CreateCall(lua_ir->lua_pushnumber_f, {lua_state_extern, arg});
+      builder.CreateCall(m_lua_ir->lua_pushnumber_f, {m_lua_state_extern, arg});
     }
   }
 
   llvm::Constant* num_args = builder.getInt32(signature->getNumParams() - 1);
   llvm::Constant* num_rets = builder.getInt32(1);
 
-  builder.CreateCall(lua_ir->lua_call_f, {lua_state_extern, num_args, num_rets});
+  builder.CreateCall(m_lua_ir->lua_call_f, {m_lua_state_extern, num_args, num_rets});
 
   llvm::Constant* stack_top = builder.getInt32(-1);
 
   const llvm::Type* ret_type = func->getReturnType();
   llvm::Value* ret = nullptr;
 
-  if (ret_type == lua_ir->int32_t)
+  if (ret_type == m_lua_ir->int32_t)
   {
-    llvm::Value* result = builder.CreateCall(lua_ir->lua_tointeger_f, {lua_state_extern, stack_top});
-    ret = builder.CreateTrunc(result, lua_ir->int32_t);
+    llvm::Value* result = builder.CreateCall(m_lua_ir->lua_tointeger_f, {m_lua_state_extern, stack_top});
+    ret = builder.CreateTrunc(result, m_lua_ir->int32_t);
   }
-  else if (ret_type == lua_ir->double_t)
+  else if (ret_type == m_lua_ir->double_t)
   {
-    ret = builder.CreateCall(lua_ir->lua_tonumber_f, {lua_state_extern, stack_top});
+    ret = builder.CreateCall(m_lua_ir->lua_tonumber_f, {m_lua_state_extern, stack_top});
   }
 
   llvm::Constant* stack_pos = builder.getInt32(-(1)-1);
-  builder.CreateCall(lua_ir->lua_settop_f, {lua_state_extern, stack_pos});
+  builder.CreateCall(m_lua_ir->lua_settop_f, {m_lua_state_extern, stack_pos});
 
   builder.CreateRet(ret);
 

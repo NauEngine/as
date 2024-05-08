@@ -20,7 +20,7 @@ BaseLuaModule::BaseLuaModule()
 llvm::orc::ThreadSafeModule BaseLuaModule::Load(llvm::orc::ThreadSafeContext ts_context)
 {
   llvm::LLVMContext& context = *ts_context.getContext();
-  auto module = utils::LoadEmbeddedBitcode(context, "lua_vm_ops_bc", lua_vm_ops_bc, sizeof(lua_vm_ops_bc));
+  auto module = utils::loadEmbeddedBitcode(context, "lua_vm_ops_bc", lua_vm_ops_bc, sizeof(lua_vm_ops_bc));
   llvm::errs() << *module;
 
   CollectVMTypes(context, module->getDataLayout());

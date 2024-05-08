@@ -23,17 +23,17 @@ namespace
 namespace as
 {
   Core::Core():
-    next_script_id(0)
+    m_next_script_id(0)
   {
-    ts_context = std::make_unique<llvm::LLVMContext>();
-    cpp_interface_parser = std::make_shared<CPPParser>(*ts_context.getContext());
+    m_ts_context = std::make_unique<llvm::LLVMContext>();
+    m_cpp_interface_parser = std::make_shared<CPPParser>(*m_ts_context.getContext());
 
     llvm::InitializeAllTargets();
     llvm::InitializeAllTargetMCs();
     llvm::InitializeAllAsmPrinters();
     llvm::InitializeAllAsmParsers();
 
-    jit = ExitOnErr(llvm::orc::LLJITBuilder().create());
+    m_jit = ExitOnErr(llvm::orc::LLJITBuilder().create());
   }
 
   Core::~Core()
@@ -43,29 +43,29 @@ namespace as
 
   void Core::registerLanguage(const std::string& language_name, std::shared_ptr<ILanguage> language)
   {
-    language->init(jit, ts_context);
-    languages[language_name] = std::move(language);
+    language->init(m_jit, m_ts_context);
+    m_languages[language_name] = std::move(language);
   }
 
   std::shared_ptr<ScriptModule> Core::newScriptModule(const std::string& language_name, const std::string& filename)
   {
     auto script_id = getScriptId(filename);
-    auto script_module = std::make_shared<ScriptModule>(languages[language_name], jit, ts_context, cpp_interface_parser);
+    auto script_module = std::make_shared<ScriptModule>(m_languages[language_name], m_jit, m_ts_context, m_cpp_interface_parser);
     script_module->load(filename, script_id);
     return script_module;
   }
 
   ScriptId Core::getScriptId(const std::string& path)
   {
-    if (script_ids.contains(path))
+    if (m_script_ids.contains(path))
     {
-      return script_ids[path];
+      return m_script_ids[path];
     }
 
-    next_script_id++;
-    script_ids[path] = next_script_id;
+    m_next_script_id++;
+    m_script_ids[path] = m_next_script_id;
 
-    return next_script_id;
+    return m_next_script_id;
   }
 
 } // as

@@ -21,15 +21,13 @@ public:
   LuaLanguage();
   ~LuaLanguage() override;
 
-  const char* prefix() override { return "lua"; }
-
   void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context) override;
 
   std::shared_ptr<ILanguageScript> newScript() override;
 
 private:
-  lua_State* lua_state = nullptr;
-  std::shared_ptr<LuaIR> lua_ir;
+  lua_State* m_lua_state = nullptr;
+  std::shared_ptr<LuaIR> m_lua_ir;
 };
 
 }

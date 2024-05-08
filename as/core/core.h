@@ -33,13 +33,13 @@ namespace as
     std::shared_ptr<ScriptModule> newScriptModule(const std::string& language, const std::string& filename);
 
   private:
-    std::unordered_map<std::string, std::shared_ptr<ILanguage>> languages;
-    std::shared_ptr<llvm::orc::LLJIT> jit;
-    llvm::orc::ThreadSafeContext ts_context;
-    std::shared_ptr<CPPParser> cpp_interface_parser;
+    std::unordered_map<std::string, std::shared_ptr<ILanguage>> m_languages;
+    std::shared_ptr<llvm::orc::LLJIT> m_jit;
+    llvm::orc::ThreadSafeContext m_ts_context;
+    std::shared_ptr<CPPParser> m_cpp_interface_parser;
 
-    std::unordered_map<std::string, ScriptId> script_ids;
-    ScriptId next_script_id;
+    std::unordered_map<std::string, ScriptId> m_script_ids;
+    ScriptId m_next_script_id;
 
     ScriptId getScriptId(const std::string& path);
   };

@@ -55,8 +55,6 @@ struct ScriptFoo
 
 struct MockLanguage final : ILanguage
 {
-  const char* prefix() override { return "mock"; }
-
   llvm::Function* buildFunction(llvm::FunctionType* signature, const std::string& name,
                                         llvm::LLVMContext& context, llvm::Module* module) override
   {

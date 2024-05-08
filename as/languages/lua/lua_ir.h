@@ -44,11 +44,8 @@ public:
 
   void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context, lua_State* lua_state);
 
-  void call_test(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context,
-    const std::string& mod);
-
 private:
-  std::unique_ptr<llvm::Module> module_lapi;
+  std::unique_ptr<llvm::Module> m_module_lapi;
 
 };
 

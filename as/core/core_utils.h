@@ -7,12 +7,12 @@
 
 namespace as::utils
 {
-  std::string GetErrorMessage(llvm::Error error);
+  std::string getErrorMessage(llvm::Error error);
 
-  std::unique_ptr<llvm::Module> LoadEmbeddedBitcode(llvm::LLVMContext &context,
+  std::unique_ptr<llvm::Module> loadEmbeddedBitcode(llvm::LLVMContext &context,
                                                     const char *name, const unsigned char *start, size_t len);
 
-  std::string GenerateModuleName(std::string filename);
+  std::string generateModuleName(std::string filename);
 }
 
 #endif //AS_PROTO_CORE_UTILS_H

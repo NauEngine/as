@@ -32,12 +32,12 @@ public:
       llvm::Module* module) override;
 
 private:
-  lua_State* lua_state = nullptr;
-  int registry_index;
-  std::unordered_map<std::string, int> func_registry_ids;
-  const std::shared_ptr<LuaIR>& lua_ir;
+  lua_State* m_lua_state = nullptr;
+  int m_registry_index;
+  std::unordered_map<std::string, int> m_func_registry_ids;
+  const std::shared_ptr<LuaIR>& m_lua_ir;
 
-  llvm::Value* lua_state_extern = nullptr;
+  llvm::Value* m_lua_state_extern = nullptr;
 };
 
 } //namespace as

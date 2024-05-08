@@ -16,7 +16,6 @@ struct TestScript
 int main()
 {
   auto script_core = std::make_shared<as::Core>();
-
   auto lua_language = std::make_shared<as::LuaLanguage>();
 
   script_core->registerLanguage("lua", std::move(lua_language));
@@ -26,7 +25,6 @@ int main()
 
   auto instance_1 = script_module_1->newInstance<TestScript>("instance_1");
   auto instance_2 = script_module_2->newInstance<TestScript>("instance_2");
-
 
   std::cout << "Instance 1:" << std::endl;
   std::cout << instance_1->foo(10, 20) << std::endl; // a + b

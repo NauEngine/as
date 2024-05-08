@@ -24,12 +24,6 @@ struct ILanguage
 {
   virtual ~ILanguage() = default;
 
-  /**
-  * @brief    Returns language specific prefix for symbols inside IR
-  * @return   Prefix
-  */
-  virtual const char* prefix() = 0;
-
   virtual void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext context) = 0;
 
   virtual std::shared_ptr<ILanguageScript> newScript() = 0;

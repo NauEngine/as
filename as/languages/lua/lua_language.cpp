@@ -20,28 +20,28 @@ namespace as
 
 LuaLanguage::LuaLanguage()
 {
-  lua_state = luaL_newstate();
-  luaL_openlibs(lua_state);
+  m_lua_state = luaL_newstate();
+  luaL_openlibs(m_lua_state);
 }
 
 LuaLanguage::~LuaLanguage()
 {
-  if (lua_state)
+  if (m_lua_state)
   {
-    lua_close(lua_state);
-    lua_state = nullptr;
+    lua_close(m_lua_state);
+    m_lua_state = nullptr;
   }
 }
 
 void LuaLanguage::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context)
 {
-  lua_ir = std::make_shared<LuaIR>();
-  lua_ir->init(jit, ts_context, lua_state);
+  m_lua_ir = std::make_shared<LuaIR>();
+  m_lua_ir->init(jit, ts_context, m_lua_state);
 }
 
 std::shared_ptr<ILanguageScript> LuaLanguage::newScript()
 {
-  return std::make_shared<LuaLanguageScript>(lua_state, lua_ir);
+  return std::make_shared<LuaLanguageScript>(m_lua_state, m_lua_ir);
 }
 
 }
