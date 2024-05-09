@@ -28,3 +28,4 @@ target_link_libraries(AScript
 )
 
 add_subdirectory(languages/lua)
+add_subdirectory(languages/squirrel)

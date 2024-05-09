@@ -18,3 +18,5 @@ add_executable(Sandbox4 main4.cpp)
 add_executable(SandboxLua main_lua.cpp)
 target_link_libraries(SandboxLua LuaIntegration)
 
+add_executable(SandboxSq main_sq.cpp)
+target_link_libraries(SandboxSq SquirrelIntegration)
