@@ -24,8 +24,6 @@ target_include_directories(LuaIntegration PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
 target_link_libraries(LuaIntegration AScript)
 
-add_executable(bin2c tools/bin2c.c)
-
 set(BC_CFLAGS ${BC_CFLAGS} -Wno-unused-parameter)
 set(BC_CFLAGS ${BC_CFLAGS} -c -emit-llvm)
 

@@ -13,7 +13,7 @@ namespace as
 class LuaStackGuard
 {
 public:
-  LuaStackGuard(lua_State* lua_state);
+  explicit LuaStackGuard(lua_State* lua_state);
   ~LuaStackGuard();
 
   LuaStackGuard(const LuaStackGuard&) = delete;
