@@ -1,4 +1,11 @@
 add_library(SquirrelIntegration STATIC
+    sq_language.cpp
+    sq_language.h
+    sq_language_script.cpp
+    sq_language_script.h
+    sq_ir.cpp
+    sq_ir.h
+
     squirrel/include/squirrel.h
 
     squirrel/squirrel/sqapi.cpp
@@ -40,8 +47,19 @@ add_library(SquirrelIntegration STATIC
     squirrel/sqstdlib/sqstdstream.h
     squirrel/sqstdlib/sqstdstring.cpp
     squirrel/sqstdlib/sqstdsystem.cpp
+
+    bc/sqapi_bc.h
+    bc/sqapi.ll
+
+    bc/sq_adapters_bc.h
+    bc/sq_adapters.ll
 )
 
+target_link_libraries(SquirrelIntegration AScript)
 
 target_include_directories(SquirrelIntegration PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(SquirrelIntegration PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/squirrel/include")
+
+set(BC_FLAGS -c -I"${CMAKE_CURRENT_SOURCE_DIR}/squirrel/include")
+add_llvm_bc_library(sqapi squirrel/squirrel/sqapi.cpp)
+add_llvm_bc_library(sq_adapters sq_adapters.cpp)

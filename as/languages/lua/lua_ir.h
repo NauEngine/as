@@ -45,8 +45,7 @@ public:
   void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context, lua_State* lua_state);
 
 private:
-  std::unique_ptr<llvm::Module> m_module_lapi;
-
+  std::unique_ptr<llvm::Module> m_api_module;
 };
 
 } // namespace as

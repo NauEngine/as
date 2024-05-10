@@ -1,39 +1,40 @@
-macro(add_llvm_bc_library _target)
-    set(_llvm_cflags)
-    get_property(_idirs DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
-    foreach(_idir ${_idirs})
-        set(_llvm_cflags ${_llvm_cflags} -I${_idir})
-    endforeach(_idir)
+macro(add_llvm_bc_library target source)
+    set(includes)
+
+    get_property(dirs DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
+
+    foreach(dir ${dirs})
+        set(includes ${includes} -I${dir})
+    endforeach(dir)
 
     #TODO make crossplatform temporary solution for macos only
-    set(_llvm_cflags ${_llvm_cflags} -isysroot ${CMAKE_OSX_SYSROOT})
+    set(BC_FLAGS ${BC_FLAGS} -isysroot ${CMAKE_OSX_SYSROOT})
 
-#    message("LLVM CFLAGS: ${_llvm_cflags}")
-#    message("CMAKE_OSX_SYSROOT: ${CMAKE_OSX_SYSROOT}")
+    set(BC_FLAGS ${BC_FLAGS} -Wno-unused-parameter)
+    set(BC_FLAGS ${BC_FLAGS} -emit-llvm)
 
-    if(${ARGC} GREATER 2)
-        message("BC 1")
-        set(_bc_files)
-        foreach(_file ${ARGN})
-            set(_bc_file "${CMAKE_CURRENT_BINARY_DIR}/${_file}.bc")
-            set(_bc_files ${_bc_files} ${_bc_file})
-            add_custom_command(OUTPUT ${_bc_file}
-                    COMMAND ${LLVM_CC} ARGS ${BC_CFLAGS} ${_llvm_cflags} -o ${_bc_file} ${_file}
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    DEPENDS ${_file}
-            )
-        endforeach(_file)
-        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_target}.bc
-                COMMAND ${LLVM_LD} ARGS -o ${CMAKE_CURRENT_BINARY_DIR}/${_target}.bc ${_bc_files}
-                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-                DEPENDS ${_bc_files}
-        )
-    else(${ARGC} GREATER 2)
-        message("BC 2 ${LLVM_CC}")
-        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_target}.bc
-                COMMAND ${LLVM_CC} ARGS ${BC_CFLAGS} ${_llvm_cflags} -o ${CMAKE_CURRENT_BINARY_DIR}/${_target}.bc ${ARGV1}
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                DEPENDS ${ARGV1}
-        )
-    endif(${ARGC} GREATER 2)
+    set(bc_target ${CMAKE_CURRENT_BINARY_DIR}/${target}.bc)
+    set(bc_target_header ${CMAKE_CURRENT_SOURCE_DIR}/bc/${target}_bc.h)
+    set(bc_target_ir ${CMAKE_CURRENT_SOURCE_DIR}/bc/${target}.ll)
+
+    message("Custom flags: ${BC_FLAGS}")
+
+    add_custom_command(OUTPUT ${bc_target}
+        COMMAND ${LLVM_CC} ${BC_FLAGS} ${includes} -o ${bc_target} ${source}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        DEPENDS ${source}
+    )
+
+    add_custom_command(OUTPUT ${bc_target_header}
+        COMMAND bin2c -z -c ${bc_target} ${bc_target_header}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        DEPENDS bin2c ${bc_target}
+    )
+
+    add_custom_command(OUTPUT ${bc_target_ir}
+            COMMAND ${LLVM_DIS} ${bc_target} -o ${bc_target_ir}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            DEPENDS ${bc_target}
+    )
+
 endmacro(add_llvm_bc_library)

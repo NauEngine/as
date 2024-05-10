@@ -5,6 +5,15 @@
 #ifndef AS_PROTO_CORE_UTILS_H
 #define AS_PROTO_CORE_UTILS_H
 
+#include <string>
+
+namespace llvm
+{
+    class Error;
+    class Module;
+    class LLVMContext;
+}
+
 namespace as::utils
 {
   std::string getErrorMessage(llvm::Error error);

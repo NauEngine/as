@@ -12,7 +12,6 @@
 extern "C"
 {
 #include "lua/lua.h"
-#include "lua/lstate.h"
 }
 
 namespace as
@@ -22,8 +21,7 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
 {
   llvm::LLVMContext& context = *ts_context.getContext();
   // init lapi bc
-  m_module_lapi = utils::loadEmbeddedBitcode(context, "lapi_bc", lapi_bc, sizeof(lapi_bc));
-  llvm::errs() << *m_module_lapi;
+  m_api_module = utils::loadEmbeddedBitcode(context, "lapi_bc", lapi_bc, sizeof(lapi_bc));
 
   // parse types & functions
   int8_t = llvm::Type::getInt8Ty(context);
@@ -36,13 +34,13 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
   lua_State_t = llvm::StructType::getTypeByName(context, "struct.lua_State");
   lua_State_ptr_t = llvm::PointerType::getUnqual(lua_State_t);
 
-  lua_rawgeti_f = m_module_lapi->getFunction("lua_rawgeti");
-  lua_pushinteger_f = m_module_lapi->getFunction("lua_pushinteger");
-  lua_pushnumber_f = m_module_lapi->getFunction("lua_pushnumber");
-  lua_call_f = m_module_lapi->getFunction("lua_call");
-  lua_tointeger_f = m_module_lapi->getFunction("lua_tointeger");
-  lua_tonumber_f = m_module_lapi->getFunction("lua_tonumber");
-  lua_settop_f = m_module_lapi->getFunction("lua_settop");
+  lua_rawgeti_f = m_api_module->getFunction("lua_rawgeti");
+  lua_pushinteger_f = m_api_module->getFunction("lua_pushinteger");
+  lua_pushnumber_f = m_api_module->getFunction("lua_pushnumber");
+  lua_call_f = m_api_module->getFunction("lua_call");
+  lua_tointeger_f = m_api_module->getFunction("lua_tointeger");
+  lua_tonumber_f = m_api_module->getFunction("lua_tonumber");
+  lua_settop_f = m_api_module->getFunction("lua_settop");
 
   // bound lua_State to global var
   // TODO [AZ] handle errors

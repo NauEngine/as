@@ -103,7 +103,7 @@ std::unique_ptr<LLVMScriptInterface> ScriptModule::buildInterfaceModule(
   {
     llvm::FunctionType* func_type = ir::buildInterfaceMethodType(signature, interface_type_ptr);
     auto decorated_name = std::format("{}_{}_{}", interface->name, func_name, m_script_id);
-    llvm::Function* method = language_script->buildFunction(func_type, func_name, decorated_name, context, module.get());
+    llvm::Function* method = language_script->buildFunction(func_type, func_name, decorated_name, m_jit, context, module.get());
     vtable_types[i] = llvm::PointerType::get(func_type, 0);
     vtable_methods[i] = method;
     i--;

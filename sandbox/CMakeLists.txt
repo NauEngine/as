@@ -16,7 +16,10 @@ add_executable(Sandbox3 main3.cpp)
 add_executable(Sandbox4 main4.cpp)
 
 add_executable(SandboxScripts main_scripts.cpp)
-target_link_libraries(SandboxScripts LuaIntegration)
+target_link_libraries(SandboxScripts
+    LuaIntegration
+    SquirrelIntegration
+)
 
 add_executable(SandboxSq main_sq.cpp)
 target_link_libraries(SandboxSq SquirrelIntegration)
