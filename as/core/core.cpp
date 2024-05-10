@@ -38,6 +38,7 @@ namespace as
 
   Core::~Core()
   {
+    m_languages.clear();
     llvm::llvm_shutdown();
   }
 

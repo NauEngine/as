@@ -47,6 +47,11 @@ int main()
     }
   }
 
+  for (int i = 0; i < 4; ++i)
+  {
+    script_modules[i] = nullptr;
+  }
+
   script_core = nullptr;
 
   return 0;
