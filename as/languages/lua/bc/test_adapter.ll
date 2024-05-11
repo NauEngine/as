@@ -4,6 +4,7 @@ target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
 target triple = "arm64-apple-macosx14.0.0"
 
 @lua_state = global ptr null, align 8
+@.str = private unnamed_addr constant [5 x i8] c"test\00", align 1
 
 ; Function Attrs: mustprogress noinline optnone ssp uwtable(sync)
 define i32 @adapter(i32 noundef %a, double noundef %b) #0 {
@@ -34,6 +35,19 @@ declare void @lua_pushnumber(ptr noundef, double noundef) #1
 declare void @lua_call(ptr noundef, i32 noundef, i32 noundef) #1
 
 declare i64 @lua_tointeger(ptr noundef, i32 noundef) #1
+
+; Function Attrs: mustprogress noinline optnone ssp uwtable(sync)
+define void @_Z6call_iP6Logger(ptr noundef %logger) #0 {
+entry:
+  %logger.addr = alloca ptr, align 8
+  store ptr %logger, ptr %logger.addr, align 8
+  %0 = load ptr, ptr %logger.addr, align 8
+  %vtable = load ptr, ptr %0, align 8
+  %vfn = getelementptr inbounds ptr, ptr %vtable, i64 0
+  %1 = load ptr, ptr %vfn, align 8
+  call void %1(ptr noundef nonnull align 8 dereferenceable(8) %0, ptr noundef @.str)
+  ret void
+}
 
 attributes #0 = { mustprogress noinline optnone ssp uwtable(sync) "frame-pointer"="non-leaf" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="apple-m1" "target-features"="+aes,+crc,+dotprod,+fp-armv8,+fp16fml,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+sha3,+v8.1a,+v8.2a,+v8.3a,+v8.4a,+v8.5a,+v8a,+zcm,+zcz" }
 attributes #1 = { "frame-pointer"="non-leaf" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="apple-m1" "target-features"="+aes,+crc,+dotprod,+fp-armv8,+fp16fml,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+sha3,+v8.1a,+v8.2a,+v8.3a,+v8.4a,+v8.5a,+v8a,+zcm,+zcz" }

@@ -44,4 +44,10 @@ std::shared_ptr<ILanguageScript> LuaLanguage::newScript()
   return std::make_shared<LuaLanguageScript>(m_lua_state, m_lua_ir);
 }
 
+void LuaLanguage::registerInstance(void* instance, const std::string& instanceName,
+  const std::shared_ptr<CPPInterface>& cppInterface)
+{
+
+}
+
 }

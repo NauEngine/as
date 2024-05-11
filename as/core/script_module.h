@@ -56,12 +56,6 @@ public:
     return script_instance_sym.template toPtr<Interface*>();
   }
 
-  llvm::Expected<llvm::orc::ExecutorAddr> newInstance(
-    const std::shared_ptr<ILanguageScript>& language_script,
-    const std::string& instance_name,
-    const std::string& type_name,
-    const std::string& source_code);
-
 private:
   std::shared_ptr<ILanguage> m_language;
   std::shared_ptr<ILanguageScript> m_language_script;
@@ -73,6 +67,12 @@ private:
   std::shared_ptr<llvm::orc::LLJIT> m_jit;
   llvm::orc::ThreadSafeContext m_ts_context;
   std::shared_ptr<CPPParser> m_cpp_parser;
+
+  llvm::Expected<llvm::orc::ExecutorAddr> newInstance(
+    const std::shared_ptr<ILanguageScript>& language_script,
+    const std::string& instance_name,
+    const std::string& type_name,
+    const std::string& source_code);
 
   std::unique_ptr<LLVMScriptInterface> buildInterfaceModule(const std::shared_ptr<ILanguageScript>& language_script, const std::shared_ptr<CPPInterface>& interface);
   std::unique_ptr<llvm::Module> buildInstanceModule(const LLVMScriptInterface* llvm_interface, const std::string& instance_name);

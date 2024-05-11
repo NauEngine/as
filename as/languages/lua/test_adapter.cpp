@@ -24,3 +24,14 @@ int adapter(int a, double b)
 }
 
 }
+
+struct Logger
+{
+	virtual void warn(const char* msg) = 0;
+	virtual void debug(const char* msg) = 0;
+};
+
+void call_i(Logger* logger)
+{
+	logger->warn("test");
+}

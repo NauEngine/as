@@ -18,6 +18,7 @@ namespace llvm
 namespace as
 {
 
+struct CPPInterface;
 struct ILanguageScript;
 
 struct ILanguage
@@ -25,6 +26,11 @@ struct ILanguage
   virtual ~ILanguage() = default;
 
   virtual void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext context) = 0;
+
+  virtual void registerInstance(
+      void* instance,
+      const std::string& instanceName,
+      const std::shared_ptr<CPPInterface>& cppInterface) = 0;
 
   virtual std::shared_ptr<ILanguageScript> newScript() = 0;
 };

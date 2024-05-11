@@ -26,7 +26,7 @@ namespace as
     m_next_script_id(0)
   {
     m_ts_context = std::make_unique<llvm::LLVMContext>();
-    m_cpp_interface_parser = std::make_shared<CPPParser>(*m_ts_context.getContext());
+    m_cpp_parser = std::make_shared<CPPParser>(*m_ts_context.getContext());
 
     llvm::InitializeAllTargets();
     llvm::InitializeAllTargetMCs();
@@ -51,7 +51,7 @@ namespace as
   std::shared_ptr<ScriptModule> Core::newScriptModule(const std::string& language_name, const std::string& filename)
   {
     auto script_id = getScriptId(filename);
-    auto script_module = std::make_shared<ScriptModule>(m_languages[language_name], m_jit, m_ts_context, m_cpp_interface_parser);
+    auto script_module = std::make_shared<ScriptModule>(m_languages[language_name], m_jit, m_ts_context, m_cpp_parser);
     script_module->load(filename, script_id);
     return script_module;
   }
@@ -69,4 +69,17 @@ namespace as
     return m_next_script_id;
   }
 
+  void Core::registerInstance(
+    void* instance,
+    const std::string& instance_name,
+    const std::string& type_name,
+    const std::string& source_code)
+  {
+    auto cpp_interface = m_cpp_parser->getInterface(type_name, source_code);
+
+    for (auto& [name, language] : m_languages)
+    {
+      language->registerInstance(instance, instance_name, cpp_interface);
+    }
+  }
 } // as

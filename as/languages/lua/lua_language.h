@@ -25,6 +25,11 @@ public:
 
   std::shared_ptr<ILanguageScript> newScript() override;
 
+  void registerInstance(
+    void* instance,
+    const std::string& instanceName,
+    const std::shared_ptr<CPPInterface>& cppInterface) override;
+
 private:
   lua_State* m_lua_state = nullptr;
   std::shared_ptr<LuaIR> m_lua_ir;

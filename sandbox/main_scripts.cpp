@@ -16,6 +16,29 @@ struct TestScript
 };
 )
 
+DEFINE_SCRIPT_INTERFACE(Logger,
+struct Logger
+{
+  virtual void warn(const char* msg) = 0;
+  virtual void debug(const char* msg) = 0;
+};
+)
+
+struct LoggerImpl : Logger
+{
+  ~LoggerImpl() = default;
+
+  void warn(const char* msg) override
+  {
+    std::cout << "W: " << msg << std::endl;
+  }
+
+  void debug(const char* msg) override
+  {
+    std::cout << "D: " << msg << std::endl;
+  }
+};
+
 int main()
 {
   auto script_core = std::make_shared<as::Core>();
@@ -27,7 +50,12 @@ int main()
   script_core->registerLanguage("sq", std::move(squirrel_language));
   script_core->registerLanguage("is", std::move(ivnscript_language));
 
+  LoggerImpl logger;
+
+  script_core->registerInstance<Logger>(&logger, "logger");
+
   std::shared_ptr<as::ScriptModule> script_modules[6];
+
   script_modules[0] = script_core->newScriptModule("lua", "../../sandbox/scripts/test_1.lua");
   script_modules[1] = script_core->newScriptModule("lua", "../../sandbox/scripts/test_2.lua");
   script_modules[2] = script_core->newScriptModule("sq", "../../sandbox/scripts/test_1.nut");
@@ -47,8 +75,8 @@ int main()
     for (int i = 0; i < 6; ++i)
     {
       std::cout << "Instance " << i << ":" << std::endl;
-      std::cout << instances[i]->foo(10, 20) << std::endl; // a + b
-      std::cout << instances[i]->bar(10) << std::endl; // a * 100
+      std::cout << instances[i]->foo(10, 20) << std::endl;
+      std::cout << instances[i]->bar(10) << std::endl;
     }
   }
 
