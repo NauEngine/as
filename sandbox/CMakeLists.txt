@@ -19,6 +19,7 @@ add_executable(SandboxScripts main_scripts.cpp)
 target_link_libraries(SandboxScripts
     LuaIntegration
     SquirrelIntegration
+    IvnScriptIntegration
 )
 
 add_executable(SandboxSq main_sq.cpp)

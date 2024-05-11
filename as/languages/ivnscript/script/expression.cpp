@@ -79,6 +79,8 @@ llvm::Value* BinaryOperatorExpression::codegen(InterpreterContext& interpreter, 
       return interpreter.getBuilder()->CreateAdd(l, r, "addtmp");
     case '-':
       return interpreter.getBuilder()->CreateSub(l, r, "subtmp");
+    case '*':
+      return interpreter.getBuilder()->CreateMul(l, r, "multmp");
   }
 
   errors.emplace_back(line, column, "Unknown operator '$@'", std::string(1, op));

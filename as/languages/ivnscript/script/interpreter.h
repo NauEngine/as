@@ -12,7 +12,7 @@
 namespace script {
 
 struct Error;
-class Module;
+class ModuleFunction;
 
 class InterpreterContext {
 public:
@@ -32,31 +32,30 @@ public:
   virtual llvm::Value* getConstant(int value) = 0;
 };
 
-class Interpreter {
-public:
-  Interpreter();
+// class Interpreter {
+// public:
+//   Interpreter();
+//
+//   void addGlobalVariable(const std::string& name);
+//   const std::vector<std::string>& getGlobalVariables() const;
+//
+//   void addGlobalFunction(const std::string& name, int args);
+//   const std::vector<std::pair<std::string, int>>& getGlobalFunction() const;
+//
+//   llvm::LLVMContext* getContext();
+//   llvm::IRBuilder<>* getBuilder();
+//
+//   std::unique_ptr<llvm::Module> createModule(const std::string& name);
+//
+//
+// private:
+//   llvm::orc::ThreadSafeContext context;
+//   std::unique_ptr<llvm::IRBuilder<>> builder;
+//
+//   std::vector<std::string> globals;
+//   std::vector<std::pair<std::string, int>> funcs;
+// };
 
-  void addGlobalVariable(const std::string& name);
-  const std::vector<std::string>& getGlobalVariables() const;
-
-  void addGlobalFunction(const std::string& name, int args);
-  const std::vector<std::pair<std::string, int>>& getGlobalFunction() const;
-
-  llvm::LLVMContext* getContext();
-  llvm::orc::ThreadSafeContext& getThreadSafeContext();
-  llvm::IRBuilder<>* getBuilder();
-
-  std::unique_ptr<llvm::Module> createModule(const std::string& name);
-
-
-private:
-  llvm::orc::ThreadSafeContext context;
-  std::unique_ptr<llvm::IRBuilder<>> builder;
-
-  std::vector<std::string> globals;
-  std::vector<std::pair<std::string, int>> funcs;
-};
-
-std::unique_ptr<llvm::Module> build(Interpreter& interpreter, const std::string& name, const Module& module, std::vector<Error>& errors);
+llvm::Function* build(llvm::LLVMContext& context, llvm::Module* module, const std::string& funcName, const ModuleFunction& func, std::vector<Error>& errors);
 
 }

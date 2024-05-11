@@ -145,7 +145,7 @@ std::unique_ptr<Expression> parseExpression(Tokenizer &tokenizer, std::vector<Er
     lhs = std::make_unique<VariableExpression>(token.line, token.column, self, std::string(token.text, token.length));
   }
 
-  if (nextTokenChar == '+' || nextTokenChar == '-') {
+  if (nextTokenChar == '+' || nextTokenChar == '-' || nextTokenChar == '*') {
     if (isSimple) {
       errors.emplace_back(nextTokenLine, nextTokenColumn, "Expected end of an expression, but '$@' found", std::string(1, nextTokenChar));
       return nullptr;

@@ -2,7 +2,7 @@
 
 namespace script {
 
-const char* SYMBOLS = "=+-(){},;.";
+const char* SYMBOLS = "=+-*(){},;.";
 
 TokenType getTokenType(char firstChar) {
   if (isalpha(firstChar))

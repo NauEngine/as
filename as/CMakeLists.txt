@@ -31,3 +31,4 @@ add_executable(bin2c tools/bin2c.c)
 
 add_subdirectory(languages/lua)
 add_subdirectory(languages/squirrel)
+add_subdirectory(languages/ivnscript)
