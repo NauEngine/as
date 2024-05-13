@@ -18,7 +18,7 @@ namespace llvm
 namespace as
 {
 
-struct CPPInterface;
+struct ScriptInterface;
 struct ILanguageScript;
 
 struct ILanguage
@@ -30,7 +30,7 @@ struct ILanguage
   virtual void registerInstance(
       void* instance,
       const std::string& instanceName,
-      const std::shared_ptr<CPPInterface>& cppInterface) = 0;
+      const std::shared_ptr<ScriptInterface>& cppInterface) = 0;
 
   virtual std::shared_ptr<ILanguageScript> newScript() = 0;
 };

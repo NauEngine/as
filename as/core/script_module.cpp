@@ -42,29 +42,29 @@ llvm::Expected<llvm::orc::ExecutorAddr> ScriptModule::newInstance(
     const std::string& type_name,
     const std::string& source_code)
 {
-    auto cpp_interface = m_cpp_parser->getInterface(type_name, source_code);
+    auto scriptInterface = m_cpp_parser->getInterface(type_name, source_code);
+    scriptInterface->dump(llvm::errs());
 
-    if (!m_llvm_interfaces.contains(cpp_interface->name))
+    if (!m_vtables.contains(scriptInterface->name))
     {
-        auto llvm_interface = buildInterfaceModule(language_script, cpp_interface);
+        auto [v_table_name, module] = buildInterfaceModule(language_script, scriptInterface);
 
-        llvm::errs() << "\nINTERFACE MODULE: \n" << *llvm_interface->module << "\n";
+        llvm::errs() << "\nINTERFACE MODULE: \n" << *module << "\n";
 
-        if (auto error = m_jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(llvm_interface->module), m_ts_context)))
+        if (auto error = m_jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(module), m_ts_context)))
         {
             return error;
         }
 
-        m_llvm_interfaces[cpp_interface->name] = std::move(llvm_interface);
+        m_vtables[scriptInterface->name] = v_table_name;
     }
 
-    if (!m_llvm_interfaces.contains(cpp_interface->name))
+    if (!m_vtables.contains(scriptInterface->name))
     {
         return llvm::createStringError(llvm::inconvertibleErrorCode(), "Cannot build instance");
     }
 
-    auto instance_module = buildInstanceModule(m_llvm_interfaces[cpp_interface->name].get(),
-                                                   instance_name);
+    auto instance_module = buildInstanceModule(m_vtables[scriptInterface->name], instance_name, scriptInterface);
 
     if (auto error = m_jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(instance_module), m_ts_context)))
     {
@@ -74,69 +74,62 @@ llvm::Expected<llvm::orc::ExecutorAddr> ScriptModule::newInstance(
     return m_jit->lookup(instance_name);
 }
 
-std::unique_ptr<LLVMScriptInterface> ScriptModule::buildInterfaceModule(
-      const std::shared_ptr<ILanguageScript>& language_script,
-      const std::shared_ptr<CPPInterface>& interface)
+
+std::tuple<std::string, std::unique_ptr<llvm::Module>> ScriptModule::buildInterfaceModule(
+    const std::shared_ptr<ILanguageScript>& language_script,
+    const std::shared_ptr<ScriptInterface>& interface)
 {
-  auto llvm_interface = std::make_unique<LLVMScriptInterface>();
+    auto module_name = ir::interface_module_name(m_script_id, interface->name);
+    auto vtable_name = ir::interface_vtable_name(m_script_id, interface->name);
 
-  auto module_name = ir::interface_module_name(m_script_id, interface->name);
-  auto type_name = ir::interface_type_name(m_script_id, interface->name);
-  auto vtable_type_name = ir::interface_vtable_type_name(m_script_id, interface->name);
-  llvm_interface->vtable_name = ir::interface_vtable_name(m_script_id, interface->name);
+    auto& context = *m_ts_context.getContext();
 
-  auto& context = *m_ts_context.getContext();
+    std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>(module_name, context);
 
-  std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>(module_name, context);
+    language_script->prepareModule(context, module.get());
 
-  language_script->prepareModule(context, module.get());
+    auto num_methods = interface->methodNames.size();
+    std::vector<llvm::Constant*> vtableMethods(num_methods);
 
-  llvm_interface->interface_t = llvm::StructType::create(context, type_name);
-  llvm::PointerType* interface_type_ptr = llvm::PointerType::get(llvm_interface->interface_t, 0);
+    llvm::PointerType* opaque_ptr_t = llvm::PointerType::get(context, 0);
+    llvm::Constant* opaque_null_ptr = llvm::ConstantPointerNull::get(opaque_ptr_t);
 
-  auto num_methods = interface->methods.size();
-  std::vector<llvm::Type*> vtable_types(num_methods);
-  std::vector<llvm::Constant*> vtable_methods(num_methods);
+    for (int i = 0; i < interface->methodNames.size(); ++i)
+    {
+        if (auto funcType = interface->methodTypes[i])
+        {
+            auto funcName = interface->methodNames[i];
+            auto decoratedName = std::format("{}_{}_{}", interface->name, funcName, m_script_id);
+            llvm::Function* method = language_script->buildFunction(funcType, funcName, decoratedName, m_jit, context, module.get());
+            llvm::errs() << *method << "\n";
+            vtableMethods[i] = method;
+        } else
+        {
+            llvm::errs() << "null\n";
+            vtableMethods[i] = opaque_null_ptr;
+        }
+    }
 
-  auto i = interface->methods.size() - 1;
-  for (const auto& [func_name, signature] : interface->methods)
-  {
-    llvm::FunctionType* func_type = ir::buildInterfaceMethodType(signature, interface_type_ptr);
-    auto decorated_name = std::format("{}_{}_{}", interface->name, func_name, m_script_id);
-    llvm::Function* method = language_script->buildFunction(func_type, func_name, decorated_name, m_jit, context, module.get());
-    vtable_types[i] = llvm::PointerType::get(func_type, 0);
-    vtable_methods[i] = method;
-    i--;
-  }
+    // Create a global vtable
+    llvm::Value* vtable = new llvm::GlobalVariable(*module, interface->vtable_t, true, llvm::GlobalValue::ExternalLinkage,
+                                                   llvm::ConstantStruct::get(interface->vtable_t, vtableMethods),
+                                                   vtable_name);
 
-  llvm_interface->vtable_t = llvm::StructType::create(context, vtable_type_name);
-  llvm_interface->vtable_t->setBody(vtable_types);
-
-  llvm_interface->interface_t->setBody(llvm::PointerType::get(llvm_interface->vtable_t, 0));
-
-  // Create a global vtable
-  llvm::Value* vtable = new llvm::GlobalVariable(*module, llvm_interface->vtable_t, true, llvm::GlobalValue::ExternalLinkage,
-                                                 llvm::ConstantStruct::get(llvm_interface->vtable_t, vtable_methods),
-                                                 llvm_interface->vtable_name);
-
-  llvm_interface->module = std::move(module);
-
-  return std::move(llvm_interface);
+    return {vtable_name, std::move(module)};
 }
 
-
-std::unique_ptr<llvm::Module> ScriptModule::buildInstanceModule(const LLVMScriptInterface* llvm_interface, const std::string& instance_name)
+std::unique_ptr<llvm::Module> ScriptModule::buildInstanceModule(const std::string& vtable_name, const std::string& instance_name, const std::shared_ptr<ScriptInterface>& interface)
 {
     auto& context = *m_ts_context.getContext();
 
     std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>(ir::instance_module_name(instance_name), context);
 
-    llvm::Constant* vtable = new llvm::GlobalVariable(*module, llvm_interface->vtable_t, true, llvm::GlobalValue::ExternalLinkage,
+    llvm::Constant* vtable = new llvm::GlobalVariable(*module, interface->vtable_t, true, llvm::GlobalValue::ExternalLinkage,
                                                     nullptr, // external
-                                                    llvm_interface->vtable_name);
+                                                    vtable_name);
 
-    auto ScriptInstance = new llvm::GlobalVariable(*module, llvm_interface->interface_t, false, llvm::GlobalValue::ExternalLinkage,
-                                                 llvm::ConstantStruct::get(llvm_interface->interface_t, {vtable}), instance_name);
+    auto scriptInstance = new llvm::GlobalVariable(*module, interface->interface_t, false, llvm::GlobalValue::ExternalLinkage,
+                                                 llvm::ConstantStruct::get(interface->interface_t, {vtable}), instance_name);
 
     return module;
 }

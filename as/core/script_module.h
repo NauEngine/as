@@ -23,19 +23,7 @@ struct ILanguageScript;
 struct ILanguage;
 
 class  CPPParser;
-struct CPPInterface;
-
-struct LLVMScriptInterface
-{
-  // Type of structure that presents binding of script functions to C++ abstract interface
-  llvm::StructType* interface_t = nullptr;
-  // Type of vtable for interface structure
-  llvm::StructType* vtable_t = nullptr;
-  // Name of GlobalVariable presenting vtable
-  std::string vtable_name;
-  // Module with script interface IR
-  std::unique_ptr<llvm::Module> module;
-};
+struct ScriptInterface;
 
 class ScriptModule
 {
@@ -62,7 +50,7 @@ private:
 
   uint32_t m_script_id;
 
-  std::unordered_map<std::string, std::unique_ptr<LLVMScriptInterface>> m_llvm_interfaces;
+  std::unordered_map<std::string, std::string> m_vtables;
 
   std::shared_ptr<llvm::orc::LLJIT> m_jit;
   llvm::orc::ThreadSafeContext m_ts_context;
@@ -74,8 +62,8 @@ private:
     const std::string& type_name,
     const std::string& source_code);
 
-  std::unique_ptr<LLVMScriptInterface> buildInterfaceModule(const std::shared_ptr<ILanguageScript>& language_script, const std::shared_ptr<CPPInterface>& interface);
-  std::unique_ptr<llvm::Module> buildInstanceModule(const LLVMScriptInterface* llvm_interface, const std::string& instance_name);
+  std::tuple<std::string, std::unique_ptr<llvm::Module>> buildInterfaceModule(const std::shared_ptr<ILanguageScript>& language_script, const std::shared_ptr<ScriptInterface>& interface);
+  std::unique_ptr<llvm::Module> buildInstanceModule(const std::string& vtable_name, const std::string& instance_name, const std::shared_ptr<ScriptInterface>& interface);
 };
 
 } // as

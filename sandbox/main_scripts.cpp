@@ -26,8 +26,6 @@ struct Logger
 
 struct LoggerImpl : Logger
 {
-  ~LoggerImpl() = default;
-
   void warn(const char* msg) override
   {
     std::cout << "W: " << msg << std::endl;

@@ -38,7 +38,7 @@ namespace as
     {
       const char* source_code = getSourceCode<Interface>();
       const char* type_name = getTypeName<Interface>();
-      registerInstance(instance, instance_name, source_code, type_name);
+      registerInstance(instance, instance_name, type_name, source_code);
     }
 
   private:

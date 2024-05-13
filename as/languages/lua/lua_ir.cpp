@@ -34,6 +34,9 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
   lua_State_t = llvm::StructType::getTypeByName(context, "struct.lua_State");
   lua_State_ptr_t = llvm::PointerType::getUnqual(lua_State_t);
 
+  lua_func_t = llvm::FunctionType::get(int32_t, {lua_State_ptr_t}, false);
+  lua_func_ptr_t = llvm::PointerType::get(lua_func_t, 0);
+
   lua_rawgeti_f = m_api_module->getFunction("lua_rawgeti");
   lua_pushinteger_f = m_api_module->getFunction("lua_pushinteger");
   lua_pushnumber_f = m_api_module->getFunction("lua_pushnumber");

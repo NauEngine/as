@@ -33,27 +33,37 @@ namespace clang
 namespace as
 {
 
-struct CPPInterface
+struct ScriptInterface
 {
+  // Name of interface
   std::string name;
-  std::unordered_map<std::string, llvm::FunctionType*> methods;
+  // Ordered vector of method names, if some name is empty it means that method is not pure
+  std::vector<std::string> methodNames;
+  // Types if method since vtable_t contains pointers to methods
+  std::vector<llvm::FunctionType*> methodTypes;
+  // Type of script interface
+  llvm::StructType* interface_t = nullptr;
+  // Type of pointer to script interface
+  llvm::PointerType* interface_ptr_t = nullptr;
+  // Type of vtable for script interface
+  llvm::StructType* vtable_t = nullptr;
 
   void dump(llvm::raw_fd_ostream& stream);
 };
 
-using CPPInterfaces = std::unordered_map <std::string, std::shared_ptr<CPPInterface>>;
+using ScriptInterfaces = std::unordered_map <std::string, std::shared_ptr<ScriptInterface>>;
 
 class CPPParser
 {
 public:
   explicit CPPParser(llvm::LLVMContext& context) : m_context(context) {}
 
-  std::shared_ptr<CPPInterface> getInterface(const std::string& name, const std::string& source_code);
+  std::shared_ptr<ScriptInterface> getInterface(const std::string& name, const std::string& source_code);
   void dump(llvm::raw_fd_ostream& stream);
 
 private:
   llvm::LLVMContext& m_context;
-  CPPInterfaces m_parsed_interfaces;
+  ScriptInterfaces m_parsedInterfaces;
 
   void parse(const std::string& code);
 };
@@ -61,22 +71,26 @@ private:
 class CollectInterfaceASTVisitor : public clang::RecursiveASTVisitor<CollectInterfaceASTVisitor>
 {
 public:
-  CollectInterfaceASTVisitor(clang::ASTContext *context, CPPInterfaces& interfaces,  clang::CodeGen::CodeGenModule& cgm)
-      : m_context(context), m_interfaces(interfaces), m_cgm(cgm) {}
+  CollectInterfaceASTVisitor(llvm::LLVMContext& llvmContext, clang::ASTContext *context, ScriptInterfaces& interfaces,  clang::CodeGen::CodeGenModule& cgm) :
+      m_llvmContext(llvmContext),
+      m_context(context),
+      m_interfaces(interfaces),
+      m_cgm(cgm) {}
 
   bool VisitRecordDecl(clang::RecordDecl* record_decl);
 
 private:
+  llvm::LLVMContext& m_llvmContext;
   clang::ASTContext *m_context;
-  CPPInterfaces& m_interfaces;
+  ScriptInterfaces& m_interfaces;
   clang::CodeGen::CodeGenModule& m_cgm;
 };
 
 class CollectInterfaceASTConsumer : public clang::ASTConsumer
 {
 public:
-  explicit CollectInterfaceASTConsumer(clang::ASTContext *Context, CPPInterfaces& interfaces, clang::CodeGen::CodeGenModule& cgm)
-      : m_visitor(Context, interfaces, cgm) {}
+  explicit CollectInterfaceASTConsumer(llvm::LLVMContext& llvmContext, clang::ASTContext *context, ScriptInterfaces& interfaces, clang::CodeGen::CodeGenModule& cgm)
+      : m_visitor(llvmContext, context, interfaces, cgm) {}
 
   void HandleTranslationUnit(clang::ASTContext &Context) override {
     m_visitor.TraverseDecl(Context.getTranslationUnitDecl());
@@ -88,13 +102,13 @@ private:
 
 class CollectInterfaceAction : public clang::ASTFrontendAction {
   public:
-    explicit CollectInterfaceAction(CPPInterfaces& interfaces, llvm::LLVMContext& context)
+    explicit CollectInterfaceAction(ScriptInterfaces& interfaces, llvm::LLVMContext& context)
         : m_interfaces(interfaces), m_context(context) {}
 
     std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(clang::CompilerInstance &compiler, llvm::StringRef file) override;
 
   private:
-    CPPInterfaces& m_interfaces;
+    ScriptInterfaces& m_interfaces;
     std::unique_ptr<clang::CodeGenerator> m_code_gen;
     llvm::LLVMContext& m_context;
   };

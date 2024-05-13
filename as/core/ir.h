@@ -7,6 +7,8 @@
 
 #include <format>
 
+#include "as.h"
+
 namespace as::ir
 {
   static std::string instance_module_name(const std::string& instance_name)
@@ -19,14 +21,14 @@ namespace as::ir
     return std::format("__{}_module_{}", script_id, type_name);
   }
 
-  static std::string interface_type_name(ScriptId script_id, const std::string& type_name)
+  static std::string interface_type_name(const std::string& type_name)
   {
-    return std::format("__{}_interface_{}", script_id, type_name);
+    return std::format("__interface_type_{}", type_name);
   }
 
-  static std::string interface_vtable_type_name(ScriptId script_id, const std::string& type_name)
+  static std::string interface_vtable_type_name(const std::string& type_name)
   {
-    return std::format("__{}_vtable_type_{}", script_id, type_name);
+    return std::format("__interface_vtbl_type_{}", type_name);
   }
 
   static std::string interface_vtable_name(ScriptId script_id, const std::string& type_name)

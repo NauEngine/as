@@ -8,7 +8,10 @@
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "as/core/language.h"
 
-struct lua_State;
+extern "C"
+{
+#include "lua/lua.h"
+}
 
 namespace as
 {
@@ -28,11 +31,16 @@ public:
   void registerInstance(
     void* instance,
     const std::string& instanceName,
-    const std::shared_ptr<CPPInterface>& cppInterface) override;
+    const std::shared_ptr<ScriptInterface>& cppInterface) override;
 
 private:
   lua_State* m_lua_state = nullptr;
   std::shared_ptr<LuaIR> m_lua_ir;
+
+  std::shared_ptr<llvm::orc::LLJIT> m_jit;
+  llvm::orc::ThreadSafeContext m_ts_context;
+
+  lua_CFunction getFunctionForInterfaceMethod();
 };
 
 }

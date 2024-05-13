@@ -34,6 +34,9 @@ public:
   llvm::Type* lua_State_t = nullptr;
   llvm::Type* lua_State_ptr_t = nullptr;
 
+  llvm::FunctionType* lua_func_t = nullptr;
+  llvm::Type* lua_func_ptr_t = nullptr;
+
   llvm::Function* lua_rawgeti_f = nullptr;
   llvm::Function* lua_pushinteger_f = nullptr;
   llvm::Function* lua_pushnumber_f = nullptr;

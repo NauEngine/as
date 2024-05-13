@@ -25,7 +25,7 @@ public:
     void registerInstance(
       void* instance,
       const std::string& instanceName,
-      const std::shared_ptr<CPPInterface>& cppInterface) override {}
+      const std::shared_ptr<ScriptInterface>& cppInterface) override {}
 };
 
 }

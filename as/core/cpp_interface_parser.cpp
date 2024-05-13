@@ -10,8 +10,8 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/TargetParser/Host.h"
 
-
 #include "cpp_interface_parser.h"
+#include "ir.h"
 
 namespace as
 {
@@ -20,23 +20,47 @@ bool CollectInterfaceASTVisitor::VisitRecordDecl(clang::RecordDecl *RD)
 {
   if (RD->isThisDeclarationADefinition())
   {
-    auto interface = std::make_unique<CPPInterface>();
+    auto interface = std::make_unique<ScriptInterface>();
     interface->name = RD->getNameAsString();
+
+    const auto type_name = ir::interface_type_name(interface->name);
+    const auto vtable_type_name = ir::interface_vtable_type_name(interface->name);
+
+    interface->interface_t = llvm::StructType::create(m_llvmContext, type_name);
+    interface->interface_ptr_t = llvm::PointerType::get(interface->interface_t, 0);
+    llvm::Type* opaque_ptr_t = llvm::PointerType::get(m_llvmContext, 0);
+
+    std::vector<llvm::Type*> vtable_types;
 
     for (auto it = RD->decls_begin(); it != RD->decls_end(); ++it)
     {
       if (it->isFunctionOrFunctionTemplate())
       {
-        auto function = it->getAsFunction();
+        const auto function = it->getAsFunction();
 
         if (function->isPure())
         {
-          auto function_type = clang::CodeGen::convertFreeFunctionType(m_cgm, function);
+          llvm::FunctionType* function_type = clang::CodeGen::convertFreeFunctionType(m_cgm, function);
+          llvm::FunctionType* method_type = ir::buildInterfaceMethodType(function_type, interface->interface_ptr_t);
+
           auto func_name = function->getNameInfo().getName().getAsString();
-          interface->methods[func_name] = function_type;
+          interface->methodNames.push_back(func_name);
+          interface->methodTypes.push_back(method_type);
+          vtable_types.push_back(llvm::PointerType::get(method_type, 0));
+        }
+        else
+        {
+          interface->methodNames.emplace_back("");
+          interface->methodTypes.push_back(nullptr);
+          vtable_types.push_back(opaque_ptr_t);
         }
       }
     }
+
+    interface->vtable_t = llvm::StructType::create(m_llvmContext, vtable_type_name);
+    interface->vtable_t->setBody(vtable_types);
+
+    interface->interface_t->setBody(llvm::PointerType::get(interface->vtable_t, 0));
 
     m_interfaces[interface->name] = std::move(interface);
   }
@@ -53,16 +77,16 @@ std::unique_ptr<clang::ASTConsumer> CollectInterfaceAction::CreateASTConsumer(cl
 
   m_code_gen->Initialize(compiler.getASTContext());
   clang::CodeGen::CodeGenModule& cgm = m_code_gen->CGM();
-  return std::make_unique<CollectInterfaceASTConsumer>(&compiler.getASTContext(), m_interfaces, cgm);
+  return std::make_unique<CollectInterfaceASTConsumer>(m_context, &compiler.getASTContext(), m_interfaces, cgm);
 }
 
-std::shared_ptr<CPPInterface> CPPParser::getInterface(const std::string& name, const std::string& source_code)
+std::shared_ptr<ScriptInterface> CPPParser::getInterface(const std::string& name, const std::string& source_code)
 {
-  if (!m_parsed_interfaces.contains(name)) {
+  if (!m_parsedInterfaces.contains(name)) {
     parse(source_code);
   }
 
-  return m_parsed_interfaces[name];
+  return m_parsedInterfaces[name];
 }
 
 void CPPParser::parse(const std::string& code)
@@ -89,7 +113,7 @@ void CPPParser::parse(const std::string& code)
   compiler.createSourceManager(compiler.getFileManager());
   compiler.createPreprocessor(clang::TU_Complete);
 
-  CollectInterfaceAction action(m_parsed_interfaces, m_context);
+  CollectInterfaceAction action(m_parsedInterfaces, m_context);
   if (!compiler.ExecuteAction(action))
   {
     llvm::errs() << "Failed to parse!\n";
@@ -98,19 +122,19 @@ void CPPParser::parse(const std::string& code)
 
 void CPPParser::dump(llvm::raw_fd_ostream& stream)
 {
-  for (const auto& [name, interface]: m_parsed_interfaces)
+  for (const auto& [name, interface]: m_parsedInterfaces)
   {
     interface->dump(stream);
   }
 }
 
-void CPPInterface::dump(llvm::raw_fd_ostream& stream)
+void ScriptInterface::dump(llvm::raw_fd_ostream& stream)
 {
   stream << "Interface: " << name << "\n";
 
-  for (const auto& [method, signature]: methods)
+  for (int i = 0; i < methodNames.size(); ++i)
   {
-    stream << "  " << method << " " << *signature << "\n";
+    stream << "  " << methodNames[i] << " " << *vtable_t->getTypeAtIndex(i) << "\n";
   }
 }
 
