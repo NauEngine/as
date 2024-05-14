@@ -6,7 +6,7 @@ function foo(a, b)
 
 function bar(a)
 {
-    return a * 200;
+    return a * 100;
 }
 
 

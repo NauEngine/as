@@ -152,17 +152,24 @@ public:
     return llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), value);
   }
 
-  void declareFunction(const std::string& name, const std::vector<std::string>& args) {
+  void declareFunction(const std::string& name, llvm::FunctionType* signature, const std::vector<std::string>& args) {
     auto func = getFunction(name);
     if (func)
       return;
 
-    std::vector<llvm::Type*> argTypes(args.size(), llvm::Type::getInt32Ty(*context));
-    llvm::FunctionType* funcType = llvm::FunctionType::get(llvm::Type::getInt32Ty(*context), argTypes, false);
-    llvm::Function* result = llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, name, module);
+    llvm::Function* result = llvm::Function::Create(signature, llvm::Function::ExternalLinkage, name, module);
     unsigned index = 0;
     for (auto& arg: result->args()) {
-      arg.setName(args[index++]);
+      if (index == 0)
+      {
+        arg.setName("__this");
+      }
+      else
+      {
+        arg.setName(args[index - 1]);
+      }
+
+      index++;
     }
   }
 
@@ -191,10 +198,10 @@ private:
   llvm::StructType* structType;
 };
 
-llvm::Function* build(llvm::LLVMContext& context, llvm::Module* module, const std::string& funcName, const ModuleFunction& func, std::vector<Error>& errors)
+llvm::Function* build(llvm::LLVMContext& context, llvm::Module* module, const std::string& funcName, const ModuleFunction& func, llvm::FunctionType* signature, std::vector<Error>& errors)
 {
   ModuleContext c(context, module);
-  c.declareFunction(funcName, func.args);
+  c.declareFunction(funcName, signature, func.args);
   c.startFunction(funcName);
   auto f = c.getFunction(funcName);
   bool hasError = false;
