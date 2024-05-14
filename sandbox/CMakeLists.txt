@@ -24,3 +24,6 @@ target_link_libraries(SandboxScripts
 
 add_executable(SandboxSq main_sq.cpp)
 target_link_libraries(SandboxSq SquirrelIntegration)
+
+
+add_executable(SandboxMagic main_magic.cpp)
