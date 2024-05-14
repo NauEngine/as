@@ -10,22 +10,6 @@ struct ScriptPath {
     constexpr explicit ScriptPath(const char(&str)[N]) {
         std::copy_n(str, N, data.begin());
     }
-
-    [[nodiscard]] constexpr const char* c_str() const {
-        return data.data();
-    }
-
-    [[nodiscard]] constexpr std::string_view str_view() const {
-        return std::string_view(data.data(), N - 1);  // N-1 чтобы исключить null-терминатор
-    }
-
-    [[nodiscard]] constexpr std::size_t size() const {
-        return N;
-    }
-
-    [[nodiscard]] constexpr bool operator==(const ScriptPath& other) const {
-        return data == other.data;
-    }
 };
 
 struct Foo {
@@ -59,8 +43,8 @@ Foo* newInstance<Foo, test_2_lua>() {
 
 
 int main() {
-    auto inst1 = newInstance<Foo, ScriptPath("../../sandbox/scripts/test_1.lua")>();
-    auto inst2 = newInstance<Foo, ScriptPath("../../sandbox/scripts/test_2.lua")>();
+    const auto inst1 = newInstance<Foo, ScriptPath("../../sandbox/scripts/test_1.lua")>();
+    const auto inst2 = newInstance<Foo, ScriptPath("../../sandbox/scripts/test_2.lua")>();
 
     std::cout << inst1->bar() << "\n";
     std::cout << inst2->bar() << "\n";
