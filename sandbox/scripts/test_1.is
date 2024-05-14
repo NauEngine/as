@@ -5,5 +5,5 @@ function foo(a, b)
 
 function bar(a)
 {
-    return a * 100;
+    return a * 10;
 }

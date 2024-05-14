@@ -59,7 +59,7 @@ llvm::Function* IvnScriptLanguageScript::buildFunction(
     }
 
     std::vector<script::Error> errors;
-    auto result = script::build(context, module, decorated_name, *f, errors);
+    auto result = script::build(context, module, decorated_name, *f, signature, errors);
     for (const auto &error: errors) {
       std::cerr << m_filename << ":" << error.line << ":" << error.column << ": error: " << error.message << "\n";
     }
