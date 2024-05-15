@@ -43,6 +43,10 @@ struct ILanguageScript
   virtual llvm::Function* buildFunction(
     const std::string& bare_name,
     llvm::FunctionType* signature,
+    llvm::LLVMContext& context,
+    llvm::Module* module) = 0;
+
+  virtual void executeModule(
     const std::shared_ptr<llvm::orc::LLJIT>& jit,
     llvm::LLVMContext& context,
     llvm::Module* module) = 0;

@@ -37,6 +37,10 @@ public:
     llvm::Function* buildFunction(
         const std::string& bare_name,
         llvm::FunctionType* signature,
+        llvm::LLVMContext& context,
+        llvm::Module* module) override;
+
+    void executeModule(
         const std::shared_ptr<llvm::orc::LLJIT>& jit,
         llvm::LLVMContext& context,
         llvm::Module* module) override;
@@ -46,14 +50,14 @@ private:
     const std::shared_ptr<SquirrelIR>& m_sq_ir;
 
     std::unique_ptr<SQObject> m_script_func;
-    std::unordered_map<std::string, std::unique_ptr<SQObject>> m_funcs;
+    std::vector<std::pair<std::string, std::unique_ptr<SQObject>>> m_funcs;
+    // std::unordered_map<std::string, std::unique_ptr<SQObject>> m_funcs;
 
     llvm::Value* m_sq_vm_extern = nullptr;
     std::string safeModuleName;
 
     llvm::Value* buildGlobalVarForSQClosure(
         const std::string& bare_name,
-        const std::shared_ptr<llvm::orc::LLJIT>& jit,
         llvm::LLVMContext& context,
         llvm::Module* module);
 };
