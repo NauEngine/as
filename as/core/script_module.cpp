@@ -89,8 +89,7 @@ std::tuple<std::string, std::unique_ptr<llvm::Module>> ScriptModule::buildInterf
         if (auto funcType = interface->methodTypes[i])
         {
             auto funcName = interface->methodNames[i];
-            auto decoratedName = std::format("{}_{}_{}", interface->name, funcName, m_script_id);
-            llvm::Function* method = language_script->buildFunction(funcType, funcName, decoratedName, m_jit, context, module.get());
+            llvm::Function* method = language_script->buildFunction(funcType, funcName, m_jit, context, module.get());
             llvm::errs() << *method << "\n";
             vtableMethods[i] = method;
         } else

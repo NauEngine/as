@@ -42,7 +42,6 @@ void IvnScriptLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Mo
 llvm::Function* IvnScriptLanguageScript::buildFunction(
     llvm::FunctionType* signature,
     const std::string& bare_name,
-    const std::string& decorated_name,
     const std::shared_ptr<llvm::orc::LLJIT>& jit,
     llvm::LLVMContext& context,
     llvm::Module* module)
@@ -59,7 +58,7 @@ llvm::Function* IvnScriptLanguageScript::buildFunction(
     }
 
     std::vector<script::Error> errors;
-    auto result = script::build(context, module, decorated_name, *f, signature, errors);
+    auto result = script::build(context, module, bare_name, *f, signature, errors);
     for (const auto &error: errors) {
       std::cerr << m_filename << ":" << error.line << ":" << error.column << ": error: " << error.message << "\n";
     }

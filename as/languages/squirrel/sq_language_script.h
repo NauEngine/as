@@ -37,7 +37,6 @@ public:
     llvm::Function* buildFunction(
         llvm::FunctionType* signature,
         const std::string& bare_name,
-        const std::string& decorated_name,
         const std::shared_ptr<llvm::orc::LLJIT>& jit,
         llvm::LLVMContext& context,
         llvm::Module* module) override;
@@ -50,10 +49,10 @@ private:
     std::unordered_map<std::string, std::unique_ptr<SQObject>> m_funcs;
 
     llvm::Value* m_sq_vm_extern = nullptr;
+    std::string safeModuleName;
 
     llvm::Value* buildGlobalVarForSQClosure(
         const std::string& bare_name,
-        const std::string& decorated_name,
         const std::shared_ptr<llvm::orc::LLJIT>& jit,
         llvm::LLVMContext& context,
         llvm::Module* module);

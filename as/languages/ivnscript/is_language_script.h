@@ -27,7 +27,6 @@ public:
     llvm::Function* buildFunction(
         llvm::FunctionType* signature,
         const std::string& bare_name,
-        const std::string& decorated_name,
         const std::shared_ptr<llvm::orc::LLJIT>& jit,
         llvm::LLVMContext& context,
         llvm::Module* module) override;

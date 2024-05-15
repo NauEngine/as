@@ -11,6 +11,18 @@
 
 #include "sq_ir.h"
 
+static std::string getSafeName(const std::string& filename)
+{
+    std::string result(filename);
+    for(auto & it : result) {
+        if (!isalnum(it))
+            it = '_';
+    }
+
+    std::hash<std::string> hasher;
+    return result + '_' + std::to_string(hasher(filename));
+}
+
 namespace as
 {
 void SquirrelLanguageScript::load(const std::string& filename)
@@ -21,6 +33,7 @@ void SquirrelLanguageScript::load(const std::string& filename)
         if (SQ_SUCCEEDED(sq_getstackobj(m_sq_vm, -1, m_script_func.get())))
         {
             sq_addref(m_sq_vm, m_script_func.get());
+            safeModuleName = getSafeName(filename);
         }
         else
         {
@@ -69,17 +82,16 @@ void SquirrelLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Mod
 llvm::Function* SquirrelLanguageScript::buildFunction(
     llvm::FunctionType* signature,
     const std::string& bare_name,
-    const std::string& decorated_name,
     const std::shared_ptr<llvm::orc::LLJIT>& jit,
     llvm::LLVMContext& context,
     llvm::Module* module)
 {
     llvm::IRBuilder<> builder(context);
-    llvm::Function* func = llvm::Function::Create(signature, llvm::Function::ExternalLinkage, decorated_name, module);
+    llvm::Function* func = llvm::Function::Create(signature, llvm::Function::InternalLinkage, bare_name, module);
     llvm::BasicBlock* block = llvm::BasicBlock::Create(context, "entry", func);
     builder.SetInsertPoint(block);
 
-    llvm::Value* sq_closure = buildGlobalVarForSQClosure(bare_name, decorated_name, jit, context, module);
+    llvm::Value* sq_closure = buildGlobalVarForSQClosure(bare_name, jit, context, module);
 
     // TODO [AZ] Do we need memcpy here?
 
@@ -134,7 +146,6 @@ llvm::Function* SquirrelLanguageScript::buildFunction(
 
 llvm::Value* SquirrelLanguageScript::buildGlobalVarForSQClosure(
     const std::string& bare_name,
-    const std::string& decorated_name,
     const std::shared_ptr<llvm::orc::LLJIT>& jit,
     llvm::LLVMContext& context,
     llvm::Module* module)
@@ -154,7 +165,7 @@ llvm::Value* SquirrelLanguageScript::buildGlobalVarForSQClosure(
 
     sq_settop(m_sq_vm, top);
 
-    auto sq_decorated_name = decorated_name + "_sqobj";
+    auto sq_decorated_name = std::format("{}_{}_sqobj", safeModuleName, bare_name);
 
     // TODO [AZ] handle errors
 

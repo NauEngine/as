@@ -157,7 +157,7 @@ public:
     if (func)
       return;
 
-    llvm::Function* result = llvm::Function::Create(signature, llvm::Function::ExternalLinkage, name, module);
+    llvm::Function* result = llvm::Function::Create(signature, llvm::Function::InternalLinkage, name, module);
     unsigned index = 0;
     for (auto& arg: result->args()) {
       if (index == 0)

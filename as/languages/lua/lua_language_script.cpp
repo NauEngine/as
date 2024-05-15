@@ -63,7 +63,6 @@ void LuaLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Module* 
 llvm::Function* LuaLanguageScript::buildFunction(
   llvm::FunctionType* signature,
   const std::string& bare_name,
-  const std::string& decorated_name,
   const std::shared_ptr<llvm::orc::LLJIT>& jit,
   llvm::LLVMContext& context,
   llvm::Module* module)
@@ -84,7 +83,7 @@ llvm::Function* LuaLanguageScript::buildFunction(
   }
 
   llvm::IRBuilder<> builder(context);
-  llvm::Function* func = llvm::Function::Create(signature, llvm::Function::ExternalLinkage, decorated_name, module);
+  llvm::Function* func = llvm::Function::Create(signature, llvm::Function::InternalLinkage, bare_name, module);
   llvm::BasicBlock* block = llvm::BasicBlock::Create(context, "entry", func);
   builder.SetInsertPoint(block);
 
