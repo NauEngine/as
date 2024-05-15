@@ -23,6 +23,8 @@ public:
     SquirrelLanguage();
     ~SquirrelLanguage() override;
 
+    const char* prefix() override { return "squirrel"; }
+
     void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context) override;
 
     std::shared_ptr<ILanguageScript> newScript() override;
@@ -30,7 +32,7 @@ public:
     void registerInstance(
       void* instance,
       const std::string& instanceName,
-      const std::shared_ptr<ScriptInterface>& cppInterface) override {}
+      const std::shared_ptr<ScriptInterface>& scriptInterface) override {}
 
 private:
     SQVM* m_sq_vm = nullptr;

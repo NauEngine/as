@@ -17,11 +17,11 @@ struct Foo {
     virtual ~Foo() = default;
 };
 
-struct Foo_1 : Foo {
+struct Foo_1 final : Foo {
     int bar() override { return 100; }
 };
 
-struct Foo_2 : Foo {
+struct Foo_2 final : Foo {
     int bar() override { return 200; }
 };
 

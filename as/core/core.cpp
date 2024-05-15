@@ -75,11 +75,11 @@ namespace as
     const std::string& type_name,
     const std::string& source_code)
   {
-    auto cpp_interface = m_cpp_parser->getInterface(type_name, source_code);
+    auto scriptInterface = m_cpp_parser->getInterface(type_name, source_code);
 
     for (auto& [name, language] : m_languages)
     {
-      language->registerInstance(instance, instance_name, cpp_interface);
+      language->registerInstance(instance, instance_name, scriptInterface);
     }
   }
 } // as

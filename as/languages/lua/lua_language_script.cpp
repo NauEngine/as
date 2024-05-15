@@ -96,16 +96,7 @@ llvm::Function* LuaLanguageScript::buildFunction(
   for (int i = 1; i < signature->getNumParams(); ++i)
   {
     llvm::Value* arg = func->getArg(i);
-    const llvm::Type* arg_type = arg->getType();
-    if (arg_type == m_lua_ir->int32_t)
-    {
-      llvm::Value* arg64 = builder.CreateSExt(arg, m_lua_ir->int64_t);
-      builder.CreateCall(m_lua_ir->lua_pushinteger_f, {m_lua_state_extern, arg64});
-    }
-    else if (arg_type == m_lua_ir->double_t)
-    {
-      builder.CreateCall(m_lua_ir->lua_pushnumber_f, {m_lua_state_extern, arg});
-    }
+    m_lua_ir->buildPushValue(builder, m_lua_state_extern, arg->getType(), arg);
   }
 
   llvm::Constant* num_args = builder.getInt32(signature->getNumParams() - 1);
@@ -113,20 +104,8 @@ llvm::Function* LuaLanguageScript::buildFunction(
 
   builder.CreateCall(m_lua_ir->lua_call_f, {m_lua_state_extern, num_args, num_rets});
 
-  llvm::Constant* stack_top = builder.getInt32(-1);
-
   const llvm::Type* ret_type = func->getReturnType();
-  llvm::Value* ret = nullptr;
-
-  if (ret_type == m_lua_ir->int32_t)
-  {
-    llvm::Value* result = builder.CreateCall(m_lua_ir->lua_tointeger_f, {m_lua_state_extern, stack_top});
-    ret = builder.CreateTrunc(result, m_lua_ir->int32_t);
-  }
-  else if (ret_type == m_lua_ir->double_t)
-  {
-    ret = builder.CreateCall(m_lua_ir->lua_tonumber_f, {m_lua_state_extern, stack_top});
-  }
+  llvm::Value* ret = m_lua_ir->buildPopValue(builder, m_lua_state_extern, ret_type, -1);
 
   llvm::Constant* stack_pos = builder.getInt32(-(1)-1);
   builder.CreateCall(m_lua_ir->lua_settop_f, {m_lua_state_extern, stack_pos});

@@ -19,23 +19,38 @@ struct TestScript
 DEFINE_SCRIPT_INTERFACE(Logger,
 struct Logger
 {
-  virtual void warn(const char* msg) = 0;
-  virtual void debug(const char* msg) = 0;
+  virtual void warn(int a, int b) = 0;
+  virtual int debug(int a, int b) = 0;
 };
 )
 
 struct LoggerImpl : Logger
 {
-  void warn(const char* msg) override
+  void warn(int a, int b) override
   {
-    std::cout << "W: " << msg << std::endl;
+    std::cout << "W: a: " << a << "b: "  << b << std::endl;
   }
 
-  void debug(const char* msg) override
+  int debug(int a, int b) override
   {
-    std::cout << "D: " << msg << std::endl;
+    std::cout << "D: a: " << a << "b: "  << b << std::endl;
+    return 10;
   }
 };
+
+void printVTable(void* obj)
+{
+  // Получаем указатель на vtable
+  void** vtable = *(void***)obj;
+
+  std::cout << "VTable address: " << vtable << std::endl;
+
+  // Итерация по методам в vtable
+  for (int i = 0; vtable[i] != nullptr; ++i)
+    {
+    std::cout << "Method " << i << " address: " << vtable[i] << std::endl;
+  }
+}
 
 int main()
 {
@@ -50,27 +65,31 @@ int main()
 
   LoggerImpl logger;
 
+  printVTable(&logger);
+
   script_core->registerInstance<Logger>(&logger, "logger");
 
-  std::shared_ptr<as::ScriptModule> script_modules[6];
+  int NUM_SCRIPTS = 4;
+
+  std::shared_ptr<as::ScriptModule> script_modules[NUM_SCRIPTS];
 
   script_modules[0] = script_core->newScriptModule("lua", "../../sandbox/scripts/test_1.lua");
   script_modules[1] = script_core->newScriptModule("lua", "../../sandbox/scripts/test_2.lua");
   script_modules[2] = script_core->newScriptModule("sq", "../../sandbox/scripts/test_1.nut");
   script_modules[3] = script_core->newScriptModule("sq", "../../sandbox/scripts/test_2.nut");
-  script_modules[4] = script_core->newScriptModule("is", "../../sandbox/scripts/test_1.is");
-  script_modules[5] = script_core->newScriptModule("is", "../../sandbox/scripts/test_2.is");
+  // script_modules[4] = script_core->newScriptModule("is", "../../sandbox/scripts/test_1.is");
+  // script_modules[5] = script_core->newScriptModule("is", "../../sandbox/scripts/test_2.is");
 
-  TestScript* instances[6];
+  TestScript* instances[NUM_SCRIPTS];
 
-  for (int i = 0; i < 6; ++i)
+  for (int i = 0; i < NUM_SCRIPTS; ++i)
   {
     instances[i] = script_modules[i]->newInstance<TestScript>(std::format("instance_{}", i));
   }
 
   for (int t = 0; t < 5; ++t)
   {
-    for (int i = 0; i < 6; ++i)
+    for (int i = 0; i < NUM_SCRIPTS; ++i)
     {
       std::cout << "Instance " << i << ":" << std::endl;
       std::cout << instances[i]->foo(10, 20) << std::endl;
@@ -78,7 +97,7 @@ int main()
     }
   }
 
-  for (int i = 0; i < 4; ++i)
+  for (int i = 0; i < NUM_SCRIPTS; ++i)
   {
     script_modules[i] = nullptr;
   }

@@ -17,6 +17,9 @@ add_library(LuaIntegration STATIC
 
     bc/lua_vm_ops_bc.h
     bc/lapi_bc.h
+    bc/lapi.ll
+    bc/lauxlib_bc.h
+    bc/lauxlib.ll
     bc/test_adapter_bc.h
     bc/test_adapter.ll
 )
@@ -30,4 +33,5 @@ set(BC_FLAGS -c)
 
 add_llvm_bc_library(lua_vm_ops lua_vm_ops.c)
 add_llvm_bc_library(lapi lua/lapi.c)
+add_llvm_bc_library(lauxlib lua/lauxlib.c)
 add_llvm_bc_library(test_adapter test_adapter.cpp)

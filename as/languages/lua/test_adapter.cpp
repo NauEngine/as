@@ -10,28 +10,18 @@ extern "C"
 #include "lua/lstate.h"
 }
 
-extern "C" {
-
-lua_State* lua_state = nullptr;
-
-int adapter(int a, double b)
-{
-
-  	lua_pushinteger(lua_state, a);
-	lua_pushnumber(lua_state, b);
-  	lua_call(lua_state, 1, 1);
-  	return lua_tointeger(lua_state, -1);
-}
-
-}
-
 struct Logger
 {
-	virtual void warn(const char* msg) = 0;
-	virtual void debug(const char* msg) = 0;
+	virtual void warn(int a, int b) = 0;
+	virtual int debug(int a, int b) = 0;
 };
 
-void call_i(Logger* logger)
+
+int warn_A(lua_State* state)
 {
-	logger->warn("test");
+	Logger* obj = *(Logger**)luaL_checkudata(state, 1, "Logger");
+	int a = luaL_checkinteger(state, 2);
+	int b = luaL_checkinteger(state, 3);
+	obj->warn(a, b);
+	return 0;
 }

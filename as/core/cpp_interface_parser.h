@@ -16,6 +16,8 @@
 namespace llvm
 {
   class FunctionType;
+  class StructType;
+  class PointerType;
   class LLVMContext;
   class raw_fd_ostream;
 }
@@ -73,7 +75,7 @@ class CollectInterfaceASTVisitor : public clang::RecursiveASTVisitor<CollectInte
 public:
   CollectInterfaceASTVisitor(llvm::LLVMContext& llvmContext, clang::ASTContext *context, ScriptInterfaces& interfaces,  clang::CodeGen::CodeGenModule& cgm) :
       m_llvmContext(llvmContext),
-      m_context(context),
+      m_astContext(context),
       m_interfaces(interfaces),
       m_cgm(cgm) {}
 
@@ -81,7 +83,7 @@ public:
 
 private:
   llvm::LLVMContext& m_llvmContext;
-  clang::ASTContext *m_context;
+  clang::ASTContext *m_astContext;
   ScriptInterfaces& m_interfaces;
   clang::CodeGen::CodeGenModule& m_cgm;
 };

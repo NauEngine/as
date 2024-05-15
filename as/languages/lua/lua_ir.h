@@ -37,6 +37,7 @@ public:
   llvm::FunctionType* lua_func_t = nullptr;
   llvm::Type* lua_func_ptr_t = nullptr;
 
+  // lapi functions
   llvm::Function* lua_rawgeti_f = nullptr;
   llvm::Function* lua_pushinteger_f = nullptr;
   llvm::Function* lua_pushnumber_f = nullptr;
@@ -45,10 +46,17 @@ public:
   llvm::Function* lua_tonumber_f = nullptr;
   llvm::Function* lua_settop_f = nullptr;
 
+  // lauxlib functions
+  llvm::Function* luaL_checkudata_f = nullptr;
+
   void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context, lua_State* lua_state);
 
+  llvm::Value* buildPopValue(llvm::IRBuilder<>& builder, llvm::Value* lua_state_ir, const llvm::Type* type, int stackPos) const;
+  void buildPushValue(llvm::IRBuilder<>& builder, llvm::Value* lua_state_ir, const llvm::Type* type, llvm::Value* value) const;
+
 private:
-  std::unique_ptr<llvm::Module> m_api_module;
+  std::unique_ptr<llvm::Module> m_lapiModule;
+  std::unique_ptr<llvm::Module> m_lauxlibModule;
 };
 
 } // namespace as
