@@ -15,6 +15,12 @@
 namespace as
 {
 
+struct ScriptObject
+{
+    void* vtable;
+    explicit ScriptObject(void* vtable): vtable(vtable) { }
+};
+
 ScriptModule::ScriptModule(
     std::shared_ptr<ILanguage> language,
     std::shared_ptr<llvm::orc::LLJIT> jit,
@@ -36,9 +42,8 @@ void ScriptModule::load(const std::string& filename, ScriptId script_id)
     m_language_script->load(filename);
 }
 
-llvm::Expected<llvm::orc::ExecutorAddr> ScriptModule::newInstance(
+void* ScriptModule::newInstance(
     const std::shared_ptr<ILanguageScript>& language_script,
-    const std::string& instance_name,
     const std::string& type_name,
     const std::string& source_code)
 {
@@ -51,27 +56,12 @@ llvm::Expected<llvm::orc::ExecutorAddr> ScriptModule::newInstance(
 
         llvm::errs() << "\nINTERFACE MODULE: \n" << *module << "\n";
 
-        if (auto error = m_jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(module), m_ts_context)))
-        {
-            return error;
-        }
-
+        llvm::cantFail(m_jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(module), m_ts_context)));
         m_vtables[scriptInterface->name] = v_table_name;
     }
 
-    if (!m_vtables.contains(scriptInterface->name))
-    {
-        return llvm::createStringError(llvm::inconvertibleErrorCode(), "Cannot build instance");
-    }
-
-    auto instance_module = buildInstanceModule(m_vtables[scriptInterface->name], instance_name, scriptInterface);
-
-    if (auto error = m_jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(instance_module), m_ts_context)))
-    {
-        return error;
-    }
-
-    return m_jit->lookup(instance_name);
+    auto vtable = llvm::cantFail(m_jit->lookup(m_vtables[scriptInterface->name]));
+    return new ScriptObject(vtable.toPtr<void*>());
 }
 
 
@@ -117,22 +107,5 @@ std::tuple<std::string, std::unique_ptr<llvm::Module>> ScriptModule::buildInterf
 
     return {vtable_name, std::move(module)};
 }
-
-std::unique_ptr<llvm::Module> ScriptModule::buildInstanceModule(const std::string& vtable_name, const std::string& instance_name, const std::shared_ptr<ScriptInterface>& interface)
-{
-    auto& context = *m_ts_context.getContext();
-
-    std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>(ir::instance_module_name(instance_name), context);
-
-    llvm::Constant* vtable = new llvm::GlobalVariable(*module, interface->vtable_t, true, llvm::GlobalValue::ExternalLinkage,
-                                                    nullptr, // external
-                                                    vtable_name);
-
-    auto scriptInstance = new llvm::GlobalVariable(*module, interface->interface_t, false, llvm::GlobalValue::ExternalLinkage,
-                                                 llvm::ConstantStruct::get(interface->interface_t, {vtable}), instance_name);
-
-    return module;
-}
-
 
 }
