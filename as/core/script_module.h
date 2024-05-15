@@ -25,43 +25,59 @@ struct ILanguage;
 class  CPPParser;
 struct ScriptInterface;
 
-class ScriptModule
+class ScriptModuleImpl
 {
 public:
-  explicit ScriptModule(
-    std::shared_ptr<ILanguage> language,
+  explicit ScriptModuleImpl(
+    const std::string& filename,
+    std::shared_ptr<ILanguageScript> language_script,
+    std::shared_ptr<CPPParser> cpp_parser,
+    const std::string& type_name,
+    const std::string& source_code,
     std::shared_ptr<llvm::orc::LLJIT> jit,
-    llvm::orc::ThreadSafeContext ts_context,
-    std::shared_ptr<CPPParser> cpp_parser);
+    llvm::orc::ThreadSafeContext ts_context);
 
-  void load(const std::string& filename, ScriptId script_id);
-
-  template<typename Interface> Interface* newInstance(const std::string& instance_name)
-  {
-    const char* source_code = getSourceCode<Interface>();
-    const char* type_name = getTypeName<Interface>();
-    void* result = newInstance(m_language_script, type_name, source_code);
-    return (Interface*)result;
-  }
+  void* newInstance();
 
 private:
-  std::shared_ptr<ILanguage> m_language;
+  std::string m_safe_name;
   std::shared_ptr<ILanguageScript> m_language_script;
-
-  uint32_t m_script_id;
-
-  std::unordered_map<std::string, std::string> m_vtables;
+  std::shared_ptr<ScriptInterface> m_interface;
 
   std::shared_ptr<llvm::orc::LLJIT> m_jit;
   llvm::orc::ThreadSafeContext m_ts_context;
-  std::shared_ptr<CPPParser> m_cpp_parser;
 
-  void* newInstance(
-    const std::shared_ptr<ILanguageScript>& language_script,
-    const std::string& type_name,
-    const std::string& source_code);
+  std::string m_vtable_name;
 
-  std::tuple<std::string, std::unique_ptr<llvm::Module>> buildInterfaceModule(const std::shared_ptr<ILanguageScript>& language_script, const std::shared_ptr<ScriptInterface>& interface);
+  llvm::orc::ExecutorAddr getVTableAddr();
+};
+
+template<typename Interface> class ScriptModule
+{
+public:
+  explicit ScriptModule(
+    const std::string& filename,
+    std::shared_ptr<ILanguageScript> language_script,
+    std::shared_ptr<CPPParser> cpp_parser,
+    std::shared_ptr<llvm::orc::LLJIT> jit,
+    llvm::orc::ThreadSafeContext ts_context):
+
+    impl(filename,
+      std::move(language_script),
+      std::move(cpp_parser),
+      getTypeName<Interface>(),
+      getSourceCode<Interface>(),
+      std::move(jit),
+      std::move(ts_context))
+  {}
+
+  Interface* newInstance()
+  {
+    return static_cast<Interface*>(impl.newInstance());
+  }
+
+private:
+  ScriptModuleImpl impl;
 };
 
 } // as
