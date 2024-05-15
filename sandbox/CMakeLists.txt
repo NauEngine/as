@@ -27,3 +27,10 @@ target_link_libraries(SandboxSq SquirrelIntegration)
 
 
 add_executable(SandboxMagic main_magic.cpp)
+
+add_executable(SandboxTests main_tests.cpp)
+target_link_libraries(SandboxTests
+    LuaIntegration
+    SquirrelIntegration
+    IvnScriptIntegration
+)
