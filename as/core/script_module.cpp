@@ -71,7 +71,7 @@ llvm::orc::ExecutorAddr ScriptModuleImpl::getVTableAddr()
         if (auto funcType = m_interface->methodTypes[i])
         {
             auto funcName = m_interface->methodNames[i];
-            llvm::Function* method = m_language_script->buildFunction(funcType, funcName, m_jit, context, module.get());
+            llvm::Function* method = m_language_script->buildFunction(funcName, funcType, m_jit, context, module.get());
             llvm::errs() << *method << "\n";
             vtableMethods[i] = method;
         }

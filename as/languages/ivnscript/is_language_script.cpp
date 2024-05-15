@@ -40,8 +40,8 @@ void IvnScriptLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Mo
 }
 
 llvm::Function* IvnScriptLanguageScript::buildFunction(
-    llvm::FunctionType* signature,
     const std::string& bare_name,
+    llvm::FunctionType* signature,
     const std::shared_ptr<llvm::orc::LLJIT>& jit,
     llvm::LLVMContext& context,
     llvm::Module* module)

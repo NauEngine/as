@@ -80,8 +80,8 @@ void SquirrelLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Mod
 }
 
 llvm::Function* SquirrelLanguageScript::buildFunction(
-    llvm::FunctionType* signature,
     const std::string& bare_name,
+    llvm::FunctionType* signature,
     const std::shared_ptr<llvm::orc::LLJIT>& jit,
     llvm::LLVMContext& context,
     llvm::Module* module)
