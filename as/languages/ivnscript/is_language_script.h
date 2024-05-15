@@ -22,7 +22,7 @@ public:
 
     void load(const std::string& filename) override;
 
-    void prepareModule(llvm::LLVMContext& context, llvm::Module* module) override;
+    void prepareModule(llvm::LLVMContext& context, llvm::Module* module) override {}
 
     llvm::Function* buildFunction(
         const std::string& bare_name,
@@ -33,8 +33,7 @@ public:
     void executeModule(
         const std::shared_ptr<llvm::orc::LLJIT>& jit,
         llvm::LLVMContext& context,
-        llvm::Module* module) override
-    {};
+        llvm::Module* module) override {}
 
 private:
     std::unique_ptr<script::Module> m_module;

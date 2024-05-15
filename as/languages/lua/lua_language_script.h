@@ -38,8 +38,7 @@ public:
   void executeModule(
     const std::shared_ptr<llvm::orc::LLJIT>& jit,
     llvm::LLVMContext& context,
-    llvm::Module* module) override
-  {};
+    llvm::Module* module) override {}
 
 private:
   lua_State* m_lua_state = nullptr;

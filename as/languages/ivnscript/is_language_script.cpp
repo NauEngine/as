@@ -34,11 +34,6 @@ void IvnScriptLanguageScript::load(const std::string& filename)
     }
 }
 
-void IvnScriptLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Module* module)
-{
-
-}
-
 llvm::Function* IvnScriptLanguageScript::buildFunction(
     const std::string& bare_name,
     llvm::FunctionType* signature,

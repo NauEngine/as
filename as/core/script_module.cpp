@@ -82,16 +82,16 @@ llvm::orc::ExecutorAddr ScriptModuleImpl::getVTableAddr()
         }
     }
 
-    m_language_script->executeModule(m_jit, context, module.get());
-
     // Create a global vtable
     new llvm::GlobalVariable(*module, m_interface->vtable_t, true, llvm::GlobalValue::ExternalLinkage,
         llvm::ConstantStruct::get(m_interface->vtable_t, vtableMethods),
         vtable_name);
+    m_vtable_name = std::move(vtable_name);
+
+    m_language_script->executeModule(m_jit, context, module.get());
 
     llvm::errs() << "\nINTERFACE MODULE: \n" << *module << "\n";
     llvm::cantFail(m_jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(module), m_ts_context)));
-    m_vtable_name = std::move(vtable_name);
 
     return llvm::cantFail(m_jit->lookup(m_vtable_name));
 }
