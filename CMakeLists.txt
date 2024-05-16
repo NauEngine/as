@@ -12,7 +12,4 @@ set(LLVM_CC "clang" CACHE STRING "Command to compile C-code to LLVM bitcode (cla
 set(LLVM_DIS "llvm-dis" CACHE STRING "Command to decompile LLVM bitcode into IR listing)")
 
 add_subdirectory(as)
-add_subdirectory(kscope)
-add_subdirectory(engine)
-add_subdirectory(game)
 add_subdirectory(sandbox)
