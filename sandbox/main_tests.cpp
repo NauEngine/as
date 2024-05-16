@@ -16,6 +16,28 @@ struct TestScript
 };
 )
 
+DEFINE_SCRIPT_INTERFACE(Logger,
+struct Logger
+{
+  virtual void warn(int a, int b) = 0;
+  virtual int debug(int a, int b) = 0;
+};
+)
+
+struct LoggerImpl : Logger
+{
+  void warn(int a, int b) override
+  {
+    std::cout << "W: a: " << a << "b: "  << b << std::endl;
+  }
+
+  int debug(int a, int b) override
+  {
+    std::cout << "D: a: " << a << "b: "  << b << std::endl;
+    return 10;
+  }
+};
+
 int main()
 {
   auto script_core = std::make_shared<as::Core>();
@@ -27,14 +49,17 @@ int main()
   script_core->registerLanguage("nut", std::move(squirrel_language));
   script_core->registerLanguage("is", std::move(ivnscript_language));
 
-  auto test_1_lua = script_core->newScriptModule<TestScript>("../../sandbox/scripts/sandbox_test_1.lua");
-  auto test_2_lua = script_core->newScriptModule<TestScript>("../../sandbox/scripts/sandbox_test_2.lua");
+  LoggerImpl logger;
+  script_core->registerInstance<Logger>(&logger, "logger");
 
-  auto test_1_nut = script_core->newScriptModule<TestScript>("../../sandbox/scripts/sandbox_test_1.nut");
-  auto test_2_nut = script_core->newScriptModule<TestScript>("../../sandbox/scripts/sandbox_test_2.nut");
+  auto test_1_lua = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.lua");
+  auto test_2_lua = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.lua");
 
-  auto test_1_is = script_core->newScriptModule<TestScript>("../../sandbox/scripts/sandbox_test_1.is");
-  auto test_2_is = script_core->newScriptModule<TestScript>("../../sandbox/scripts/sandbox_test_2.is");
+  auto test_1_nut = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.nut");
+  auto test_2_nut = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.nut");
+
+  auto test_1_is = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.is");
+  auto test_2_is = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.is");
 
 //********************************************************************************************************************//
 
