@@ -71,20 +71,20 @@ int main()
 
   int NUM_SCRIPTS = 4;
 
-  std::shared_ptr<as::ScriptModule> script_modules[NUM_SCRIPTS];
+  std::shared_ptr<as::ScriptModule<TestScript>> script_modules[NUM_SCRIPTS];
 
-  script_modules[0] = script_core->newScriptModule("lua", "../../sandbox/scripts/test_1.lua");
-  script_modules[1] = script_core->newScriptModule("lua", "../../sandbox/scripts/test_2.lua");
-  script_modules[2] = script_core->newScriptModule("sq", "../../sandbox/scripts/test_1.nut");
-  script_modules[3] = script_core->newScriptModule("sq", "../../sandbox/scripts/test_2.nut");
-  // script_modules[4] = script_core->newScriptModule("is", "../../sandbox/scripts/test_1.is");
-  // script_modules[5] = script_core->newScriptModule("is", "../../sandbox/scripts/test_2.is");
+  script_modules[0] = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.lua", "lua");
+  script_modules[1] = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.lua", "lua");
+  script_modules[2] = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.nut", "sq");
+  script_modules[3] = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.nut", "sq");
+  // script_modules[4] = script_core->newScriptModule("../../sandbox/scripts/test_1.is");
+  // script_modules[5] = script_core->newScriptModule("../../sandbox/scripts/test_2.is");
 
   TestScript* instances[NUM_SCRIPTS];
 
   for (int i = 0; i < NUM_SCRIPTS; ++i)
   {
-    instances[i] = script_modules[i]->newInstance<TestScript>(std::format("instance_{}", i));
+    instances[i] = script_modules[i]->newInstance();
   }
 
   for (int t = 0; t < 5; ++t)

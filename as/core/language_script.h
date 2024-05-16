@@ -33,19 +33,23 @@ struct ILanguageScript
 
     /**
   * @brief    Builds language specific IR function which emulates c++ interface
-  * @param    [in] signature  IR signature of C++ interface method
   * @param    [in] bare_name  Bare name of function in interface
+  * @param    [in] signature  IR signature of C++ interface method
   * @param    [in] jit        LLVM jit engine
   * @param    [in] context    LLVM context
   * @param    [in] module     LLVM module to insert function into
   * @return                   Pointer to IR function inside Module
   */
   virtual llvm::Function* buildFunction(
-      llvm::FunctionType* signature,
-      const std::string& bare_name,
-      const std::shared_ptr<llvm::orc::LLJIT>& jit,
-      llvm::LLVMContext& context,
-      llvm::Module* module) = 0;
+    const std::string& bare_name,
+    llvm::FunctionType* signature,
+    llvm::LLVMContext& context,
+    llvm::Module* module) = 0;
+
+  virtual void executeModule(
+    const std::shared_ptr<llvm::orc::LLJIT>& jit,
+    llvm::LLVMContext& context,
+    llvm::Module* module) = 0;
 };
 
 } // namespace as

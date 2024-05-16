@@ -30,11 +30,15 @@ public:
   void prepareModule(llvm::LLVMContext& context, llvm::Module* module) override;
 
   llvm::Function* buildFunction(
-      llvm::FunctionType* signature,
       const std::string& bare_name,
-      const std::shared_ptr<llvm::orc::LLJIT>& jit,
+      llvm::FunctionType* signature,
       llvm::LLVMContext& context,
       llvm::Module* module) override;
+
+  void executeModule(
+    const std::shared_ptr<llvm::orc::LLJIT>& jit,
+    llvm::LLVMContext& context,
+    llvm::Module* module) override {}
 
 private:
   lua_State* m_lua_state = nullptr;

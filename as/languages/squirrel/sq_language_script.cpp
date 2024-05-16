@@ -80,9 +80,8 @@ void SquirrelLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Mod
 }
 
 llvm::Function* SquirrelLanguageScript::buildFunction(
-    llvm::FunctionType* signature,
     const std::string& bare_name,
-    const std::shared_ptr<llvm::orc::LLJIT>& jit,
+    llvm::FunctionType* signature,
     llvm::LLVMContext& context,
     llvm::Module* module)
 {
@@ -91,7 +90,7 @@ llvm::Function* SquirrelLanguageScript::buildFunction(
     llvm::BasicBlock* block = llvm::BasicBlock::Create(context, "entry", func);
     builder.SetInsertPoint(block);
 
-    llvm::Value* sq_closure = buildGlobalVarForSQClosure(bare_name, jit, context, module);
+    llvm::Value* sq_closure = buildGlobalVarForSQClosure(bare_name, context, module);
 
     // TODO [AZ] Do we need memcpy here?
 
@@ -144,9 +143,26 @@ llvm::Function* SquirrelLanguageScript::buildFunction(
     return func;
 }
 
+void SquirrelLanguageScript::executeModule(const std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::LLVMContext& context, llvm::Module* module)
+{
+    for (const auto& [name, func] : m_funcs)
+    {
+        auto error = jit->getMainJITDylib().define(llvm::orc::absoluteSymbols({
+          {
+            jit->mangleAndIntern(name),
+            { llvm::orc::ExecutorAddr::fromPtr(func.get()), llvm::JITSymbolFlags::Exported }
+          }
+        }));
+
+        if (error)
+        {
+            llvm::errs() << error;
+        }
+    }
+}
+
 llvm::Value* SquirrelLanguageScript::buildGlobalVarForSQClosure(
     const std::string& bare_name,
-    const std::shared_ptr<llvm::orc::LLJIT>& jit,
     llvm::LLVMContext& context,
     llvm::Module* module)
 {
@@ -166,22 +182,7 @@ llvm::Value* SquirrelLanguageScript::buildGlobalVarForSQClosure(
     sq_settop(m_sq_vm, top);
 
     auto sq_decorated_name = std::format("{}_{}_sqobj", safeModuleName, bare_name);
-
-    // TODO [AZ] handle errors
-
-    auto error = jit->getMainJITDylib().define(llvm::orc::absoluteSymbols({
-      {
-        jit->mangleAndIntern(sq_decorated_name),
-        { llvm::orc::ExecutorAddr::fromPtr(sq_closure.get()), llvm::JITSymbolFlags::Exported }
-      }
-    }));
-
-    if (error)
-    {
-        llvm::errs() << error;
-    }
-
-    m_funcs[bare_name] = std::move(sq_closure);
+    m_funcs.emplace_back(sq_decorated_name, std::move(sq_closure));
 
     return new llvm::GlobalVariable(*module, m_sq_ir->sq_object_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
                                               nullptr,

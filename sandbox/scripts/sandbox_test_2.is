@@ -1,0 +1,12 @@
+function foo(a, b)
+{
+    var c = a + b;
+    return c + 1;
+}
+
+function bar(a)
+{
+    return a * 100;
+}
+
+

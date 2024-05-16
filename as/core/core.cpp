@@ -3,6 +3,7 @@
 //
 
 #include <iostream>
+#include <filesystem>
 
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ManagedStatic.h"
@@ -14,6 +15,20 @@
 #include "language.h"
 #include "script_module.h"
 #include "cpp_interface_parser.h"
+#include "ir.h"
+#include "language_script.h"
+
+static std::string getLanguageName(const std::string& filename, const std::string& language_name)
+{
+  if (!language_name.empty())
+    return language_name;
+
+  auto result = std::filesystem::path(filename).extension().string();
+  if (result.empty() || result.at(0) != '.')
+    return result;
+
+  return result.substr(1);
+}
 
 namespace
 {
@@ -22,8 +37,7 @@ namespace
 
 namespace as
 {
-  Core::Core():
-    m_next_script_id(0)
+  Core::Core()
   {
     m_ts_context = std::make_unique<llvm::LLVMContext>();
     m_cpp_parser = std::make_shared<CPPParser>(*m_ts_context.getContext());
@@ -48,25 +62,12 @@ namespace as
     m_languages[language_name] = std::move(language);
   }
 
-  std::shared_ptr<ScriptModule> Core::newScriptModule(const std::string& language_name, const std::string& filename)
+  std::shared_ptr<ILanguageScript> Core::loadScript(const std::string& filename, const std::string& language_name)
   {
-    auto script_id = getScriptId(filename);
-    auto script_module = std::make_shared<ScriptModule>(m_languages[language_name], m_jit, m_ts_context, m_cpp_parser);
-    script_module->load(filename, script_id);
-    return script_module;
-  }
+    auto language_script = m_languages[getLanguageName(filename, language_name)]->newScript();
+    language_script->load(filename);
 
-  ScriptId Core::getScriptId(const std::string& path)
-  {
-    if (m_script_ids.contains(path))
-    {
-      return m_script_ids[path];
-    }
-
-    m_next_script_id++;
-    m_script_ids[path] = m_next_script_id;
-
-    return m_next_script_id;
+    return language_script;
   }
 
   void Core::registerInstance(

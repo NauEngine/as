@@ -61,9 +61,8 @@ void LuaLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Module* 
 }
 
 llvm::Function* LuaLanguageScript::buildFunction(
-  llvm::FunctionType* signature,
   const std::string& bare_name,
-  const std::shared_ptr<llvm::orc::LLJIT>& jit,
+  llvm::FunctionType* signature,
   llvm::LLVMContext& context,
   llvm::Module* module)
 {

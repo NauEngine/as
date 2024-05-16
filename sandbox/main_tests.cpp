@@ -27,21 +27,21 @@ int main()
   script_core->registerLanguage("nut", std::move(squirrel_language));
   script_core->registerLanguage("is", std::move(ivnscript_language));
 
-  auto test_1_lua = script_core->newScriptModule("lua", "../../sandbox/scripts/test_1.lua");
-  auto test_2_lua = script_core->newScriptModule("lua", "../../sandbox/scripts/test_2.lua");
+  auto test_1_lua = script_core->newScriptModule<TestScript>("../../sandbox/scripts/sandbox_test_1.lua");
+  auto test_2_lua = script_core->newScriptModule<TestScript>("../../sandbox/scripts/sandbox_test_2.lua");
 
-  auto test_1_nut = script_core->newScriptModule("nut", "../../sandbox/scripts/test_1.nut");
-  auto test_2_nut = script_core->newScriptModule("nut", "../../sandbox/scripts/test_2.nut");
+  auto test_1_nut = script_core->newScriptModule<TestScript>("../../sandbox/scripts/sandbox_test_1.nut");
+  auto test_2_nut = script_core->newScriptModule<TestScript>("../../sandbox/scripts/sandbox_test_2.nut");
 
-  auto test_1_is = script_core->newScriptModule("is", "../../sandbox/scripts/test_1.is");
-  auto test_2_is = script_core->newScriptModule("is", "../../sandbox/scripts/test_2.is");
+  auto test_1_is = script_core->newScriptModule<TestScript>("../../sandbox/scripts/sandbox_test_1.is");
+  auto test_2_is = script_core->newScriptModule<TestScript>("../../sandbox/scripts/sandbox_test_2.is");
 
 //********************************************************************************************************************//
 
-  auto test_1_lua_instance1(test_1_lua->newInstance<TestScript>("test_1_lua_instance1"));
-  auto test_2_lua_instance1(test_2_lua->newInstance<TestScript>("test_2_lua_instance1"));
-  auto test_1_lua_instance2(test_1_lua->newInstance<TestScript>("test_1_lua_instance2"));
-  auto test_2_lua_instance2(test_2_lua->newInstance<TestScript>("test_2_lua_instance2"));
+  auto test_1_lua_instance1(test_1_lua->newInstance());
+  auto test_2_lua_instance1(test_2_lua->newInstance());
+  auto test_1_lua_instance2(test_1_lua->newInstance());
+  auto test_2_lua_instance2(test_2_lua->newInstance());
 
   assert(test_1_lua_instance1->foo(10, 20) == 30);
   assert(test_1_lua_instance1->foo(10, 20) == 30);
@@ -71,10 +71,10 @@ int main()
 
 //********************************************************************************************************************//
 
-  auto test_1_nut_instance1(test_1_nut->newInstance<TestScript>("test_1_nut_instance1"));
-  auto test_2_nut_instance1(test_2_nut->newInstance<TestScript>("test_2_nut_instance1"));
-  auto test_1_nut_instance2(test_1_nut->newInstance<TestScript>("test_1_nut_instance2"));
-  auto test_2_nut_instance2(test_2_nut->newInstance<TestScript>("test_2_nut_instance2"));
+  auto test_1_nut_instance1(test_1_nut->newInstance());
+  auto test_2_nut_instance1(test_2_nut->newInstance());
+  auto test_1_nut_instance2(test_1_nut->newInstance());
+  auto test_2_nut_instance2(test_2_nut->newInstance());
 
   assert(test_1_nut_instance1->foo(10, 20) == 100031);
   assert(test_1_nut_instance1->foo(10, 20) == 100032);
@@ -100,10 +100,10 @@ int main()
 
 //********************************************************************************************************************//
 
-  auto test_1_is_instance1(test_1_is->newInstance<TestScript>("test_1_is_instance1"));
-  auto test_2_is_instance1(test_2_is->newInstance<TestScript>("test_2_is_instance1"));
-  auto test_1_is_instance2(test_1_is->newInstance<TestScript>("test_1_is_instance2"));
-  auto test_2_is_instance2(test_2_is->newInstance<TestScript>("test_2_is_instance2"));
+  auto test_1_is_instance1(test_1_is->newInstance());
+  auto test_2_is_instance1(test_2_is->newInstance());
+  auto test_1_is_instance2(test_1_is->newInstance());
+  auto test_2_is_instance2(test_2_is->newInstance());
 
   assert(test_1_is_instance1->foo(10, 20) == 20);
   assert(test_1_is_instance1->foo(10, 20) == 20);

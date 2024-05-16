@@ -22,7 +22,8 @@ namespace llvm::orc
 namespace as
 {
   struct ILanguage;
-  class ScriptModule;
+  struct ILanguageScript;
+  template<typename Interface> class ScriptModule;
   class CPPParser;
 
   class Core
@@ -32,7 +33,11 @@ namespace as
     ~Core();
 
     void registerLanguage(const std::string& language_name, std::shared_ptr<ILanguage> language);
-    std::shared_ptr<ScriptModule> newScriptModule(const std::string& language, const std::string& filename);
+    template<typename Interface> std::shared_ptr<ScriptModule<Interface>> newScriptModule(const std::string& filename, const std::string& language_name = "")
+    {
+      auto language_script = loadScript(filename, language_name);
+      return std::make_shared<ScriptModule<Interface>>(filename, language_script, m_cpp_parser, m_jit, m_ts_context);
+    }
 
     template<typename Interface> void registerInstance(Interface* instance, const std::string& instance_name)
     {
@@ -47,10 +52,8 @@ namespace as
     llvm::orc::ThreadSafeContext m_ts_context;
     std::shared_ptr<CPPParser> m_cpp_parser;
 
-    std::unordered_map<std::string, ScriptId> m_script_ids;
-    ScriptId m_next_script_id;
+    std::shared_ptr<ILanguageScript> loadScript(const std::string& filename, const std::string& language_name);
 
-    ScriptId getScriptId(const std::string& path);
     void registerInstance(void* instance,
       const std::string& instance_name,
       const std::string& type_name,

@@ -22,14 +22,18 @@ public:
 
     void load(const std::string& filename) override;
 
-    void prepareModule(llvm::LLVMContext& context, llvm::Module* module) override;
+    void prepareModule(llvm::LLVMContext& context, llvm::Module* module) override {}
 
     llvm::Function* buildFunction(
-        llvm::FunctionType* signature,
         const std::string& bare_name,
-        const std::shared_ptr<llvm::orc::LLJIT>& jit,
+        llvm::FunctionType* signature,
         llvm::LLVMContext& context,
         llvm::Module* module) override;
+
+    void executeModule(
+        const std::shared_ptr<llvm::orc::LLJIT>& jit,
+        llvm::LLVMContext& context,
+        llvm::Module* module) override {}
 
 private:
     std::unique_ptr<script::Module> m_module;
