@@ -1,4 +1,6 @@
 .idea
+*.DS_Store
 cmake-build-debug
 cmake-build-debug_withdebugllvm
-*.DS_Store
+/as/languages/lua/bc/
+/as/languages/squirrel/bc/
