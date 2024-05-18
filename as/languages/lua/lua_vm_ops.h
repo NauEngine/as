@@ -72,14 +72,6 @@ typedef struct {
 
 extern const vm_func_info vm_op_functions[];
 
-extern int vm_op_run_count[];
-
-extern void vm_count_OP(const Instruction i);
-
-extern void vm_print_OP(lua_State *L, LClosure *cl, const Instruction i, int pc_offset);
-
-extern void vm_next_OP(lua_State *L, LClosure *cl, int pc_offset);
-
 extern void vm_OP_MOVE(lua_State *L, int a, int b);
 
 extern void vm_OP_LOADK(lua_State *L, TValue *k, int a, int bx);

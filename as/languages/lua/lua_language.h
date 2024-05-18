@@ -13,10 +13,14 @@ extern "C"
 #include "lua/lua.h"
 }
 
+struct Proto;
+
 namespace as
 {
 
 class LuaIR;
+class BaseLuaModule;
+class LuaLLVMCompiler;
 
 class LuaLanguage final : public ILanguage
 {
@@ -35,9 +39,15 @@ public:
     const std::string& instanceName,
     const std::shared_ptr<ScriptInterface>& interface) override;
 
+  // [AZ] TODO temporary
+  void compile(lua_State *L, Proto *p);
+  void freeProto(lua_State *L, Proto *p);
+
 private:
   lua_State* m_lua_state = nullptr;
   std::shared_ptr<LuaIR> m_lua_ir;
+  std::shared_ptr<BaseLuaModule> m_baseLuaModule;
+  std::shared_ptr<LuaLLVMCompiler> m_llvmCompiler;
   std::set<std::string> m_createdMetatables;
 
   std::shared_ptr<llvm::orc::LLJIT> m_jit;

@@ -10,12 +10,41 @@
 #include "lua_ir.h"
 #include "lua_language.h"
 #include "lua_language_script.h"
+#include "lua_llvm_compiler.h"
+#include "base_lua_module.h"
+
+// TODO [AZ] dirty temporary hack
+as::LuaLanguage* tmpPointerToLuaLanguage = nullptr;
 
 extern "C"
 {
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 #include "lua/lstate.h"
+
+// TODO [AZ] dirty temporary hack
+void llvm_compiler_compile(lua_State *L, Proto *p) {
+    if (tmpPointerToLuaLanguage)
+    {
+        tmpPointerToLuaLanguage->compile(L, p);
+    }
+}
+
+void llvm_compiler_compile_all(lua_State *L, Proto *p) {
+    if (tmpPointerToLuaLanguage)
+    {
+        tmpPointerToLuaLanguage->compile(L, p);
+    }
+}
+
+void llvm_compiler_free(lua_State *L, Proto *p)
+{
+    if (tmpPointerToLuaLanguage)
+    {
+        tmpPointerToLuaLanguage->freeProto(L, p);
+    }
+}
+
 }
 
 namespace as
@@ -23,25 +52,45 @@ namespace as
 
 LuaLanguage::LuaLanguage()
 {
-  m_lua_state = luaL_newstate();
-  luaL_openlibs(m_lua_state);
+    m_lua_state = luaL_newstate();
+    luaL_openlibs(m_lua_state);
+
+    tmpPointerToLuaLanguage = this;
 }
 
 LuaLanguage::~LuaLanguage()
 {
-  if (m_lua_state)
-  {
-    lua_close(m_lua_state);
-    m_lua_state = nullptr;
-  }
+    if (m_lua_state)
+    {
+        lua_close(m_lua_state);
+        m_lua_state = nullptr;
+    }
+
+    tmpPointerToLuaLanguage = nullptr;
 }
+
+void LuaLanguage::compile(lua_State* L, Proto* p)
+{
+    m_llvmCompiler->Compile(m_ts_context, m_jit, *m_baseLuaModule, L, p);
+}
+
+void LuaLanguage::freeProto(lua_State* L, Proto* p)
+{
+
+}
+
 
 void LuaLanguage::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context)
 {
-  m_jit = std::move(jit);
-  m_ts_context = std::move(ts_context);
-  m_lua_ir = std::make_shared<LuaIR>();
-  m_lua_ir->init(m_jit, m_ts_context, m_lua_state);
+    m_jit = std::move(jit);
+    m_ts_context = std::move(ts_context);
+    m_llvmCompiler = std::make_shared<LuaLLVMCompiler>();
+    m_llvmCompiler->SetDumpCompiled(true);
+    m_baseLuaModule = std::make_shared<BaseLuaModule>();
+    auto baseModule = m_baseLuaModule->Load(m_ts_context);
+    llvm::cantFail(m_jit->addIRModule(std::move(baseModule)));
+    m_lua_ir = std::make_shared<LuaIR>();
+    m_lua_ir->init(m_jit, m_ts_context, m_lua_state);
 }
 
 std::shared_ptr<ILanguageScript> LuaLanguage::newScript()

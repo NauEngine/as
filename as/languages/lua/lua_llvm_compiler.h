@@ -19,12 +19,19 @@ extern "C" {
 }
 #endif
 
-namespace llvm {
-class ExecutionEngine;
-class Timer;
-  namespace legacy {
-    class FunctionPassManager;
-  }
+namespace llvm
+{
+    class ExecutionEngine;
+    class Timer;
+    namespace legacy
+    {
+        class FunctionPassManager;
+    }
+
+    namespace orc
+    {
+        class LLJIT;
+    }
 }
 
 namespace as
@@ -32,8 +39,27 @@ namespace as
 
 class VMModuleForwardDecl;
 
-class LLVMCompiler
+class LuaLLVMCompiler
 {
+public:
+	explicit LuaLLVMCompiler();
+
+	~LuaLLVMCompiler();
+
+	void SetStripCode(bool strip) { strip_code = strip; }
+	void SetDumpCompiled(bool dump) { dump_compiled = dump; }
+
+	llvm::Value* GetProtoConstant(llvm::LLVMContext& context, TValue* constant);
+
+	std::string GenerateFunctionName(Proto* p);
+
+	void Compile(
+	    llvm::orc::ThreadSafeContext ts_context,
+	    std::shared_ptr<llvm::orc::LLJIT> jit,
+	    BaseLuaModule& vm_module,
+	    lua_State* L,
+	    Proto* p);
+
 private:
 	class OPValues
 	{
@@ -71,11 +97,7 @@ private:
 		llvm::CallInst* func_k = nullptr;
 	};
 
-private:
 	bool strip_code = false;
-
-	// count compiled opcodes.
-	int opcode_stats[NUM_OPCODES];
 
 	// opcode hints/values/blocks/need_block arrays used in compile() method.
 	std::vector<hint_t> op_hints;
@@ -101,26 +123,23 @@ private:
 	std::vector<llvm::Value*>
 	GetOpCallArgs(llvm::LLVMContext& context, const vm_func_info* func_info, BuildContext& bcontext, int i);
 
-	void InsertDebugCalls(VMModuleForwardDecl* decl, llvm::LLVMContext& context, llvm::IRBuilder<>& builder,
-												BuildContext& bcontext, int i);
+    void CompileAllProtos(
+        llvm::LLVMContext& context,
+        BaseLuaModule& vm_module,
+        llvm::Module* module,
+        VMModuleForwardDecl* decl,
+        lua_State* L,
+        Proto* p,
+        std::unordered_map<Proto*, std::string>& func_names);
 
-	void CompileSingleProto(llvm::LLVMContext& context, BaseLuaModule& vm_module, llvm::Module* module, VMModuleForwardDecl* decl, lua_State* L, Proto* p);
-
-public:
-	explicit LLVMCompiler();
-
-	~LLVMCompiler();
-
-	void SetStripCode(bool strip) { strip_code = strip; }
-	void SetDumpCompiled(bool dump) { dump_compiled = dump; }
-
-	llvm::Expected<std::string> getFunctionName(const std::string& filename, const std::string& name);
-
-	llvm::Value* GetProtoConstant(llvm::LLVMContext& context, TValue* constant);
-
-	std::string GenerateFunctionName(Proto* p);
-
-	std::unique_ptr<llvm::Module> Compile(llvm::LLVMContext& context, BaseLuaModule& vm_module, lua_State* L, Proto* p);
+	void CompileSingleProto(
+		llvm::LLVMContext& context,
+		BaseLuaModule& vm_module,
+		llvm::Module* module,
+		VMModuleForwardDecl* decl,
+		lua_State* L,
+		Proto* p,
+		const std::string& func_name);
 };
 
 } // namespace as

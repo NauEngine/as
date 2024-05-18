@@ -1,4 +1,4 @@
-; ModuleID = '/Users/ivn/Projects/stream/as_proto/cmake-build-debug/as/languages/lua/lapi.bc'
+; ModuleID = '/Users/alexzelenshikov/Work/NAU_ENGINE/as_proto/cmake-build-debug/as/languages/lua/lapi.bc'
 source_filename = "lua/lapi.c"
 target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
 target triple = "arm64-apple-macosx14.0.0"
@@ -4501,7 +4501,7 @@ attributes #3 = { nocallback nofree nosync nounwind willreturn }
 !2 = !{i32 8, !"PIC Level", i32 2}
 !3 = !{i32 7, !"uwtable", i32 1}
 !4 = !{i32 7, !"frame-pointer", i32 1}
-!5 = !{!"clang version 17.0.6"}
+!5 = !{!"Homebrew clang version 17.0.2"}
 !6 = distinct !{!6, !7}
 !7 = !{!"llvm.loop.mustprogress"}
 !8 = distinct !{!8, !7}

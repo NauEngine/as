@@ -14,15 +14,15 @@ extern "C" {
 #define LUA_CORE
 
 /* Lua interpreter with LLVM JIT support. */
-//#define JIT_SUPPORT
+#define JIT_SUPPORT
 
 /* extra variables for global_State */
-//#define JIT_COMPILER_STATE \
-//	void *llvm_compiler;
+#define JIT_COMPILER_STATE \
+	void *llvm_compiler;
 //
 ///* state */
-//#define JIT_PROTO_STATE \
-//	lua_CFunction jit_func; /* jit compiled function */ \
+#define JIT_PROTO_STATE \
+	lua_CFunction jit_func; /* jit compiled function */ \
 
 #include "lua/lua.h"
 /* extern all lua Core functions. */

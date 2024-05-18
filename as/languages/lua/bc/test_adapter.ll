@@ -1,4 +1,4 @@
-; ModuleID = '/Users/ivn/Projects/stream/as_proto/cmake-build-debug/as/languages/lua/test_adapter.bc'
+; ModuleID = '/Users/alexzelenshikov/Work/NAU_ENGINE/as_proto/cmake-build-debug/as/languages/lua/test_adapter.bc'
 source_filename = "test_adapter.cpp"
 target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
 target triple = "arm64-apple-macosx14.0.0"
@@ -49,4 +49,4 @@ attributes #1 = { "frame-pointer"="non-leaf" "no-trapping-math"="true" "stack-pr
 !2 = !{i32 8, !"PIC Level", i32 2}
 !3 = !{i32 7, !"uwtable", i32 1}
 !4 = !{i32 7, !"frame-pointer", i32 1}
-!5 = !{!"clang version 17.0.6"}
+!5 = !{!"Homebrew clang version 17.0.2"}

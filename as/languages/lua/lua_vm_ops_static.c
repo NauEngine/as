@@ -206,54 +206,6 @@ const vm_func_info vm_op_functions[] = {
   { -1, HINT_NONE, VAR_T_VOID, NULL, {VAR_T_VOID} }
 };
 
-int vm_op_run_count[NUM_OPCODES];
-
-void vm_count_OP(const Instruction i) {
-  vm_op_run_count[GET_OPCODE(i)]++;
-}
-
-void vm_print_OP(lua_State *L, LClosure *cl, const Instruction i, int pc_offset) {
-  const Instruction *pc;
-  int op = GET_OPCODE(i);
-  int line = -1;
-  (void)L;
-  if(cl->p->sizelineinfo > pc_offset) {
-    line = cl->p->lineinfo[pc_offset];
-  }
-  if(pc_offset <= cl->p->sizecode) {
-    pc = cl->p->code + pc_offset;
-  } else {
-    pc = cl->p->code + cl->p->sizecode;
-  }
-  fprintf(stderr, "%d: '%s' (%d) = 0x%08X, pc=%p, line=%d\n", pc_offset,
-    luaP_opnames[op], op, i, pc, line);
-  lua_assert(pc_offset == (pc - cl->p->code));
-  lua_assert(pc[0] == i);
-}
-
-void vm_next_OP(lua_State *L, LClosure *cl, int pc_offset) {
-  const Instruction *pc = cl->p->code;
-  /* calculate current pc. */
-  if(pc_offset <= cl->p->sizecode) {
-    pc += pc_offset;
-  }
-  pc++;
-  //vm_print_OP(L, cl, pc[0], pc_offset);
-  lua_assert(pc >= cl->p->code && (pc < &(cl->p->code[cl->p->sizecode])));
-  if ((L->hookmask & (LUA_MASKLINE | LUA_MASKCOUNT)) &&
-      (--L->hookcount == 0 || L->hookmask & LUA_MASKLINE)) {
-    luaV_traceexec(L, pc);
-#if 0
-    if (L->status == LUA_YIELD) {  /* did hook yield? */
-      // TODO: fix hook yield
-      L->savedpc = pc - 1;
-      return;
-    }
-#endif
-  }
-  L->savedpc = pc;
-}
-
 int vm_OP_CALL(lua_State *L, int a, int b, int c) {
   TValue *base = L->base;
   TValue *ra=base + a;

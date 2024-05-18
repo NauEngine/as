@@ -1,16 +1,16 @@
 /*
   Copyright (c) 2009 Robert G. Jakabosky
-  
+
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
   in the Software without restriction, including without limitation the rights
   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
   copies of the Software, and to permit persons to whom the Software is
   furnished to do so, subject to the following conditions:
-  
+
   The above copyright notice and this permission notice shall be included in
   all copies or substantial portions of the Software.
-  
+
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,17 +23,14 @@
 */
 
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
+#include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Verifier.h"
-#include "llvm/IR/DataLayout.h"
-#include "llvm/IR/LegacyPassManager.h"
-#include "llvm/Target/TargetOptions.h"
 #include "llvm/Transforms/Utils/Cloning.h"
-#include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/Support/Timer.h"
 #include "llvm/Support/CommandLine.h"
@@ -43,7 +40,7 @@
 #include <vector>
 #include <math.h>
 
-#include "llvm_compiler.h"
+#include "lua_llvm_compiler.h"
 #include "base_lua_module.h"
 
 #include "as/core/core_utils.h"
@@ -66,60 +63,10 @@ extern "C" {
  */
 static unsigned int OptLevel = 3;
 
-static llvm::cl::opt<bool> Fast("fast",
-                   llvm::cl::desc("Generate code quickly, "
-                            "potentially sacrificing code quality"),
-                   llvm::cl::init(false));
-
-static llvm::cl::opt<bool> OpCodeStats("opcode-stats",
-                   llvm::cl::desc("Generate stats on compiled Lua opcodes."),
-                   llvm::cl::init(false));
-
-static llvm::cl::opt<bool> RunOpCodeStats("runtime-opcode-stats",
-                   llvm::cl::desc("Generate stats on executed Lua opcodes."),
-                   llvm::cl::init(false));
-
-static llvm::cl::opt<bool> PrintRunOpCodes("print-runtime-opcodes",
-                   llvm::cl::desc("Print each opcode before executing it."),
-                   llvm::cl::init(false));
-
-static llvm::cl::opt<bool> CompileLargeFunctions("compile-large-functions",
-                   llvm::cl::desc("Compile all Lua functions even really large functions."),
-                   llvm::cl::init(false));
-
-static llvm::cl::opt<int> MaxFunctionSize("max-func-size",
-                   llvm::cl::desc("Functions larger then this will not be compiled."),
-                   llvm::cl::value_desc("int"),
-                   llvm::cl::init(200));
 
 static llvm::cl::opt<bool> DontInlineOpcodes("do-not-inline-opcodes",
                    llvm::cl::desc("Turn off inlining of opcode functions."),
                    llvm::cl::init(false));
-
-static llvm::cl::opt<bool> VerifyFunctions("verify-functions",
-                   llvm::cl::desc("Verify each compiled function."),
-                   llvm::cl::init(false));
-
-static llvm::cl::opt<bool> DebugOpCodes("g",
-                   llvm::cl::desc("Allow debugging of Lua code."),
-                   llvm::cl::init(false));
-
-static llvm::cl::opt<bool> DisableOpt("O0",
-                   llvm::cl::desc("Disable optimizations."),
-                   llvm::cl::init(false));
-
-static llvm::cl::opt<bool> OptLevelO1("O1",
-                   llvm::cl::desc("Optimization level 1."),
-                   llvm::cl::init(false));
-
-static llvm::cl::opt<bool> OptLevelO2("O2",
-                   llvm::cl::desc("Optimization level 2."),
-                   llvm::cl::init(false));
-
-static llvm::cl::opt<bool> OptLevelO3("O3",
-                   llvm::cl::desc("Optimization level 3."),
-                   llvm::cl::init(false));
-
 
 #define BRANCH_COND -1
 #define BRANCH_NONE -2
@@ -131,7 +78,7 @@ static llvm::cl::opt<bool> OptLevelO3("O3",
 namespace as
 {
 
-llvm::Value* LLVMCompiler::GetProtoConstant(llvm::LLVMContext& context, TValue *constant)
+llvm::Value* LuaLLVMCompiler::GetProtoConstant(llvm::LLVMContext& context, TValue *constant)
 {
 	llvm::Value* val = nullptr;
 	switch(ttype(constant))
@@ -152,54 +99,17 @@ llvm::Value* LLVMCompiler::GetProtoConstant(llvm::LLVMContext& context, TValue *
 	return val;
 }
 
-LLVMCompiler::LLVMCompiler()
+LuaLLVMCompiler::LuaLLVMCompiler()
 {
-	memset(opcode_stats, 0, NUM_OPCODES * sizeof(int));
-	memset(vm_op_run_count, 0, NUM_OPCODES * sizeof(int)); // TODO wierd init of external global
+
 }
 
-void print_opcode_stats(int *stats, const char *stats_name) {
-	int order[NUM_OPCODES];
-	int max=0;
-	int width=1;
-	for(int opcode = 0; opcode < NUM_OPCODES; opcode++) {
-		order[opcode] = opcode;
-		if(max < stats[opcode]) max = stats[opcode];
-		for(int n = 0; n < opcode; n++) {
-			if(stats[opcode] >= stats[order[n]]) {
-				// insert here.
-				memmove(&order[n + 1], &order[n], (opcode - n) * sizeof(int));
-				order[n] = opcode;
-				break;
-			}
-		}
-	}
-	// calc width.
-	while(max >= 10) { width++; max /= 10; }
-	// sort by count.
-	fprintf(stderr, "===================== %s =======================\n", stats_name);
-	int opcode;
-	for(int i = 0; i < NUM_OPCODES; i++) {
-		opcode = order[i];
-		if(stats[opcode] == 0) continue;
-		fprintf(stderr, "%*d: %s(%d)\n", width, stats[opcode], luaP_opnames[opcode], opcode);
-	}
-}
-
-LLVMCompiler::~LLVMCompiler()
+LuaLLVMCompiler::~LuaLLVMCompiler()
 {
-	if (OpCodeStats)
-	{
-		print_opcode_stats(opcode_stats, "Compiled OpCode counts");
-	}
 
-	if (RunOpCodeStats)
-	{
-		print_opcode_stats(vm_op_run_count, "Compiled OpCode counts");
-	}
 }
 
-void LLVMCompiler::ResizeOpcodeData(int code_len)
+void LuaLLVMCompiler::ResizeOpcodeData(int code_len)
 {
 	op_hints.resize(code_len);
 	op_values.resize(code_len);
@@ -209,7 +119,7 @@ void LLVMCompiler::ResizeOpcodeData(int code_len)
 	ClearOpcodeData(code_len);
 }
 
-void LLVMCompiler::ClearOpcodeData(int code_len)
+void LuaLLVMCompiler::ClearOpcodeData(int code_len)
 {
 	for (int i = 0; i < code_len; ++i)
 	{
@@ -220,37 +130,24 @@ void LLVMCompiler::ClearOpcodeData(int code_len)
 	}
 }
 
-std::string LLVMCompiler::GenerateFunctionName(Proto *p)
+std::string LuaLLVMCompiler::GenerateFunctionName(Proto *p)
 {
-  std::string filename = getstr(p->source);
+	std::string filename = getstr(p->source);
 
-  std::string name = utils::generateModuleName(filename);
+	std::string name = utils::generateModuleName(filename);
 
-  char name_buf[128];
-  snprintf(name_buf, 128, "_%d_%d", p->linedefined, p->lastlinedefined);
-  name += name_buf;
+	char name_buf[128];
+	snprintf(name_buf, 128, "_%d_%d", p->linedefined, p->lastlinedefined);
+	name += name_buf;
 
 	char name_buf_2[128];
 	memset(name_buf_2, 0, 128);
 	luaO_chunkid(name_buf_2, getstr(p->source), 128);
 
-  return name;
+	return name;
 }
 
-llvm::Expected<std::string> LLVMCompiler::getFunctionName(const std::string& filename, const std::string& name)
-{
-	if (function_aliases.contains(filename))
-	{
-		if (function_aliases[filename].contains(name))
-		{
-			return function_aliases[filename][name];
-		}
-	}
-
-	return llvm::createStringError(llvm::inconvertibleErrorCode(), "Function not found");
-}
-
-void LLVMCompiler::FindBasicBlockPoints(llvm::LLVMContext& context, llvm::IRBuilder<>& builder, BuildContext& bcontext)
+void LuaLLVMCompiler::FindBasicBlockPoints(llvm::LLVMContext& context, llvm::IRBuilder<>& builder, BuildContext& bcontext)
 {
 	int mini_op_repeat=0;
 
@@ -457,7 +354,7 @@ void LLVMCompiler::FindBasicBlockPoints(llvm::LLVMContext& context, llvm::IRBuil
 	}
 }
 
-void LLVMCompiler::PreCreateBasicBlocks(llvm::LLVMContext& context, llvm::Function* func, BuildContext& bcontext)
+void LuaLLVMCompiler::PreCreateBasicBlocks(llvm::LLVMContext& context, llvm::Function* func, BuildContext& bcontext)
 {
 	for (int i = 0; i < bcontext.code_len; ++i)
 	{
@@ -477,8 +374,7 @@ void LLVMCompiler::PreCreateBasicBlocks(llvm::LLVMContext& context, llvm::Functi
 }
 
 // i - code instruction id
-std::vector<llvm::Value*> LLVMCompiler::GetOpCallArgs(llvm::LLVMContext& context, const vm_func_info* func_info,
-																											BuildContext& bcontext, int i)
+std::vector<llvm::Value*> LuaLLVMCompiler::GetOpCallArgs(llvm::LLVMContext& context, const vm_func_info* func_info, BuildContext& bcontext, int i)
 {
 	std::vector<llvm::Value*> args;
 
@@ -578,53 +474,64 @@ std::vector<llvm::Value*> LLVMCompiler::GetOpCallArgs(llvm::LLVMContext& context
 	return args;
 }
 
-void LLVMCompiler::InsertDebugCalls(VMModuleForwardDecl* decl, llvm::LLVMContext& context, llvm::IRBuilder<>& builder, BuildContext& bcontext, int i)
+void LuaLLVMCompiler::Compile(
+    llvm::orc::ThreadSafeContext ts_context,
+    std::shared_ptr<llvm::orc::LLJIT> jit,
+    BaseLuaModule& vm_module,
+    lua_State *L,
+    Proto *p)
 {
-	//fprintf(stderr, "%d: '%s' (%d) = 0x%08X, hint=0x%X\n", i, luaP_opnames[opcode], opcode, op_intr, op_hints[i]);
-	//fprintf(stderr, "%d: func: '%s', func hints=0x%X\n", i, opfunc->info->name,opfunc->info->hint);
-
-	Instruction op_intr = bcontext.code[i];
-
-	if(PrintRunOpCodes) {
-		builder.CreateCall(decl->func("vm_print_OP"), {bcontext.func_L, bcontext.func_cl,
-																											 llvm::ConstantInt::get(context, llvm::APInt(32, op_intr)),
-																											 llvm::ConstantInt::get(context, llvm::APInt(32, i))});
-	}
-
-	if(RunOpCodeStats)
-	{
-		builder.CreateCall(decl->func("vm_count_OP"), llvm::ConstantInt::get(context, llvm::APInt(32, op_intr)));
-	}
-
-	if(DebugOpCodes)
-	{
-		/* vm_next_OP function is used to call count/line debug hooks. */
-		builder.CreateCall(decl->func("vm_next_OP"), {bcontext.func_L, bcontext.func_cl, llvm::ConstantInt::get(context, llvm::APInt(32, i))});
-	}
-}
-
-std::unique_ptr<llvm::Module> LLVMCompiler::Compile(llvm::LLVMContext& context, BaseLuaModule& vm_module, lua_State *L, Proto *p)
-{
+    llvm::LLVMContext& context = *ts_context.getContext();
 	auto module_name = utils::generateModuleName(getstr(p->source));
 	auto module = std::make_unique<llvm::Module>(module_name, context);
 	auto decl = vm_module.PrepareForwardDeclarations(module.get());
 
-  CompileSingleProto(context, vm_module, module.get(), decl.get(), L, p);
+    std::unordered_map<Proto*, std::string> func_names;
 
-	for (int i = 0; i < p->sizep; ++i)
-	{
-		Compile(context, vm_module, L, p->p[i]);
-	}
+    CompileAllProtos(context, vm_module, module.get(), decl.get(), L, p, func_names);
 
 	if (dump_compiled)
 	{
 		llvm::errs() << *module;
 	}
 
-	return std::move(module);
+    llvm::cantFail(jit->addIRModule({std::move(module), ts_context}));
+
+    for (auto [proto, func_name] : func_names)
+    {
+        auto func_addr = llvm::cantFail(jit->lookup(func_name));
+        proto->jit_func = func_addr.toPtr<lua_CFunction>();
+    }
 }
 
-void LLVMCompiler::CompileSingleProto(llvm::LLVMContext& context, BaseLuaModule& vm_module, llvm::Module* module, VMModuleForwardDecl* decl, lua_State* L, Proto* p)
+void LuaLLVMCompiler::CompileAllProtos(
+    llvm::LLVMContext& context,
+    BaseLuaModule& vm_module,
+    llvm::Module* module,
+    VMModuleForwardDecl* decl,
+    lua_State* L,
+    Proto* p,
+    std::unordered_map<Proto*, std::string>& func_names)
+{
+    const auto func_name = GenerateFunctionName(p);
+    func_names[p] = func_name;
+    CompileSingleProto(context, vm_module, module, decl, L, p, func_name);
+
+    for (int i = 0; i < p->sizep; ++i)
+    {
+        CompileAllProtos(context, vm_module, module, decl, L, p->p[i], func_names);
+    }
+}
+
+
+void LuaLLVMCompiler::CompileSingleProto(
+	llvm::LLVMContext& context,
+	BaseLuaModule& vm_module,
+	llvm::Module* module,
+	VMModuleForwardDecl* decl,
+	lua_State* L,
+	Proto* p,
+	const std::string& func_name)
 {
 	BuildContext bcontext;
 
@@ -641,19 +548,9 @@ void LLVMCompiler::CompileSingleProto(llvm::LLVMContext& context, BaseLuaModule&
 
 	llvm::IRBuilder builder(context);
 
-#ifndef COCO_DISABLE
-	// Don't run the JIT from a coroutine.
-	if(!luaCOCO_mainthread(L)) {
-		return;
-	}
-#endif
-
 	ResizeOpcodeData(bcontext.code_len);
 
-
-  auto func_name = GenerateFunctionName(p);
-
-  llvm::Function* func = llvm::Function::Create(vm_module.t_lua_func, llvm::Function::ExternalLinkage, func_name, module);
+	llvm::Function* func = llvm::Function::Create(vm_module.t_lua_func, llvm::Function::ExternalLinkage, func_name, module);
 	// name arg1 = "L"
 	bcontext.func_L = func->arg_begin();
 	bcontext.func_L->setName("L");
@@ -745,13 +642,6 @@ void LLVMCompiler::CompileSingleProto(llvm::LLVMContext& context, BaseLuaModule&
 		}
 
 		auto opfunc = decl->op_func(opcode, op_hints[i]);
-
-		if (OpCodeStats)
-		{
-			opcode_stats[opcode]++;
-		}
-
-		InsertDebugCalls(decl, context, builder, bcontext, i);
 
 		if (op_hints[i] & HINT_SKIP_OP)
 		{
@@ -949,7 +839,7 @@ void LLVMCompiler::CompileSingleProto(llvm::LLVMContext& context, BaseLuaModule&
 						set_func = decl->func("vm_set_long");
 					}
 					// create extra BasicBlock
-          char name_buf[128];
+					char name_buf[128];
 					snprintf(name_buf,128,"op_block_%s_%d_set_for_idx",luaP_opnames[opcode],i);
 					idx_block = llvm::BasicBlock::Create(context, name_buf, func);
 					builder.SetInsertPoint(idx_block);
@@ -1078,10 +968,10 @@ void LLVMCompiler::CompileSingleProto(llvm::LLVMContext& context, BaseLuaModule&
 
 	// only run function inliner & optimization passes on same functions.
 	if (OptLevel > 0 && !DontInlineOpcodes)
-  {
+	{
 		llvm::InlineFunctionInfo IFI;
 		for (std::vector<llvm::CallInst *>::iterator I=inlineList.begin(); I != inlineList.end() ; I++)
-    {
+		{
 			llvm::InlineFunction(**I, IFI);
 		}
 	}

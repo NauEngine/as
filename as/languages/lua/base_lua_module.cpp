@@ -150,9 +150,6 @@ std::unique_ptr<BaseLuaModule::ConstStruct> BaseLuaModule::CreateConstStruct(llv
 
 void VMModuleForwardDecl::PrepareVMFunctions(BaseLuaModule& vm, llvm::Module* module)
 {
-  CreateFunctionDecl(module, vm.t_void, {vm.t_lua_State_ptr, vm.t_LClosure_ptr, vm.t_int32}, "vm_next_OP");
-  CreateFunctionDecl(module, vm.t_void, {vm.t_lua_State_ptr, vm.t_LClosure_ptr, vm.t_int32, vm.t_int32}, "vm_print_OP");
-  CreateFunctionDecl(module, vm.t_void, {vm.t_int32}, "vm_count_OP");
   CreateFunctionDecl(module, vm.t_void, {vm.t_lua_State_ptr, vm.t_LClosure_ptr, vm.t_int32, vm.t_int32}, "vm_mini_vm");
 
   CreateFunctionDecl(module, vm.t_LClosure_ptr, {vm.t_lua_State_ptr}, "vm_get_current_closure");

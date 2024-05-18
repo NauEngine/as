@@ -770,8 +770,6 @@ union luai_Cast { double l_d; long l_l; };
 #define JIT_PROTO_STATE
 
 /* functions */
-#define JIT_NEW_STATE(L)
-#define JIT_CLOSE_STATE(L)
 #define JIT_NEWPROTO(L,p)
 #define JIT_FREEPROTO(L,p)
 #define JIT_PRECALL luaD_precall_lua
