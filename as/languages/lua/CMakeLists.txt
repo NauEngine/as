@@ -11,8 +11,6 @@ add_library(LuaIntegration STATIC
     lua_utils.h
     lua_llvm_compiler.cpp
     lua_llvm_compiler.h
-    base_lua_module.cpp
-    base_lua_module.h
     lua_vm_ops_static.c
 
     bc/lua_vm_ops_bc.h

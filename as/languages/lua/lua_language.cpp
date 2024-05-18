@@ -11,7 +11,6 @@
 #include "lua_language.h"
 #include "lua_language_script.h"
 #include "lua_llvm_compiler.h"
-#include "base_lua_module.h"
 
 // TODO [AZ] dirty temporary hack
 as::LuaLanguage* tmpPointerToLuaLanguage = nullptr;
@@ -71,7 +70,7 @@ LuaLanguage::~LuaLanguage()
 
 void LuaLanguage::compile(lua_State* L, Proto* p)
 {
-    m_llvmCompiler->compile(m_ts_context, m_jit, *m_baseLuaModule, L, p);
+    m_llvmCompiler->compile(m_ts_context, m_jit, m_lua_ir, L, p);
 }
 
 void LuaLanguage::freeProto(lua_State* L, Proto* p)
@@ -86,9 +85,6 @@ void LuaLanguage::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadS
     m_ts_context = std::move(ts_context);
     m_llvmCompiler = std::make_shared<LuaLLVMCompiler>();
     m_llvmCompiler->setDumpCompiled(true);
-    m_baseLuaModule = std::make_shared<BaseLuaModule>();
-    m_baseLuaModule->Load(m_ts_context);
-//    llvm::cantFail(m_jit->addIRModule(std::move(baseModule)));
     m_lua_ir = std::make_shared<LuaIR>();
     m_lua_ir->init(m_jit, m_ts_context, m_lua_state);
 }

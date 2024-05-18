@@ -41,7 +41,8 @@
 #include <math.h>
 
 #include "lua_llvm_compiler.h"
-#include "base_lua_module.h"
+#include "lua_ir.h"
+#include "lua_core.h"
 
 #include "as/core/core_utils.h"
 
@@ -467,18 +468,17 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 void LuaLLVMCompiler::compile(
     llvm::orc::ThreadSafeContext ts_context,
     std::shared_ptr<llvm::orc::LLJIT> jit,
-    BaseLuaModule& vm_module,
+    std::shared_ptr<LuaIR> lua_ir,
     lua_State *L,
     Proto *p)
 {
     llvm::LLVMContext& context = *ts_context.getContext();
 	auto module_name = utils::generateModuleName(getstr(p->source));
 	auto module = std::make_unique<llvm::Module>(module_name, context);
-	auto decl = vm_module.PrepareForwardDeclarations(module.get());
 
     std::unordered_map<Proto*, std::string> func_names;
 
-    сompileAllProtos(context, vm_module, module.get(), decl.get(), L, p, func_names);
+    сompileAllProtos(context, lua_ir, module.get(), L, p, func_names);
 
 	if (m_dumpCompiled)
 	{
@@ -496,29 +496,27 @@ void LuaLLVMCompiler::compile(
 
 void LuaLLVMCompiler::сompileAllProtos(
     llvm::LLVMContext& context,
-    BaseLuaModule& vm_module,
+    std::shared_ptr<LuaIR> lua_ir,
     llvm::Module* module,
-    VMModuleForwardDecl* decl,
     lua_State* L,
     Proto* p,
     std::unordered_map<Proto*, std::string>& func_names)
 {
     const auto func_name = generateFunctionName(p);
     func_names[p] = func_name;
-    сompileSingleProto(context, vm_module, module, decl, L, p, func_name);
+    сompileSingleProto(context, lua_ir, module, L, p, func_name);
 
     for (int i = 0; i < p->sizep; ++i)
     {
-        сompileAllProtos(context, vm_module, module, decl, L, p->p[i], func_names);
+        сompileAllProtos(context, lua_ir, module, L, p->p[i], func_names);
     }
 }
 
 
 void LuaLLVMCompiler::сompileSingleProto(
 	llvm::LLVMContext& context,
-	BaseLuaModule& vm_module,
+	std::shared_ptr<LuaIR> lua_ir,
 	llvm::Module* module,
-	VMModuleForwardDecl* decl,
 	lua_State* L,
 	Proto* p,
 	const std::string& func_name)
@@ -540,7 +538,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 
 	prepareOpcodeData(bcontext.code_len);
 
-	llvm::Function* func = llvm::Function::Create(vm_module.t_lua_func, llvm::Function::ExternalLinkage, func_name, module);
+	llvm::Function* func = llvm::Function::Create(lua_ir->lua_func_t, llvm::Function::ExternalLinkage, func_name, module);
 	// name arg1 = "L"
 	bcontext.func_L = func->arg_begin();
 	bcontext.func_L->setName("L");
@@ -551,9 +549,8 @@ void LuaLLVMCompiler::сompileSingleProto(
 
 	// get LClosure & constants.
 //  auto a = vm_module.func("vm_get_current_closure");
-	auto a = decl->func("vm_get_current_closure");
-	bcontext.func_cl = builder.CreateCall(a, bcontext.func_L);
-	bcontext.func_k = builder.CreateCall(decl->func("vm_get_current_constants"), bcontext.func_cl);
+	bcontext.func_cl = builder.CreateCall(lua_ir->vm_get_current_closure_f, bcontext.func_L);
+	bcontext.func_k = builder.CreateCall(lua_ir->vm_get_current_constants_f, bcontext.func_cl);
 
 	inlineList.push_back(bcontext.func_cl);
 	inlineList.push_back(bcontext.func_k);
@@ -609,7 +606,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 			}
 			if(op_count >= 3) {
 				// large block of mini ops add function call to vm_mini_vm()
-        builder.CreateCall(decl->func("vm_mini_vm"), {
+        builder.CreateCall(lua_ir->vm_mini_vm_f, {
 						bcontext.func_L, bcontext.func_cl,
             llvm::ConstantInt::get(context, llvm::APInt(32,op_count)),
             llvm::ConstantInt::get(context, llvm::APInt(32,i - bcontext.strip_ops))
@@ -631,7 +628,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 			}
 		}
 
-		auto opfunc = decl->op_func(opcode, op_hints[i]);
+		auto opfunc = lua_ir->getOpcodeVariant(opcode, op_hints[i]);
 
 		if (op_hints[i] & HINT_SKIP_OP)
 		{
@@ -700,9 +697,9 @@ void LuaLLVMCompiler::сompileSingleProto(
 				builder.SetInsertPoint(current_block);
 				// Emit merge block
 				if(op_hints[i] & HINT_USE_LONG) {
-					PN = builder.CreatePHI(vm_module.t_int64, 2, "idx");
+					PN = builder.CreatePHI(lua_ir->int64_t, 2, "idx");
 				} else {
-					PN = builder.CreatePHI(vm_module.t_double, 2, "idx");
+					PN = builder.CreatePHI(lua_ir->double_t, 2, "idx");
 				}
 				PN->addIncoming(init, prep_block);
 				PN->addIncoming(next_idx, incr_block);
@@ -809,7 +806,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 				branch = BRANCH_COND; // do conditional branch
 				break;
 			case OP_FORLOOP: {
-				llvm::Function* set_func = decl->func("vm_set_number");
+				llvm::Function* set_func = lua_ir->vm_set_number_f;
 				llvm::CallInst* call2;
 
 				inline_call = true;
@@ -826,7 +823,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 				{
 					llvm::BasicBlock *idx_block;
 					if(op_hints[i] & HINT_USE_LONG) {
-						set_func = decl->func("vm_set_long");
+						set_func = lua_ir->vm_set_long_f;
 					}
 					// create extra BasicBlock
 					char name_buf[128];
@@ -845,7 +842,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 				break;
 			}
 			case OP_FORPREP: {
-				llvm::Function* get_func = decl->func("vm_get_number");
+				llvm::Function* get_func = lua_ir->vm_get_number_f;
 				llvm::Value *idx_var,*init;
 				llvm::CallInst *call2;
 
@@ -857,7 +854,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 				if(vals == NULL) break;
 				if(op_hints[branch] & HINT_USE_LONG)
 				{
-					get_func = decl->func("vm_get_long");
+					get_func = lua_ir->vm_get_long_f;
 				}
 				// get non-constant init from Lua stack.
 				if (vals->get(0) == nullptr)

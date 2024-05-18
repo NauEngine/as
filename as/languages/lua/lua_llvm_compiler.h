@@ -6,13 +6,10 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/LLVMContext.h"
 
-#include "base_lua_module.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "lua/lobject.h"
 #include "lua_vm_ops.h"
 
 #ifdef __cplusplus
@@ -37,7 +34,7 @@ namespace llvm
 namespace as
 {
 
-class VMModuleForwardDecl;
+class LuaIR;
 
 class LuaLLVMCompiler
 {
@@ -52,7 +49,7 @@ public:
 	void compile(
 	    llvm::orc::ThreadSafeContext ts_context,
 	    std::shared_ptr<llvm::orc::LLJIT> jit,
-	    BaseLuaModule& vm_module,
+	    std::shared_ptr<LuaIR> lua_ir,
 	    lua_State* L,
 	    Proto* p);
 
@@ -118,18 +115,16 @@ private:
 
     void сompileAllProtos(
         llvm::LLVMContext& context,
-        BaseLuaModule& vm_module,
+        std::shared_ptr<LuaIR> lua_ir,
         llvm::Module* module,
-        VMModuleForwardDecl* decl,
         lua_State* L,
         Proto* p,
         std::unordered_map<Proto*, std::string>& func_names);
 
 	void сompileSingleProto(
 		llvm::LLVMContext& context,
-		BaseLuaModule& vm_module,
+		std::shared_ptr<LuaIR> lua_ir,
 		llvm::Module* module,
-		VMModuleForwardDecl* decl,
 		lua_State* L,
 		Proto* p,
 		const std::string& func_name);

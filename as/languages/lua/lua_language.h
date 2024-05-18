@@ -46,7 +46,6 @@ public:
 private:
   lua_State* m_lua_state = nullptr;
   std::shared_ptr<LuaIR> m_lua_ir;
-  std::shared_ptr<BaseLuaModule> m_baseLuaModule;
   std::shared_ptr<LuaLLVMCompiler> m_llvmCompiler;
   std::set<std::string> m_createdMetatables;
 
