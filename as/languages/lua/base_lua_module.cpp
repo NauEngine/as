@@ -17,15 +17,11 @@ BaseLuaModule::BaseLuaModule()
 
 }
 
-llvm::orc::ThreadSafeModule BaseLuaModule::Load(llvm::orc::ThreadSafeContext ts_context)
+void BaseLuaModule::Load(llvm::orc::ThreadSafeContext ts_context)
 {
-  llvm::LLVMContext& context = *ts_context.getContext();
-  auto module = utils::loadEmbeddedBitcode(context, "lua_vm_ops_bc", lua_vm_ops_bc, sizeof(lua_vm_ops_bc));
-  llvm::errs() << *module;
-
-  CollectVMTypes(context, module->getDataLayout());
-
-  return {std::move(module), ts_context};
+    llvm::LLVMContext& context = *ts_context.getContext();
+    m_luaVMModule = utils::loadEmbeddedBitcode(context, "lua_vm_ops_bc", lua_vm_ops_bc, sizeof(lua_vm_ops_bc));
+    CollectVMTypes(context, m_luaVMModule->getDataLayout());
 }
 
 std::unique_ptr<VMModuleForwardDecl>  BaseLuaModule::PrepareForwardDeclarations(llvm::Module* module)
@@ -150,49 +146,61 @@ std::unique_ptr<BaseLuaModule::ConstStruct> BaseLuaModule::CreateConstStruct(llv
 
 void VMModuleForwardDecl::PrepareVMFunctions(BaseLuaModule& vm, llvm::Module* module)
 {
-  CreateFunctionDecl(module, vm.t_void, {vm.t_lua_State_ptr, vm.t_LClosure_ptr, vm.t_int32, vm.t_int32}, "vm_mini_vm");
+  CreateFunctionDecl(vm, vm.t_void, {vm.t_lua_State_ptr, vm.t_LClosure_ptr, vm.t_int32, vm.t_int32}, "vm_mini_vm");
 
-  CreateFunctionDecl(module, vm.t_LClosure_ptr, {vm.t_lua_State_ptr}, "vm_get_current_closure");
-  CreateFunctionDecl(module, vm.t_TValue_ptr, {vm.t_LClosure_ptr}, "vm_get_current_constants");
-  CreateFunctionDecl(module, vm.t_double, {vm.t_lua_State_ptr, vm.t_int32 }, "vm_get_number");
-  CreateFunctionDecl(module, vm.t_int64, {vm.t_lua_State_ptr, vm.t_int32 }, "vm_get_long");
-  CreateFunctionDecl(module, vm.t_void, {vm.t_lua_State_ptr, vm.t_int32, vm.t_double}, "vm_set_number");
-  CreateFunctionDecl(module, vm.t_void, {vm.t_lua_State_ptr, vm.t_int32, vm.t_int64}, "vm_set_long");
+  CreateFunctionDecl(vm, vm.t_LClosure_ptr, {vm.t_lua_State_ptr}, "vm_get_current_closure");
+  CreateFunctionDecl(vm, vm.t_TValue_ptr, {vm.t_LClosure_ptr}, "vm_get_current_constants");
+  CreateFunctionDecl(vm, vm.t_double, {vm.t_lua_State_ptr, vm.t_int32 }, "vm_get_number");
+  CreateFunctionDecl(vm, vm.t_int64, {vm.t_lua_State_ptr, vm.t_int32 }, "vm_get_long");
+  CreateFunctionDecl(vm, vm.t_void, {vm.t_lua_State_ptr, vm.t_int32, vm.t_double}, "vm_set_number");
+  CreateFunctionDecl(vm, vm.t_void, {vm.t_lua_State_ptr, vm.t_int32, vm.t_int64}, "vm_set_long");
 }
 
-void VMModuleForwardDecl::CreateFunctionDecl(llvm::Module* module, llvm::Type *result, llvm::ArrayRef<llvm::Type*> params, const char* name)
+void VMModuleForwardDecl::CreateFunctionDecl(BaseLuaModule& vm, llvm::Type *result, llvm::ArrayRef<llvm::Type*> params, const char* name)
 {
-  auto func_type = llvm::FunctionType::get(result, params, false);
-  functions[name] = llvm::Function::Create(func_type,
-                                      llvm::Function::ExternalLinkage, name, module);
+    functions[name] = vm.m_luaVMModule->getFunction(name);
+  // auto func_type = llvm::FunctionType::get(result, params, false);
+  // functions[name] = llvm::Function::Create(func_type,
+  //                                     llvm::Function::ExternalLinkage, name, module);
 }
 
 void VMModuleForwardDecl::PrepareVMOpcodes(BaseLuaModule& vm, llvm::LLVMContext& context, llvm::Module* module)
 {
-  for (int i = 0; true; ++i)
-  {
-    const vm_func_info* func_info = &vm_op_functions[i];
-    auto opcode = func_info->opcode;
-    if (opcode < 0) {
-      break;
+    for (int i = 0; true; ++i)
+    {
+        const vm_func_info* func_info = &vm_op_functions[i];
+        auto opcode = func_info->opcode;
+        if (opcode < 0)
+        {
+            break;
+        }
+
+        if (std::string(func_info->name) == "vm_OP_SETUPVAL")
+        {
+            int y = 9;
+        }
+
+        auto op_function = std::make_unique<OPFunctionVariant>(func_info);
+
+        op_function->func = vm.m_luaVMModule->getFunction(func_info->name);
+
+        if (!op_function->func)
+        {
+            std::vector<llvm::Type*> func_args;
+
+            for (int x = 0; func_info->params[x] != VAR_T_VOID; ++x)
+            {
+              func_args.push_back(GetVarType(vm, context, func_info->params[x], func_info->hint));
+            }
+
+            auto func_type = llvm::FunctionType::get(
+                GetVarType(vm, context, func_info->ret_type, func_info->hint), func_args, false);
+            op_function->func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage,
+                                          func_info->name, module);
+        }
+
+        op_functions[opcode].variants[func_info->hint] = std::move(op_function);
     }
-
-    auto op_function = std::make_unique<OPFunctionVariant>(func_info);
-
-    std::vector<llvm::Type*> func_args;
-
-    for(int x = 0; func_info->params[x] != VAR_T_VOID; x++) {
-      func_args.push_back(GetVarType(vm, context, func_info->params[x], func_info->hint));
-    }
-
-    auto func_type = llvm::FunctionType::get(
-        GetVarType(vm, context, func_info->ret_type, func_info->hint), func_args, false);
-    llvm::Function* func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage,
-                                  func_info->name, module);
-    op_function->func = func;
-
-    op_functions[opcode].variants[func_info->hint] = std::move(op_function);
-  }
 }
 
 llvm::Type* VMModuleForwardDecl::GetVarType(BaseLuaModule& vm, llvm::LLVMContext& context, val_t type, hint_t hints)

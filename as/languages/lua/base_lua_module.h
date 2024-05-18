@@ -74,13 +74,16 @@ public:
   llvm::StructType* t_jit_proto;
   llvm::Type* t_jit_proto_ptr;
 
+    std::unique_ptr<llvm::Module> m_luaVMModule;
+
   BaseLuaModule();
 
-  llvm::orc::ThreadSafeModule Load(llvm::orc::ThreadSafeContext context);
+  void Load(llvm::orc::ThreadSafeContext context);
 
   std::unique_ptr<VMModuleForwardDecl> PrepareForwardDeclarations(llvm::Module* module);
 
 private:
+
   void CollectVMTypes(llvm::LLVMContext& context, const llvm::DataLayout& data_layout);
 
   std::unique_ptr<ConstStruct>
@@ -104,7 +107,7 @@ private:
   OPFunction op_functions[NUM_OPCODES];
 
   void
-  CreateFunctionDecl(llvm::Module* module, llvm::Type* result, llvm::ArrayRef<llvm::Type*> params, const char* name);
+  CreateFunctionDecl(BaseLuaModule& vm, llvm::Type* result, llvm::ArrayRef<llvm::Type*> params, const char* name);
 
   llvm::Type* GetVarType(BaseLuaModule& vm, llvm::LLVMContext& context, val_t type, hint_t hints);
 };

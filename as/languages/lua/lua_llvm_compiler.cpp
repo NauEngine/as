@@ -63,11 +63,6 @@ extern "C" {
  */
 static unsigned int OptLevel = 3;
 
-
-static llvm::cl::opt<bool> DontInlineOpcodes("do-not-inline-opcodes",
-                   llvm::cl::desc("Turn off inlining of opcode functions."),
-                   llvm::cl::init(false));
-
 #define BRANCH_COND -1
 #define BRANCH_NONE -2
 
@@ -78,7 +73,7 @@ static llvm::cl::opt<bool> DontInlineOpcodes("do-not-inline-opcodes",
 namespace as
 {
 
-llvm::Value* LuaLLVMCompiler::GetProtoConstant(llvm::LLVMContext& context, TValue *constant)
+llvm::Value* LuaLLVMCompiler::getProtoConstant(llvm::LLVMContext& context, TValue *constant)
 {
 	llvm::Value* val = nullptr;
 	switch(ttype(constant))
@@ -109,19 +104,14 @@ LuaLLVMCompiler::~LuaLLVMCompiler()
 
 }
 
-void LuaLLVMCompiler::ResizeOpcodeData(int code_len)
+void LuaLLVMCompiler::prepareOpcodeData(int codeLen)
 {
-	op_hints.resize(code_len);
-	op_values.resize(code_len);
-	op_blocks.resize(code_len);
-	need_op_block.resize(code_len);
+	op_hints.resize(codeLen);
+	op_values.resize(codeLen);
+	op_blocks.resize(codeLen);
+	need_op_block.resize(codeLen);
 
-	ClearOpcodeData(code_len);
-}
-
-void LuaLLVMCompiler::ClearOpcodeData(int code_len)
-{
-	for (int i = 0; i < code_len; ++i)
+	for (int i = 0; i < codeLen; ++i)
 	{
 		op_hints[i] = HINT_NONE;
 		op_values[i] = nullptr;
@@ -130,7 +120,7 @@ void LuaLLVMCompiler::ClearOpcodeData(int code_len)
 	}
 }
 
-std::string LuaLLVMCompiler::GenerateFunctionName(Proto *p)
+std::string LuaLLVMCompiler::generateFunctionName(Proto *p)
 {
 	std::string filename = getstr(p->source);
 
@@ -147,7 +137,7 @@ std::string LuaLLVMCompiler::GenerateFunctionName(Proto *p)
 	return name;
 }
 
-void LuaLLVMCompiler::FindBasicBlockPoints(llvm::LLVMContext& context, llvm::IRBuilder<>& builder, BuildContext& bcontext)
+void LuaLLVMCompiler::findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRBuilder<>& builder, BuildContext& bcontext)
 {
 	int mini_op_repeat=0;
 
@@ -354,7 +344,7 @@ void LuaLLVMCompiler::FindBasicBlockPoints(llvm::LLVMContext& context, llvm::IRB
 	}
 }
 
-void LuaLLVMCompiler::PreCreateBasicBlocks(llvm::LLVMContext& context, llvm::Function* func, BuildContext& bcontext)
+void LuaLLVMCompiler::preCreateBasicBlocks(llvm::LLVMContext& context, llvm::Function* func, BuildContext& bcontext)
 {
 	for (int i = 0; i < bcontext.code_len; ++i)
 	{
@@ -374,7 +364,7 @@ void LuaLLVMCompiler::PreCreateBasicBlocks(llvm::LLVMContext& context, llvm::Fun
 }
 
 // i - code instruction id
-std::vector<llvm::Value*> LuaLLVMCompiler::GetOpCallArgs(llvm::LLVMContext& context, const vm_func_info* func_info, BuildContext& bcontext, int i)
+std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& context, const vm_func_info* func_info, BuildContext& bcontext, int i)
 {
 	std::vector<llvm::Value*> args;
 
@@ -397,10 +387,10 @@ std::vector<llvm::Value*> LuaLLVMCompiler::GetOpCallArgs(llvm::LLVMContext& cont
 				val = llvm::ConstantInt::get(context, llvm::APInt(32,luaO_fb2int(GETARG_C(op_intr))));
 				break;
 			case VAR_T_ARG_Bx_NUM_CONSTANT:
-				val = GetProtoConstant(context, bcontext.k + INDEXK(GETARG_Bx(op_intr)));
+				val = getProtoConstant(context, bcontext.k + INDEXK(GETARG_Bx(op_intr)));
 				break;
 			case VAR_T_ARG_C_NUM_CONSTANT:
-				val = GetProtoConstant(context, bcontext.k + INDEXK(GETARG_C(op_intr)));
+				val = getProtoConstant(context, bcontext.k + INDEXK(GETARG_C(op_intr)));
 				break;
 			case VAR_T_ARG_C_NEXT_INSTRUCTION: {
 				int c = GETARG_C(op_intr);
@@ -410,7 +400,7 @@ std::vector<llvm::Value*> LuaLLVMCompiler::GetOpCallArgs(llvm::LLVMContext& cont
 					if ((i+1) < bcontext.code_len)
 					{
 						c = bcontext.code[i + 1];
-						if(strip_code) bcontext.strip_ops++;
+						if(m_stripCode) bcontext.strip_ops++;
 					}
 				}
 				val = llvm::ConstantInt::get(context, llvm::APInt(32,c));
@@ -474,7 +464,7 @@ std::vector<llvm::Value*> LuaLLVMCompiler::GetOpCallArgs(llvm::LLVMContext& cont
 	return args;
 }
 
-void LuaLLVMCompiler::Compile(
+void LuaLLVMCompiler::compile(
     llvm::orc::ThreadSafeContext ts_context,
     std::shared_ptr<llvm::orc::LLJIT> jit,
     BaseLuaModule& vm_module,
@@ -488,9 +478,9 @@ void LuaLLVMCompiler::Compile(
 
     std::unordered_map<Proto*, std::string> func_names;
 
-    CompileAllProtos(context, vm_module, module.get(), decl.get(), L, p, func_names);
+    сompileAllProtos(context, vm_module, module.get(), decl.get(), L, p, func_names);
 
-	if (dump_compiled)
+	if (m_dumpCompiled)
 	{
 		llvm::errs() << *module;
 	}
@@ -504,7 +494,7 @@ void LuaLLVMCompiler::Compile(
     }
 }
 
-void LuaLLVMCompiler::CompileAllProtos(
+void LuaLLVMCompiler::сompileAllProtos(
     llvm::LLVMContext& context,
     BaseLuaModule& vm_module,
     llvm::Module* module,
@@ -513,18 +503,18 @@ void LuaLLVMCompiler::CompileAllProtos(
     Proto* p,
     std::unordered_map<Proto*, std::string>& func_names)
 {
-    const auto func_name = GenerateFunctionName(p);
+    const auto func_name = generateFunctionName(p);
     func_names[p] = func_name;
-    CompileSingleProto(context, vm_module, module, decl, L, p, func_name);
+    сompileSingleProto(context, vm_module, module, decl, L, p, func_name);
 
     for (int i = 0; i < p->sizep; ++i)
     {
-        CompileAllProtos(context, vm_module, module, decl, L, p->p[i], func_names);
+        сompileAllProtos(context, vm_module, module, decl, L, p->p[i], func_names);
     }
 }
 
 
-void LuaLLVMCompiler::CompileSingleProto(
+void LuaLLVMCompiler::сompileSingleProto(
 	llvm::LLVMContext& context,
 	BaseLuaModule& vm_module,
 	llvm::Module* module,
@@ -548,7 +538,7 @@ void LuaLLVMCompiler::CompileSingleProto(
 
 	llvm::IRBuilder builder(context);
 
-	ResizeOpcodeData(bcontext.code_len);
+	prepareOpcodeData(bcontext.code_len);
 
 	llvm::Function* func = llvm::Function::Create(vm_module.t_lua_func, llvm::Function::ExternalLinkage, func_name, module);
 	// name arg1 = "L"
@@ -570,10 +560,10 @@ void LuaLLVMCompiler::CompileSingleProto(
 
 	// find all jump/branch destinations and create a new basic block at that opcode.
 	// also build hints for some opcodes.
-	FindBasicBlockPoints(context, builder, bcontext);
+	findBasicBlockPoints(context, builder, bcontext);
 
 	// pre-create basic blocks.
-	PreCreateBasicBlocks(context, func, bcontext);
+	preCreateBasicBlocks(context, func, bcontext);
 
 	// branch "entry" to first block.
 	if(need_op_block[0]) {
@@ -597,7 +587,7 @@ void LuaLLVMCompiler::CompileSingleProto(
 
 		// skip dead unreachable code.
 		if (current_block == nullptr) {
-			if (strip_code) bcontext.strip_ops++;
+			if (m_stripCode) bcontext.strip_ops++;
 			continue;
 		}
 
@@ -624,7 +614,7 @@ void LuaLLVMCompiler::CompileSingleProto(
             llvm::ConstantInt::get(context, llvm::APInt(32,op_count)),
             llvm::ConstantInt::get(context, llvm::APInt(32,i - bcontext.strip_ops))
         });
-				if(strip_code && bcontext.strip_ops > 0) {
+				if(m_stripCode && bcontext.strip_ops > 0) {
 					while(op_count > 0) {
 						bcontext.code[i - bcontext.strip_ops] = bcontext.code[i];
 						i++;
@@ -645,11 +635,11 @@ void LuaLLVMCompiler::CompileSingleProto(
 
 		if (op_hints[i] & HINT_SKIP_OP)
 		{
-			if (strip_code) bcontext.strip_ops++;
+			if (m_stripCode) bcontext.strip_ops++;
 			continue;
 		}
 
-		if (strip_code)
+		if (m_stripCode)
 		{
 			// strip all opcodes.
 			bcontext.strip_ops++;
@@ -720,7 +710,7 @@ void LuaLLVMCompiler::CompileSingleProto(
 			}
 		}
 
-		auto args = GetOpCallArgs(context, func_info, bcontext, i);
+		auto args = getOpCallArgs(context, func_info, bcontext, i);
 		llvm::CallInst* call = nullptr;
 		// create call to opcode function.
 		if(func_info->ret_type != VAR_T_VOID)
@@ -805,7 +795,7 @@ void LuaLLVMCompiler::CompileSingleProto(
 				false_block=op_blocks[branch+1];
 				/* inlined JMP op. */
 				branch = ++i + 1;
-				if(strip_code) {
+				if(m_stripCode) {
 					bcontext.strip_ops++;
 					if (bcontext.strip_ops > 0 && bcontext.strip_ops < (i+1))
 					{
@@ -845,7 +835,7 @@ void LuaLLVMCompiler::CompileSingleProto(
 					builder.SetInsertPoint(idx_block);
 					// copy idx value to Lua-stack.
 					call2=builder.CreateCall(set_func, {bcontext.func_L,
-																							llvm::ConstantInt::get(context, llvm::APInt(32,(GETARG_A(op_intr) + 3))), vals->get(0)});
+					llvm::ConstantInt::get(context, llvm::APInt(32,(GETARG_A(op_intr) + 3))), vals->get(0)});
 					inlineList.push_back(call2);
 					// create jmp to true_block
 					builder.CreateBr(true_block);
@@ -913,7 +903,7 @@ void LuaLLVMCompiler::CompileSingleProto(
 			case OP_CLOSURE: {
 				Proto *p2 = p->p[GETARG_Bx(op_intr)];
 				int nups = p2->nups;
-				if(strip_code && bcontext.strip_ops > 0) {
+				if(m_stripCode && bcontext.strip_ops > 0) {
 					while(nups > 0) {
 						i++;
 						bcontext.code[i - bcontext.strip_ops] = bcontext.code[i];
@@ -937,9 +927,7 @@ void LuaLLVMCompiler::CompileSingleProto(
 				break;
 		}
 
-		if(OptLevel > 0 && inline_call && !DontInlineOpcodes) {
-			inlineList.push_back(call);
-		}
+    	inlineList.push_back(call);
 
 		// branch to next block.
 		if (branch >= 0 && branch < bcontext.code_len)
@@ -953,7 +941,7 @@ void LuaLLVMCompiler::CompileSingleProto(
 	}
 
 	// strip Lua bytecode and debug info.
-	if (strip_code && bcontext.strip_ops > 0)
+	if (m_stripCode && bcontext.strip_ops > 0)
 	{
 		bcontext.code_len -= bcontext.strip_ops;
 		luaM_reallocvector(L, p->code, p->sizecode, bcontext.code_len, Instruction);
@@ -966,14 +954,10 @@ void LuaLLVMCompiler::CompileSingleProto(
 		p->sizeupvalues = 0;
 	}
 
-	// only run function inliner & optimization passes on same functions.
-	if (OptLevel > 0 && !DontInlineOpcodes)
+	llvm::InlineFunctionInfo IFI;
+	for (std::vector<llvm::CallInst *>::iterator I=inlineList.begin(); I != inlineList.end() ; I++)
 	{
-		llvm::InlineFunctionInfo IFI;
-		for (std::vector<llvm::CallInst *>::iterator I=inlineList.begin(); I != inlineList.end() ; I++)
-		{
-			llvm::InlineFunction(**I, IFI);
-		}
+		llvm::InlineFunction(**I, IFI);
 	}
 }
 

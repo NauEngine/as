@@ -16,6 +16,7 @@ add_library(LuaIntegration STATIC
     lua_vm_ops_static.c
 
     bc/lua_vm_ops_bc.h
+    bc/lua_vm_ops.ll
     bc/lapi_bc.h
     bc/lapi.ll
     bc/lauxlib_bc.h

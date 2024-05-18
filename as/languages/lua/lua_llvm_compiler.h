@@ -46,14 +46,10 @@ public:
 
 	~LuaLLVMCompiler();
 
-	void SetStripCode(bool strip) { strip_code = strip; }
-	void SetDumpCompiled(bool dump) { dump_compiled = dump; }
+	void setStripCode(bool strip) { m_stripCode = strip; }
+	void setDumpCompiled(bool dump) { m_dumpCompiled = dump; }
 
-	llvm::Value* GetProtoConstant(llvm::LLVMContext& context, TValue* constant);
-
-	std::string GenerateFunctionName(Proto* p);
-
-	void Compile(
+	void compile(
 	    llvm::orc::ThreadSafeContext ts_context,
 	    std::shared_ptr<llvm::orc::LLJIT> jit,
 	    BaseLuaModule& vm_module,
@@ -97,7 +93,8 @@ private:
 		llvm::CallInst* func_k = nullptr;
 	};
 
-	bool strip_code = false;
+	bool m_stripCode = false;
+	bool m_dumpCompiled = false;
 
 	// opcode hints/values/blocks/need_block arrays used in compile() method.
 	std::vector<hint_t> op_hints;
@@ -107,23 +104,19 @@ private:
 
 	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> function_aliases;
 
-	// Options
-	bool dump_compiled = false;
+	void prepareOpcodeData(int code_len);
+    llvm::Value* getProtoConstant(llvm::LLVMContext& context, TValue* constant);
+    std::string generateFunctionName(Proto* p);
+	void findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRBuilder<>& builder, BuildContext& bcontext);
+	void preCreateBasicBlocks(llvm::LLVMContext& context, llvm::Function* func, BuildContext& bcontext);
 
-	// resize the opcode hint data arrays.
-	void ResizeOpcodeData(int code_len);
+    std::vector<llvm::Value*> getOpCallArgs(
+        llvm::LLVMContext& context,
+        const vm_func_info* func_info,
+        BuildContext& bcontext,
+        int i);
 
-	// reset/clear the opcode hint data arrays.
-	void ClearOpcodeData(int code_len);
-
-	void FindBasicBlockPoints(llvm::LLVMContext& context, llvm::IRBuilder<>& builder, BuildContext& bcontext);
-
-	void PreCreateBasicBlocks(llvm::LLVMContext& context, llvm::Function* func, BuildContext& bcontext);
-
-	std::vector<llvm::Value*>
-	GetOpCallArgs(llvm::LLVMContext& context, const vm_func_info* func_info, BuildContext& bcontext, int i);
-
-    void CompileAllProtos(
+    void сompileAllProtos(
         llvm::LLVMContext& context,
         BaseLuaModule& vm_module,
         llvm::Module* module,
@@ -132,7 +125,7 @@ private:
         Proto* p,
         std::unordered_map<Proto*, std::string>& func_names);
 
-	void CompileSingleProto(
+	void сompileSingleProto(
 		llvm::LLVMContext& context,
 		BaseLuaModule& vm_module,
 		llvm::Module* module,

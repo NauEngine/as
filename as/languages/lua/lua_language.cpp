@@ -71,7 +71,7 @@ LuaLanguage::~LuaLanguage()
 
 void LuaLanguage::compile(lua_State* L, Proto* p)
 {
-    m_llvmCompiler->Compile(m_ts_context, m_jit, *m_baseLuaModule, L, p);
+    m_llvmCompiler->compile(m_ts_context, m_jit, *m_baseLuaModule, L, p);
 }
 
 void LuaLanguage::freeProto(lua_State* L, Proto* p)
@@ -85,10 +85,10 @@ void LuaLanguage::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadS
     m_jit = std::move(jit);
     m_ts_context = std::move(ts_context);
     m_llvmCompiler = std::make_shared<LuaLLVMCompiler>();
-    m_llvmCompiler->SetDumpCompiled(true);
+    m_llvmCompiler->setDumpCompiled(true);
     m_baseLuaModule = std::make_shared<BaseLuaModule>();
-    auto baseModule = m_baseLuaModule->Load(m_ts_context);
-    llvm::cantFail(m_jit->addIRModule(std::move(baseModule)));
+    m_baseLuaModule->Load(m_ts_context);
+//    llvm::cantFail(m_jit->addIRModule(std::move(baseModule)));
     m_lua_ir = std::make_shared<LuaIR>();
     m_lua_ir->init(m_jit, m_ts_context, m_lua_state);
 }
