@@ -20,11 +20,6 @@ namespace llvm
 {
     class ExecutionEngine;
     class Timer;
-    namespace legacy
-    {
-        class FunctionPassManager;
-    }
-
     namespace orc
     {
         class LLJIT;
@@ -35,6 +30,7 @@ namespace as
 {
 
 class LuaIR;
+class LLVMOptimizer;
 
 class LuaLLVMCompiler
 {
@@ -48,8 +44,8 @@ public:
 
 	void compile(
 	    llvm::orc::ThreadSafeContext ts_context,
-	    std::shared_ptr<llvm::orc::LLJIT> jit,
-	    std::shared_ptr<LuaIR> lua_ir,
+	    const std::shared_ptr<llvm::orc::LLJIT>& jit,
+	    const std::shared_ptr<LuaIR>& lua_ir,
 	    lua_State* L,
 	    Proto* p);
 
@@ -115,18 +111,18 @@ private:
 
     void сompileAllProtos(
         llvm::LLVMContext& context,
-        std::shared_ptr<LuaIR> lua_ir,
+        const std::shared_ptr<LuaIR>& lua_ir,
         llvm::Module* module,
-        llvm::legacy::FunctionPassManager* functionPassManager,
+        const std::shared_ptr<LLVMOptimizer>& optimizer,
         lua_State* L,
         Proto* p,
         std::unordered_map<Proto*, std::string>& func_names);
 
 	void сompileSingleProto(
 		llvm::LLVMContext& context,
-		std::shared_ptr<LuaIR> lua_ir,
+		const std::shared_ptr<LuaIR>& lua_ir,
 		llvm::Module* module,
-        llvm::legacy::FunctionPassManager* functionPassManager,
+        const std::shared_ptr<LLVMOptimizer>& optimizer,
 		lua_State* L,
 		Proto* p,
 		const std::string& func_name);

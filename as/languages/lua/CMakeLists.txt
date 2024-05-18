@@ -31,6 +31,6 @@ target_link_libraries(LuaIntegration AScript)
 set(BC_FLAGS -c)
 
 add_llvm_bc_library(lua_vm_ops lua_vm_ops.c)
-add_llvm_bc_library(lapi lua/lapi.c)
+add_llvm_bc_library(lapi lua_to_ir.cpp)
 add_llvm_bc_library(lauxlib lua/lauxlib.c)
 add_llvm_bc_library(test_adapter test_adapter.cpp)

@@ -3,10 +3,10 @@
 //
 
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/Transforms/Utils/Cloning.h"
 
 #include "as/core/core_utils.h"
-#include "bc/lapi_bc.h"
-#include "bc/test_adapter_bc.h"
+#include "as/core/llvm_optimizer.h"
 
 #include "lua_language_script.h"
 #include "lua_ir.h"
@@ -61,57 +61,62 @@ void LuaLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Module* 
 }
 
 llvm::Function* LuaLanguageScript::buildFunction(
-  const std::string& bare_name,
-  llvm::FunctionType* signature,
-  llvm::LLVMContext& context,
-  llvm::Module* module)
+    const std::string& bare_name,
+    llvm::FunctionType* signature,
+    llvm::LLVMContext& context,
+    llvm::Module* module)
 {
-  LuaStackGuard stack_guard(m_lua_state);
+    LuaStackGuard stack_guard(m_lua_state);
+    LLVMOptimizer optimizer(module);
 
-  lua_getglobal(m_lua_state, bare_name.c_str());
-  int func_ref = LUA_NOREF;
-  if (lua_type(m_lua_state, -1) == LUA_TFUNCTION)
-  {
-    func_ref = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
-    m_func_registry_ids[bare_name] = func_ref;
-  }
-  else
-  {
-    // TODO [AZ] handle error
-    return nullptr;
-  }
+    lua_getglobal(m_lua_state, bare_name.c_str());
+    int func_ref = LUA_NOREF;
+    if (lua_type(m_lua_state, -1) == LUA_TFUNCTION)
+    {
+        func_ref = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
+        m_func_registry_ids[bare_name] = func_ref;
+    }
+    else
+    {
+        // TODO [AZ] handle error
+        return nullptr;
+    }
 
-  llvm::IRBuilder<> builder(context);
-  llvm::Function* func = llvm::Function::Create(signature, llvm::Function::InternalLinkage, bare_name, module);
-  llvm::BasicBlock* block = llvm::BasicBlock::Create(context, "entry", func);
-  builder.SetInsertPoint(block);
+    llvm::IRBuilder<> builder(context);
+    llvm::Function* func = llvm::Function::Create(signature, llvm::Function::InternalLinkage, bare_name, module);
+    llvm::BasicBlock* block = llvm::BasicBlock::Create(context, "entry", func);
+    builder.SetInsertPoint(block);
 
-  llvm::Value* func_ref_val = builder.getInt32(func_ref);
-  llvm::Value* LUA_REGISTRYINDEX_val = builder.getInt32(LUA_REGISTRYINDEX);
+    llvm::Value* func_ref_val = builder.getInt32(func_ref);
+    llvm::Value* LUA_REGISTRYINDEX_val = builder.getInt32(LUA_REGISTRYINDEX);
 
-  builder.CreateCall(m_lua_ir->lua_rawgeti_f, {m_lua_state_extern, LUA_REGISTRYINDEX_val, func_ref_val});
+    builder.CreateCall(m_lua_ir->lua_rawgeti_f, {m_lua_state_extern, LUA_REGISTRYINDEX_val, func_ref_val});
 
-  // 0 arg is pointer to structure, skip it
-  for (int i = 1; i < signature->getNumParams(); ++i)
-  {
-    llvm::Value* arg = func->getArg(i);
-    m_lua_ir->buildPushValue(builder, m_lua_state_extern, arg->getType(), arg);
-  }
+    // 0 arg is pointer to structure, skip it
+    for (int i = 1; i < signature->getNumParams(); ++i)
+    {
+        llvm::Value* arg = func->getArg(i);
+        m_lua_ir->buildPushValue(builder, m_lua_state_extern, arg->getType(), arg);
+    }
 
-  llvm::Constant* num_args = builder.getInt32(signature->getNumParams() - 1);
-  llvm::Constant* num_rets = builder.getInt32(1);
+    llvm::Constant* num_args = builder.getInt32(signature->getNumParams() - 1);
+    llvm::Constant* num_rets = builder.getInt32(1);
 
-  builder.CreateCall(m_lua_ir->lua_call_f, {m_lua_state_extern, num_args, num_rets});
+    builder.CreateCall(m_lua_ir->lua_call_f, {m_lua_state_extern, num_args, num_rets});
 
-  const llvm::Type* ret_type = func->getReturnType();
-  llvm::Value* ret = m_lua_ir->buildPopValue(builder, m_lua_state_extern, ret_type, -1);
+    const llvm::Type* ret_type = func->getReturnType();
+    llvm::Value* ret = m_lua_ir->buildPopValue(builder, m_lua_state_extern, ret_type, -1);
 
-  llvm::Constant* stack_pos = builder.getInt32(-(1)-1);
-  builder.CreateCall(m_lua_ir->lua_settop_f, {m_lua_state_extern, stack_pos});
+    llvm::Constant* stack_pos = builder.getInt32(-(1)-1);
+    builder.CreateCall(m_lua_ir->lua_settop_f, {m_lua_state_extern, stack_pos});
 
-  builder.CreateRet(ret);
+    builder.CreateRet(ret);
 
-  return func;
+    optimizer.inlineByName(func, "lua_call");
+//    optimizer.inlineByName(func, "luaD_call");
+    optimizer.runOptimizationPasses(func);
+
+    return func;
 }
 
 } // namespace as

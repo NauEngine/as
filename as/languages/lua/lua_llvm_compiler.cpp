@@ -25,17 +25,12 @@
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
-#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Verifier.h"
-#include "llvm/Transforms/InstCombine/InstCombine.h"
-#include "llvm/Transforms/Scalar.h"
-#include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Utils/Cloning.h"
-#include "llvm/Transforms/Utils.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/Support/Timer.h"
 #include "llvm/Support/CommandLine.h"
@@ -49,6 +44,7 @@
 #include "lua_core.h"
 
 #include "as/core/core_utils.h"
+#include "as/core/llvm_optimizer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -471,8 +467,8 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 
 void LuaLLVMCompiler::compile(
     llvm::orc::ThreadSafeContext ts_context,
-    std::shared_ptr<llvm::orc::LLJIT> jit,
-    std::shared_ptr<LuaIR> lua_ir,
+    const std::shared_ptr<llvm::orc::LLJIT>& jit,
+    const std::shared_ptr<LuaIR>& lua_ir,
     lua_State *L,
     Proto *p)
 {
@@ -480,17 +476,11 @@ void LuaLLVMCompiler::compile(
 	auto module_name = utils::generateModuleName(getstr(p->source));
 	auto module = std::make_unique<llvm::Module>(module_name, context);
 
-    llvm::legacy::FunctionPassManager functionPassManager(module.get());
-    functionPassManager.add(llvm::createPromoteMemoryToRegisterPass());
-    functionPassManager.add(llvm::createInstructionCombiningPass());
-    functionPassManager.add(llvm::createReassociatePass());
-    functionPassManager.add(llvm::createGVNPass());
-    functionPassManager.add(llvm::createCFGSimplificationPass());
-    functionPassManager.doInitialization();
+    auto optimizer = std::make_shared<LLVMOptimizer>(module.get());
 
     std::unordered_map<Proto*, std::string> func_names;
 
-    сompileAllProtos(context, lua_ir, module.get(), &functionPassManager, L, p, func_names);
+    сompileAllProtos(context, lua_ir, module.get(), optimizer, L, p, func_names);
 
 	if (m_dumpCompiled)
 	{
@@ -508,30 +498,30 @@ void LuaLLVMCompiler::compile(
 
 void LuaLLVMCompiler::сompileAllProtos(
     llvm::LLVMContext& context,
-    std::shared_ptr<LuaIR> lua_ir,
+    const std::shared_ptr<LuaIR>& lua_ir,
     llvm::Module* module,
-    llvm::legacy::FunctionPassManager* functionPassManager,
+    const std::shared_ptr<LLVMOptimizer>& optimizer,
     lua_State* L,
     Proto* p,
     std::unordered_map<Proto*, std::string>& func_names)
 {
     const auto func_name = generateFunctionName(p);
     func_names[p] = func_name;
-    сompileSingleProto(context, lua_ir, module, functionPassManager, L, p, func_name);
+    сompileSingleProto(context, lua_ir, module, optimizer, L, p, func_name);
 
     for (int i = 0; i < p->sizep; ++i)
     {
-        сompileAllProtos(context, lua_ir, module, functionPassManager, L, p->p[i], func_names);
+        сompileAllProtos(context, lua_ir, module, optimizer, L, p->p[i], func_names);
     }
 }
 
 
 void LuaLLVMCompiler::сompileSingleProto(
 	llvm::LLVMContext& context,
-	std::shared_ptr<LuaIR> lua_ir,
+	const std::shared_ptr<LuaIR>& lua_ir,
 	llvm::Module* module,
-	llvm::legacy::FunctionPassManager* functionPassManager,
-	lua_State* L,
+    const std::shared_ptr<LLVMOptimizer>& optimizer,
+    lua_State* L,
 	Proto* p,
 	const std::string& func_name)
 {
@@ -545,8 +535,6 @@ void LuaLLVMCompiler::сompileSingleProto(
 	llvm::BasicBlock *false_block = nullptr;
 	llvm::BasicBlock *current_block = nullptr;
 	llvm::Value* brcond = nullptr;
-	std::vector<llvm::CallInst *> inlineList;
-	bool inline_call = false;
 
 	llvm::IRBuilder builder(context);
 
@@ -565,9 +553,6 @@ void LuaLLVMCompiler::сompileSingleProto(
 //  auto a = vm_module.func("vm_get_current_closure");
 	bcontext.func_cl = builder.CreateCall(lua_ir->vm_get_current_closure_f, bcontext.func_L);
 	bcontext.func_k = builder.CreateCall(lua_ir->vm_get_current_constants_f, bcontext.func_cl);
-
-	inlineList.push_back(bcontext.func_cl);
-	inlineList.push_back(bcontext.func_k);
 
 	// find all jump/branch destinations and create a new basic block at that opcode.
 	// also build hints for some opcodes.
@@ -733,14 +718,12 @@ void LuaLLVMCompiler::сompileSingleProto(
 			call = builder.CreateCall(opfunc->func, args);
 		}
 
-		inline_call = false;
 		// handle retval from opcode function.
 		switch (opcode) {
 			case OP_LOADBOOL:
 				// check C operand if C!=0 then skip over the next op_block.
 				if(GETARG_C(op_intr) != 0) branch += 1;
 				else branch = BRANCH_NONE;
-				inline_call = true;
 				break;
 			case OP_LOADK:
 			case OP_LOADNIL:
@@ -762,12 +745,10 @@ void LuaLLVMCompiler::сompileSingleProto(
 			case OP_CONCAT:
 			case OP_GETUPVAL:
 			case OP_MOVE:
-				inline_call = true;
 				branch = BRANCH_NONE;
 				break;
 			case OP_CLOSE:
 			case OP_SETUPVAL:
-				inline_call = false;
 				branch = BRANCH_NONE;
 				break;
 			case OP_VARARG:
@@ -792,14 +773,12 @@ void LuaLLVMCompiler::сompileSingleProto(
 				// always branch to the offset stored in operand sBx
 				branch += GETARG_sBx(op_intr);
 				// call vm_OP_JMP just in case luai_threadyield is defined.
-				inline_call = true;
 				break;
 			case OP_EQ:
 			case OP_LT:
 			case OP_LE:
 			case OP_TEST:
 			case OP_TESTSET:
-				inline_call = true;
 			case OP_TFORLOOP:
 				brcond=call;
 				brcond=builder.CreateICmpNE(brcond, llvm::ConstantInt::get(context, llvm::APInt(32, 0)), "brcond");
@@ -823,7 +802,6 @@ void LuaLLVMCompiler::сompileSingleProto(
 				llvm::Function* set_func = lua_ir->vm_set_number_f;
 				llvm::CallInst* call2;
 
-				inline_call = true;
 				brcond = call;
 				brcond = builder.CreateICmpNE(brcond, llvm::ConstantInt::get(context, llvm::APInt(32, 0)), "brcond");
 				true_block = op_blocks[branch + GETARG_sBx(op_intr)];
@@ -847,7 +825,6 @@ void LuaLLVMCompiler::сompileSingleProto(
 					// copy idx value to Lua-stack.
 					call2=builder.CreateCall(set_func, {bcontext.func_L,
 					llvm::ConstantInt::get(context, llvm::APInt(32,(GETARG_A(op_intr) + 3))), vals->get(0)});
-					inlineList.push_back(call2);
 					// create jmp to true_block
 					builder.CreateBr(true_block);
 					true_block = idx_block;
@@ -860,7 +837,6 @@ void LuaLLVMCompiler::сompileSingleProto(
 				llvm::Value *idx_var,*init;
 				llvm::CallInst *call2;
 
-				//inline_call = true;
 				op_blocks[i] = current_block;
 				branch += GETARG_sBx(op_intr);
 				OPValues* vals = op_values[branch].get();
@@ -874,8 +850,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 				if (vals->get(0) == nullptr)
 				{
 					call2 = builder.CreateCall(get_func, {bcontext.func_L,
-																							llvm::ConstantInt::get(context, llvm::APInt(32,(GETARG_A(op_intr) + 0)))}, "for_init");
-					inlineList.push_back(call2);
+    				llvm::ConstantInt::get(context, llvm::APInt(32,(GETARG_A(op_intr) + 0)))}, "for_init");
 					vals->set(0, call2);
 				}
 				init = vals->get(0);
@@ -883,16 +858,14 @@ void LuaLLVMCompiler::сompileSingleProto(
 				if (vals->get(1) == nullptr)
 				{
 					call2 = builder.CreateCall(get_func, {bcontext.func_L,
-																							llvm::ConstantInt::get(context, llvm::APInt(32,(GETARG_A(op_intr) + 1)))}, "for_limit");
-					inlineList.push_back(call2);
+					llvm::ConstantInt::get(context, llvm::APInt(32,(GETARG_A(op_intr) + 1)))}, "for_limit");
 					vals->set(1, call2);
 				}
 				// get non-constant step from Lua stack.
 				if (vals->get(2) == nullptr)
 				{
 					call2 = builder.CreateCall(get_func, {bcontext.func_L,
-																							llvm::ConstantInt::get(context, llvm::APInt(32,(GETARG_A(op_intr) + 2)))}, "for_step");
-					inlineList.push_back(call2);
+					llvm::ConstantInt::get(context, llvm::APInt(32,(GETARG_A(op_intr) + 2)))}, "for_step");
 					vals->set(2, call2);
 				}
 				// get for loop 'idx' variable.
@@ -938,8 +911,6 @@ void LuaLLVMCompiler::сompileSingleProto(
 				break;
 		}
 
-    	inlineList.push_back(call);
-
 		// branch to next block.
 		if (branch >= 0 && branch < bcontext.code_len)
 		{
@@ -965,13 +936,8 @@ void LuaLLVMCompiler::сompileSingleProto(
 		p->sizeupvalues = 0;
 	}
 
-	llvm::InlineFunctionInfo IFI;
-	for (std::vector<llvm::CallInst *>::iterator I=inlineList.begin(); I != inlineList.end() ; I++)
-	{
-		llvm::InlineFunction(**I, IFI);
-	}
-
-    functionPassManager->run(*func);
+    optimizer->inlineAll(func);
+    optimizer->runOptimizationPasses(func);
 }
 
 }	// namespace as
