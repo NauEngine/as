@@ -72,12 +72,10 @@ llvm::orc::ExecutorAddr ScriptModuleImpl::getVTableAddr()
         {
             auto funcName = m_interface->methodNames[i];
             llvm::Function* method = m_language_script->buildFunction(funcName, funcType, context, module.get());
-            llvm::errs() << *method << "\n";
             vtableMethods[i] = method;
         }
         else
         {
-            llvm::errs() << "null\n";
             vtableMethods[i] = opaque_null_ptr;
         }
     }

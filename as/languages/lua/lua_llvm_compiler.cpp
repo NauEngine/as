@@ -25,16 +25,20 @@
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Utils/Cloning.h"
+#include "llvm/Transforms/Utils.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/Support/Timer.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Linker/Linker.h"
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -476,9 +480,17 @@ void LuaLLVMCompiler::compile(
 	auto module_name = utils::generateModuleName(getstr(p->source));
 	auto module = std::make_unique<llvm::Module>(module_name, context);
 
+    llvm::legacy::FunctionPassManager functionPassManager(module.get());
+    functionPassManager.add(llvm::createPromoteMemoryToRegisterPass());
+    functionPassManager.add(llvm::createInstructionCombiningPass());
+    functionPassManager.add(llvm::createReassociatePass());
+    functionPassManager.add(llvm::createGVNPass());
+    functionPassManager.add(llvm::createCFGSimplificationPass());
+    functionPassManager.doInitialization();
+
     std::unordered_map<Proto*, std::string> func_names;
 
-    сompileAllProtos(context, lua_ir, module.get(), L, p, func_names);
+    сompileAllProtos(context, lua_ir, module.get(), &functionPassManager, L, p, func_names);
 
 	if (m_dumpCompiled)
 	{
@@ -498,17 +510,18 @@ void LuaLLVMCompiler::сompileAllProtos(
     llvm::LLVMContext& context,
     std::shared_ptr<LuaIR> lua_ir,
     llvm::Module* module,
+    llvm::legacy::FunctionPassManager* functionPassManager,
     lua_State* L,
     Proto* p,
     std::unordered_map<Proto*, std::string>& func_names)
 {
     const auto func_name = generateFunctionName(p);
     func_names[p] = func_name;
-    сompileSingleProto(context, lua_ir, module, L, p, func_name);
+    сompileSingleProto(context, lua_ir, module, functionPassManager, L, p, func_name);
 
     for (int i = 0; i < p->sizep; ++i)
     {
-        сompileAllProtos(context, lua_ir, module, L, p->p[i], func_names);
+        сompileAllProtos(context, lua_ir, module, functionPassManager, L, p->p[i], func_names);
     }
 }
 
@@ -517,6 +530,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 	llvm::LLVMContext& context,
 	std::shared_ptr<LuaIR> lua_ir,
 	llvm::Module* module,
+	llvm::legacy::FunctionPassManager* functionPassManager,
 	lua_State* L,
 	Proto* p,
 	const std::string& func_name)
@@ -956,6 +970,8 @@ void LuaLLVMCompiler::сompileSingleProto(
 	{
 		llvm::InlineFunction(**I, IFI);
 	}
+
+    functionPassManager->run(*func);
 }
 
 }	// namespace as

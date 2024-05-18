@@ -117,6 +117,7 @@ private:
         llvm::LLVMContext& context,
         std::shared_ptr<LuaIR> lua_ir,
         llvm::Module* module,
+        llvm::legacy::FunctionPassManager* functionPassManager,
         lua_State* L,
         Proto* p,
         std::unordered_map<Proto*, std::string>& func_names);
@@ -125,6 +126,7 @@ private:
 		llvm::LLVMContext& context,
 		std::shared_ptr<LuaIR> lua_ir,
 		llvm::Module* module,
+        llvm::legacy::FunctionPassManager* functionPassManager,
 		lua_State* L,
 		Proto* p,
 		const std::string& func_name);
