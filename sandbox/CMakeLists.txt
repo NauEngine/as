@@ -25,8 +25,8 @@ target_link_libraries(SandboxScripts
 add_executable(SandboxSq main_sq.cpp)
 target_link_libraries(SandboxSq SquirrelIntegration)
 
-add_executable(SandboxLua main_lua.cpp)
-target_link_libraries(SandboxLua LuaIntegration)
+add_executable(SandboxLuaVM main_lua_vm.cpp)
+target_link_libraries(SandboxLuaVM LuaIntegration)
 
 add_executable(SandboxMagic main_magic.cpp)
 
