@@ -102,7 +102,8 @@ llvm::Function* LuaLanguageScript::buildFunction(
     llvm::Constant* num_args = builder.getInt32(signature->getNumParams() - 1);
     llvm::Constant* num_rets = builder.getInt32(1);
 
-    builder.CreateCall(m_lua_ir->lua_call_f, {m_lua_state_extern, num_args, num_rets});
+//    builder.CreateCall(m_lua_ir->lua_call_f, {m_lua_state_extern, num_args, num_rets});
+    builder.CreateCall(m_lua_ir->lua_call_compiled_f, {m_lua_state_extern, num_args, num_rets});
 
     const llvm::Type* ret_type = func->getReturnType();
     llvm::Value* ret = m_lua_ir->buildPopValue(builder, m_lua_state_extern, ret_type, -1);
@@ -112,8 +113,10 @@ llvm::Function* LuaLanguageScript::buildFunction(
 
     builder.CreateRet(ret);
 
-    optimizer.inlineByName(func, "lua_call");
-//    optimizer.inlineByName(func, "luaD_call");
+    optimizer.inlineByName(func, "lua_call_compiled");
+    // optimizer.inlineByName(func, "lua_call");
+    // optimizer.inlineByName(func, "luaD_call");
+    // optimizer.inlineByName(func, "luaD_precall");
     optimizer.runOptimizationPasses(func);
 
     return func;

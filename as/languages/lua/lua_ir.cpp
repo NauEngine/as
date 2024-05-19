@@ -56,6 +56,7 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     lua_pushinteger_f = m_lapiModule->getFunction("lua_pushinteger");
     lua_pushnumber_f = m_lapiModule->getFunction("lua_pushnumber");
     lua_call_f = m_lapiModule->getFunction("lua_call");
+    lua_call_compiled_f = m_lapiModule->getFunction("lua_call_compiled");
     lua_tointeger_f = m_lapiModule->getFunction("lua_tointeger");
     lua_tonumber_f = m_lapiModule->getFunction("lua_tonumber");
     lua_settop_f = m_lapiModule->getFunction("lua_settop");

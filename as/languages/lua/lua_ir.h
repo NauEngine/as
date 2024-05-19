@@ -68,6 +68,7 @@ public:
     llvm::Function* lua_pushinteger_f = nullptr;
     llvm::Function* lua_pushnumber_f = nullptr;
     llvm::Function* lua_call_f = nullptr;
+    llvm::Function* lua_call_compiled_f = nullptr;
     llvm::Function* lua_tointeger_f = nullptr;
     llvm::Function* lua_tonumber_f = nullptr;
     llvm::Function* lua_settop_f = nullptr;

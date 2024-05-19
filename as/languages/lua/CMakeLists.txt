@@ -1,4 +1,5 @@
 add_library(LuaIntegration STATIC
+    lua_call.cpp
     lua_ir.cpp
     lua_ir.h
     lua_language.cpp
