@@ -56,6 +56,8 @@ void LuaLanguageScript::load(const std::string& filename)
 {
     luaL_loadfile(m_lua_state, filename.c_str());
     Closure* closure = clvalue(m_lua_state->top - 1);
+    llvm::errs() << "OPCODES: \n";
+    printLuaFunction(closure->l.p, 1);
     m_llvmCompiler->compile(m_ts_context, m_jit, m_lua_ir, m_lua_state, closure->l.p);
     m_registry_index = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
 }

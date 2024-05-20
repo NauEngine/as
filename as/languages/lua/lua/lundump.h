@@ -20,7 +20,7 @@ LUAI_FUNC void luaU_header (char* h);
 LUAI_FUNC int luaU_dump (lua_State* L, const Proto* f, lua_Writer w, void* data, int strip);
 
 #ifdef luac_c
-/* print one chunk; from print.c */
+/* print one chunk; from lua_bytecode_printer.cpp */
 LUAI_FUNC void luaU_print (const Proto* f, int full);
 #endif
 

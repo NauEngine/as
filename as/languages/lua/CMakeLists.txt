@@ -9,6 +9,7 @@ add_library(LuaIntegration STATIC
     lua_core.cpp
     lua_core.h
     lua_utils.cpp
+    lua_bytecode_printer.cpp
     lua_utils.h
     lua_llvm_compiler.cpp
     lua_llvm_compiler.h

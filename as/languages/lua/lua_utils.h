@@ -6,6 +6,7 @@
 #define LUA_UTILS_H
 
 struct lua_State;
+struct Proto;
 
 namespace as
 {
@@ -23,6 +24,8 @@ public:
   lua_State* const lua_state;
   const int top;
 };
+
+void printLuaFunction(const Proto* f, int full);
 
 } //namespace as
 
