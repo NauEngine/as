@@ -15,10 +15,7 @@ void llvm_freeproto (lua_State *L, Proto *f);
 int llvm_precall_jit (lua_State *L, StkId func, int nresults);
 int llvm_precall_lua (lua_State *L, StkId func, int nresults);
 
-extern void llvm_compiler_compile(lua_State *L, Proto *p);
-extern void llvm_compiler_compile_all(lua_State *L, Proto *p);
 extern void llvm_compiler_free(lua_State *L, Proto *p);
-
 
 /* functions */
 #define JIT_NEWPROTO(L,f) llvm_newproto(L,f)
@@ -55,15 +52,11 @@ extern void llvm_compiler_free(lua_State *L, Proto *p);
 #include "lua/ltablib.c"
 
 #include "lua/lauxlib.c"
+#include "lua/ldo.c"
 
 
 //#include "llvm_lmathlib.c" // [AZ] TODO
 #include "lua/lmathlib.c"   // [AZ] TODO
-
-// Hook lua loading
-#define luaD_protectedparser luaD_protectedparser_original
-#include "lua/ldo.c"
-#undef luaD_protectedparser
 
 #include "lua_hooks.cpp"
 
@@ -73,7 +66,7 @@ void llvm_newproto (lua_State *L, Proto *f) {
 }
 
 void llvm_freeproto (lua_State *L, Proto *f) {
-    llvm_compiler_free(L, f);
+    //llvm_compiler_free(L, f);
 }
 
 #ifdef __cplusplus

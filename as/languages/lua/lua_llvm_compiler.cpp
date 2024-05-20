@@ -604,12 +604,14 @@ void LuaLLVMCompiler::сompileSingleProto(
 				op_count++;
 			}
 			if(op_count >= 3) {
-				// large block of mini ops add function call to vm_mini_vm()
-        builder.CreateCall(lua_ir->vm_mini_vm_f, {
-						bcontext.func_L, bcontext.func_cl,
-            llvm::ConstantInt::get(context, llvm::APInt(32,op_count)),
-            llvm::ConstantInt::get(context, llvm::APInt(32,i - bcontext.strip_ops))
-        });
+				    // large block of mini ops add function call to vm_mini_vm()
+                builder.CreateCall(lua_ir->vm_mini_vm_f, {
+                    bcontext.func_L,
+                    bcontext.func_cl,
+                    llvm::ConstantInt::get(context, llvm::APInt(32,op_count)),
+                    llvm::ConstantInt::get(context, llvm::APInt(32,i - bcontext.strip_ops))
+                });
+
 				if(m_stripCode && bcontext.strip_ops > 0) {
 					while(op_count > 0) {
 						bcontext.code[i - bcontext.strip_ops] = bcontext.code[i];

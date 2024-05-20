@@ -9,6 +9,7 @@
 #include "as/core/llvm_optimizer.h"
 
 #include "lua_language_script.h"
+#include "lua_llvm_compiler.h"
 #include "lua_ir.h"
 #include "lua_utils.h"
 
@@ -16,48 +17,57 @@ extern "C"
 {
 #include "lua/lobject.h"
 #include "lua/lauxlib.h"
+#include "lua/lstate.h"
 }
 
 namespace as
 {
 
-LuaLanguageScript::LuaLanguageScript(lua_State* state, const std::shared_ptr<LuaIR>& lua_ir) :
-  m_lua_state(state),
-  m_lua_ir(lua_ir),
-  m_registry_index(LUA_NOREF)
+LuaLanguageScript::LuaLanguageScript(
+    lua_State* state,
+    const std::shared_ptr<LuaIR>& lua_ir,
+    const std::shared_ptr<LuaLLVMCompiler>& llvmCompiler,
+    const std::shared_ptr<llvm::orc::LLJIT>& jit,
+    llvm::orc::ThreadSafeContext ts_context):
+    m_lua_state(state),
+    m_lua_ir(lua_ir),
+    m_llvmCompiler(llvmCompiler),
+    m_jit(jit),
+    m_registry_index(LUA_NOREF),
+    m_ts_context(std::move(ts_context))
 {
 
 }
 
 LuaLanguageScript::~LuaLanguageScript()
 {
-  if (m_registry_index != LUA_NOREF)
-  {
-    luaL_unref(m_lua_state, LUA_REGISTRYINDEX, m_registry_index);
-  }
+    if (m_registry_index != LUA_NOREF)
+    {
+        luaL_unref(m_lua_state, LUA_REGISTRYINDEX, m_registry_index);
+    }
 
-  for (const auto& [name, ref] : m_func_registry_ids)
-  {
-    luaL_unref(m_lua_state, LUA_REGISTRYINDEX, ref);
-  }
+    for (const auto& [name, ref] : m_func_registry_ids)
+    {
+        luaL_unref(m_lua_state, LUA_REGISTRYINDEX, ref);
+    }
 }
-
 
 void LuaLanguageScript::load(const std::string& filename)
 {
-  luaL_loadfile(m_lua_state, filename.c_str());
-  m_registry_index = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
+    luaL_loadfile(m_lua_state, filename.c_str());
+    Closure* closure = clvalue(m_lua_state->top - 1);
+    m_llvmCompiler->compile(m_ts_context, m_jit, m_lua_ir, m_lua_state, closure->l.p);
+    m_registry_index = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
 }
 
 void LuaLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Module* module)
 {
-  m_lua_state_extern = new llvm::GlobalVariable(*module, m_lua_ir->lua_State_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
-                                                    nullptr,
-                                                    LuaIR::LUA_STATE_GLOBAL_VAR);
-
-  // TODO [AZ] check if registry_index exists
-  lua_rawgeti(m_lua_state, LUA_REGISTRYINDEX, m_registry_index);
-  lua_call(m_lua_state, 0, LUA_MULTRET);
+    m_lua_state_extern = new llvm::GlobalVariable(*module, m_lua_ir->lua_State_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
+                                                      nullptr,
+                                                      LuaIR::LUA_STATE_GLOBAL_VAR);
+    // TODO [AZ] check if registry_index exists
+    lua_rawgeti(m_lua_state, LUA_REGISTRYINDEX, m_registry_index);
+    lua_call(m_lua_state, 0, LUA_MULTRET);
 }
 
 llvm::Function* LuaLanguageScript::buildFunction(
@@ -67,7 +77,7 @@ llvm::Function* LuaLanguageScript::buildFunction(
     llvm::Module* module)
 {
     LuaStackGuard stack_guard(m_lua_state);
-    LLVMOptimizer optimizer(module);
+    const LLVMOptimizer optimizer(module);
 
     lua_getglobal(m_lua_state, bare_name.c_str());
     int func_ref = LUA_NOREF;

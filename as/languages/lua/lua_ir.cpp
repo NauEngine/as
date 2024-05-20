@@ -5,6 +5,7 @@
 #include "llvm/IR/IRBuilder.h"
 
 #include "as/core/core_utils.h"
+#include "as/core/ir.h"
 
 #include "bc/lapi_bc.h"
 #include "bc/lauxlib_bc.h"
@@ -65,7 +66,8 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     luaL_checkudata_f = m_lauxlibModule->getFunction("luaL_checkudata");
 
     // lua vm functions
-    vm_mini_vm_f = m_luaVMModule->getFunction("vm_mini_vm");
+    vm_mini_vm_f = ir::сreateFunctionDecl(m_luaVMModule.get(), void_t,
+        {lua_State_ptr_t, LClosure_ptr_t, int32_t, int32_t}, "vm_mini_vm");
     vm_get_current_closure_f = m_luaVMModule->getFunction("vm_get_current_closure");
     vm_get_current_constants_f = m_luaVMModule->getFunction("vm_get_current_constants");
     vm_get_number_f = m_luaVMModule->getFunction("vm_get_number");

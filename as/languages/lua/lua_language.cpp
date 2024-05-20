@@ -12,38 +12,11 @@
 #include "lua_language_script.h"
 #include "lua_llvm_compiler.h"
 
-// TODO [AZ] dirty temporary hack
-as::LuaLanguage* tmpPointerToLuaLanguage = nullptr;
-
 extern "C"
 {
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 #include "lua/lstate.h"
-
-// TODO [AZ] dirty temporary hack
-void llvm_compiler_compile(lua_State *L, Proto *p) {
-    if (tmpPointerToLuaLanguage)
-    {
-        tmpPointerToLuaLanguage->compile(L, p);
-    }
-}
-
-void llvm_compiler_compile_all(lua_State *L, Proto *p) {
-    if (tmpPointerToLuaLanguage)
-    {
-        tmpPointerToLuaLanguage->compile(L, p);
-    }
-}
-
-void llvm_compiler_free(lua_State *L, Proto *p)
-{
-    if (tmpPointerToLuaLanguage)
-    {
-        tmpPointerToLuaLanguage->freeProto(L, p);
-    }
-}
-
 }
 
 namespace as
@@ -53,8 +26,6 @@ LuaLanguage::LuaLanguage()
 {
     m_lua_state = luaL_newstate();
     luaL_openlibs(m_lua_state);
-
-    tmpPointerToLuaLanguage = this;
 }
 
 LuaLanguage::~LuaLanguage()
@@ -64,34 +35,23 @@ LuaLanguage::~LuaLanguage()
         lua_close(m_lua_state);
         m_lua_state = nullptr;
     }
-
-    tmpPointerToLuaLanguage = nullptr;
 }
-
-void LuaLanguage::compile(lua_State* L, Proto* p)
-{
-    m_llvmCompiler->compile(m_ts_context, m_jit, m_lua_ir, L, p);
-}
-
-void LuaLanguage::freeProto(lua_State* L, Proto* p)
-{
-
-}
-
 
 void LuaLanguage::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context)
 {
     m_jit = std::move(jit);
     m_ts_context = std::move(ts_context);
+
     m_llvmCompiler = std::make_shared<LuaLLVMCompiler>();
     m_llvmCompiler->setDumpCompiled(true);
+
     m_lua_ir = std::make_shared<LuaIR>();
     m_lua_ir->init(m_jit, m_ts_context, m_lua_state);
 }
 
 std::shared_ptr<ILanguageScript> LuaLanguage::newScript()
 {
-  return std::make_shared<LuaLanguageScript>(m_lua_state, m_lua_ir);
+  return std::make_shared<LuaLanguageScript>(m_lua_state, m_lua_ir, m_llvmCompiler, m_jit, m_ts_context);
 }
 
 void LuaLanguage::registerInstance(void* instance, const std::string& instanceName,

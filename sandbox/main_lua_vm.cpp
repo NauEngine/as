@@ -49,10 +49,12 @@ int main()
 
     script_core->registerLanguage("lua", std::move(lua_language));
 
-    auto script_modules = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_vm.lua", "lua");
-    auto instances = script_modules->newInstance();
+    auto script_module = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_vm.lua", "lua");
+    auto instances = script_module->newInstance();
     std::cout << instances->foo(10, 20) << std::endl;
 
+    delete instances;
+    script_module = nullptr;
     script_core = nullptr;
 
 //    pure_lua_test();
