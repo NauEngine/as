@@ -21,20 +21,14 @@ typedef long long lua_Long;
 #endif
 
 typedef unsigned int hint_t;
-#define HINT_NONE							0
+#define HINT_NONE				0
 #define HINT_C_NUM_CONSTANT		(1<<0)
 #define HINT_Bx_NUM_CONSTANT	(1<<1)
-#define HINT_NOT							(1<<2)
-#define HINT_FOR_M_N_N				(1<<3)
-#define HINT_FOR_N_M_N				(1<<4)
-#define HINT_FOR_N_N_N				(1<<5)
-#define HINT_FOR_N_N					(1<<6)
-#define HINT_SKIP_OP					(1<<7)
-#define HINT_MINI_VM					(1<<8)
-#define HINT_USE_LONG					(1<<9)
-#define HINT_UP								(1<<10)
-#define HINT_DOWN							(1<<11)
-#define HINT_NO_SUB						(1<<12)
+#define HINT_NOT				(1<<2)
+#define HINT_FOR_CONST			(1<<3)
+#define HINT_SKIP_OP			(1<<4)
+#define HINT_MINI_VM			(1<<5)
+#define HINT_NO_SUB				(1<<6)
 
 typedef enum {
 	VAR_T_VOID = 0,
@@ -145,19 +139,11 @@ extern int vm_OP_RETURN(lua_State *L, int a, int b);
 extern int vm_OP_TAILCALL(lua_State *L, int a, int b);
 
 extern int vm_OP_FORLOOP(lua_State *L, int a, int sbx);
-extern int vm_OP_FORLOOP_N_N(lua_State *L, int a, int sbx, lua_Number limit, lua_Number step);
-extern int vm_OP_FORLOOP_N_N_N(lua_State *L, int a, int sbx, lua_Number idx, lua_Number limit, lua_Number step);
-extern int vm_OP_FORLOOP_up(lua_State *L, int a, int sbx, lua_Number idx, lua_Number limit);
-extern int vm_OP_FORLOOP_down(lua_State *L, int a, int sbx, lua_Number idx, lua_Number limit);
-extern int vm_OP_FORLOOP_long_up(lua_State *L, int a, int sbx, lua_Long idx, lua_Long limit);
-extern int vm_OP_FORLOOP_long_down(lua_State *L, int a, int sbx, lua_Long idx, lua_Long limit);
+extern int vm_OP_FORLOOP_CONST(lua_State *L, int a, int sbx, lua_Number limit, lua_Number step);
 
-extern void vm_OP_FORPREP_slow(lua_State *L, int a, int sbx);
 extern void vm_OP_FORPREP(lua_State *L, int a, int sbx);
-extern void vm_OP_FORPREP_no_sub(lua_State *L, int a, int sbx);
-extern void vm_OP_FORPREP_M_N_N(lua_State *L, int a, int sbx, lua_Number limit, lua_Number step);
-extern void vm_OP_FORPREP_N_M_N(lua_State *L, int a, int sbx, lua_Number init, lua_Number step);
-extern void vm_OP_FORPREP_N_N_N(lua_State *L, int a, int sbx, lua_Number init, lua_Number step);
+extern void vm_OP_FORPREP_CONST(lua_State *L, int a, int sbx, lua_Number step);
+extern void vm_OP_FORPREP_slow(lua_State *L, int a, int sbx);
 
 extern int vm_OP_TFORLOOP(lua_State *L, int a, int c);
 

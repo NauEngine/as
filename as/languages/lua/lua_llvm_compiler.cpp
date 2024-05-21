@@ -138,43 +138,92 @@ std::string LuaLLVMCompiler::generateFunctionName(Proto *p)
 	return name;
 }
 
+llvm::Constant* LuaLLVMCompiler::findConstantInCodeAbove(llvm::LLVMContext& context, BuildContext& bcontext, int fromInstruction, int reg)
+{
+    bool no_jmp_end_point = true;
+
+    for (int i = 1; (fromInstruction - i) >= 0 && no_jmp_end_point; ++i)
+    {
+        const int instructionSlot = fromInstruction - i;
+        const Instruction insruction = bcontext.code[instructionSlot];
+        const int opcode = GET_OPCODE(insruction);
+
+        const int RA = GETARG_A(insruction);
+
+        // check for jmp end-point.
+        no_jmp_end_point = !(need_op_block[instructionSlot]);
+
+        if (RA != reg)
+        {
+            continue;
+        }
+
+        if (opcode == OP_LOADK)
+        {
+            const TValue* luaConst = bcontext.k + GETARG_Bx(insruction);
+            if (ttisnumber(luaConst))
+            {
+                const lua_Number number = nvalue(luaConst);
+                return llvm::ConstantFP::get(context, llvm::APFloat(number));
+            }
+        }
+        else if (opcode == OP_MOVE)
+        {
+            const int RB = GETARG_B(insruction);
+            return findConstantInCodeAbove(context, bcontext, instructionSlot, RB);
+        }
+    }
+
+    return nullptr;
+}
+
+
 void LuaLLVMCompiler::findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRBuilder<>& builder, BuildContext& bcontext)
 {
 	int mini_op_repeat=0;
 
-	for(int i = 0; i < bcontext.code_len; ++i)
+	for (int i = 0; i < bcontext.code_len; ++i)
 	{
-		Instruction op_intr = bcontext.code[i];
-		int opcode = GET_OPCODE(op_intr);
+		Instruction instruction = bcontext.code[i];
+		const int opcode = GET_OPCODE(instruction);
 		// combine simple ops into one function call.
-		if(is_mini_vm_op(opcode)) {
+
+	    if (is_mini_vm_op(opcode))
+	    {
 			mini_op_repeat++;
-		} else {
-			if(mini_op_repeat >= 3 && OptLevel > 1) {
+		}
+	    else
+	    {
+			if (mini_op_repeat >= 3 && OptLevel > 1)
+			{
 				op_hints[i - mini_op_repeat] |= HINT_MINI_VM;
 			}
+
 			mini_op_repeat = 0;
 		}
-		switch (opcode) {
+
+		switch (opcode)
+		{
 			case OP_LOADBOOL:
 				{
 					int branch = i + 1;
 					// check C operand if C!=0 then skip over the next op_block.
-					if(GETARG_C(op_intr) != 0)
+					if(GETARG_C(instruction) != 0)
 						++branch;
 					need_op_block[branch] = true;
 				}
 				break;
-			case OP_LOADK: {
-				// check if arg Bx is a number constant.
-				TValue *rb = bcontext.k + INDEXK(GETARG_Bx(op_intr));
-				if(ttisnumber(rb)) op_hints[i] |= HINT_Bx_NUM_CONSTANT;
+			case OP_LOADK:
+			    {
+			        // check if arg Bx is a number constant.
+			        TValue *rb = bcontext.k + INDEXK(GETARG_Bx(instruction));
+			        if(ttisnumber(rb)) op_hints[i] |= HINT_Bx_NUM_CONSTANT;
+			    }
 				break;
-			}
 			case OP_JMP:
 				{
 					// always branch to the offset stored in operand sBx
-					int branch = i + 1 + GETARG_sBx(op_intr);
+					int branch = i + 1 + GETARG_sBx(instruction);
 					need_op_block[branch] = true;
 				}
 				break;
@@ -189,11 +238,14 @@ void LuaLLVMCompiler::findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRB
 			case OP_LT:
 			case OP_LE:
 				// check if arg C is a number constant.
-				if(ISK(GETARG_C(op_intr))) {
-					TValue *rc = bcontext.k + INDEXK(GETARG_C(op_intr));
+				if(ISK(GETARG_C(instruction)))
+				{
+					TValue *rc = bcontext.k + INDEXK(GETARG_C(instruction));
 					if(ttisnumber(rc)) op_hints[i] |= HINT_C_NUM_CONSTANT;
 				}
-				if(GETARG_A(op_intr) == 1) {
+
+				if(GETARG_A(instruction) == 1)
+				{
 					op_hints[i] |= HINT_NOT;
 				}
 				// fall-through
@@ -201,9 +253,9 @@ void LuaLLVMCompiler::findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRB
 			case OP_TESTSET:
 			case OP_TFORLOOP:
 				{
-					int branch = ++i + 1;
-					op_intr = bcontext.code[i];
-					need_op_block[branch + GETARG_sBx(op_intr)] = true; /* inline JMP op. */
+					const int branch = ++i + 1;
+					instruction = bcontext.code[i];
+					need_op_block[branch + GETARG_sBx(instruction)] = true; /* inline JMP op. */
 					need_op_block[branch] = true;
 				}
 				break;
@@ -211,117 +263,41 @@ void LuaLLVMCompiler::findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRB
 				{
 					int branch = i + 1;
 					need_op_block[branch] = true;
-					branch += GETARG_sBx(op_intr);
+					branch += GETARG_sBx(instruction);
 					need_op_block[branch] = true;
 				}
 				break;
 			case OP_FORPREP:
 				{
-					int branch = i + 1 + GETARG_sBx(op_intr);
+					const int branch = i + 1 + GETARG_sBx(instruction);
 					need_op_block[branch] = true;
 					need_op_block[branch + 1] = true;
-					// test if init/plimit/pstep are number constants.
-					if (OptLevel > 1 && i >= 3) {
-						lua_Number nums[3];
-						bool found_val[3] = { false, false , false };
-						bool is_const_num[3] = { false, false, false };
-						bool all_longs=true;
-						int found=0;
-						auto vals = std::make_unique<OPValues>(4);
-						int forprep_ra = GETARG_A(op_intr);
-						bool no_jmp_end_point = true; // don't process ops after finding a jmp end point.
-						// find & load constants for init/plimit/pstep
-						for (int x = 1; x < 6 && found < 3 && no_jmp_end_point; ++x) {
-							const TValue *tmp;
-							Instruction op_intr2;
-							int ra;
 
-							if((i - x) < 0) break;
-							op_intr2 = bcontext.code[i - x];
-							// get 'a' register.
-							ra = GETARG_A(op_intr2);
-							ra -= forprep_ra;
-							// check for jmp end-point.
-							no_jmp_end_point = !(need_op_block[i - x]);
-							// check that the 'a' register is for one of the value we are interested in.
-							if(ra < 0 || ra > 2) continue;
-							// only process this opcode if we haven't seen this value before.
-							if(found_val[ra]) continue;
-							found_val[ra] = true;
-							found++;
-							if(GET_OPCODE(op_intr2) == OP_LOADK) {
-								tmp = bcontext.k + GETARG_Bx(op_intr2);
-								if(ttisnumber(tmp)) {
-									lua_Number num=nvalue(tmp);
-									nums[ra] = num;
-									// test if number is a whole number
-									all_longs &= (floor(num) == num);
-									vals->set(ra,llvm::ConstantFP::get(context, llvm::APFloat(num)));
-									is_const_num[ra] = true;
-									op_hints[i - x] |= HINT_SKIP_OP;
-									continue;
-								}
-							}
-							all_longs = false;
-						}
-						all_longs &= (found == 3);
-						// create for_idx OP_FORPREP will inialize it.
-						op_hints[branch] = HINT_FOR_N_N_N;
-						if(all_longs) {
-							vals->set(3, builder.CreateAlloca(llvm::Type::getInt64Ty(context), 0, "for_idx"));
-							op_hints[branch] |= HINT_USE_LONG;
-						} else {
-							vals->set(3, builder.CreateAlloca(llvm::Type::getDoubleTy(context), 0, "for_idx"));
-						}
-						// check if step, init, limit are constants
-						if(is_const_num[2]) {
-							// step is a constant
-							if(is_const_num[0]) {
-								// init & step are constants.
-								if(is_const_num[1]) {
-									// all are constants.
-									op_hints[i] = HINT_FOR_N_N_N;
-								} else {
-									// limit is variable.
-									op_hints[i] = HINT_FOR_N_M_N;
-								}
-								op_values[i] = std::make_unique<OPValues>(3);
-								op_values[i]->set(0, vals->get(0));
-								op_values[i]->set(2, vals->get(2));
-							} else if(is_const_num[1]) {
-								// init is variable, limit & step are constants.
-								op_hints[i] = HINT_FOR_M_N_N;
-								op_values[i] = std::make_unique<OPValues>(3);
-								op_values[i]->set(1, vals->get(1));
-								op_values[i]->set(2, vals->get(2));
-							}
-							// check the direct of step.
-							if(nums[2] > 0) {
-								op_hints[branch] |= HINT_UP;
-							} else {
-								op_hints[branch] |= HINT_DOWN;
-							}
-						}
-						if(op_hints[i] == HINT_NONE) {
-							// don't skip LOADK ops, since we are not inlining them.
-							for(int x=i-3; x < i; x++) {
-								if(op_hints[x] & HINT_SKIP_OP) op_hints[x] &= ~(HINT_SKIP_OP);
-							}
-						}
-						if(all_longs) {
-							for(int x = 0; x < 3; ++x) {
-								vals->set(x,llvm::ConstantInt::get(context, llvm::APInt(64,(lua_Long)nums[x])));
-							}
-						}
-						// make sure OP_FORPREP doesn't subtract 'step' from 'init'
-						op_values[branch] = std::move(vals);
-						op_hints[i] |= HINT_NO_SUB;
-					}
+			        // find three args of OP_FORPREP
+			        const int RA = GETARG_A(instruction);
+			        auto opVals = std::make_unique<OPValues>(4);
+			        bool allConstants = true;
+
+			        for (int r = 0; r < 3; ++r)
+			        {
+			            const auto llvmConst = findConstantInCodeAbove(context, bcontext, i, RA + r);
+			            opVals->set(r, llvmConst);
+			            allConstants &= (llvmConst != nullptr);
+			        }
+
+			        opVals->set(3, builder.CreateAlloca(llvm::Type::getDoubleTy(context), nullptr, "for_idx"));
+
+			        if (allConstants)
+			        {
+			            op_hints[branch] = HINT_FOR_CONST;
+			        }
+
+					op_values[branch] = std::move(opVals);
 				}
 				break;
 			case OP_SETLIST:
 				// if C == 0, then next code value is count value.
-				if(GETARG_C(op_intr) == 0) {
+				if(GETARG_C(instruction) == 0) {
 					i++;
 				}
 				break;
@@ -332,8 +308,8 @@ void LuaLLVMCompiler::findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRB
 			case OP_MOD:
 			case OP_POW:
 				// check if arg C is a number constant.
-				if(ISK(GETARG_C(op_intr))) {
-					TValue *rc = bcontext.k + INDEXK(GETARG_C(op_intr));
+				if(ISK(GETARG_C(instruction))) {
+					TValue *rc = bcontext.k + INDEXK(GETARG_C(instruction));
 					if(ttisnumber(rc)) op_hints[i] |= HINT_C_NUM_CONSTANT;
 				}
 				break;
@@ -365,12 +341,12 @@ void LuaLLVMCompiler::preCreateBasicBlocks(llvm::LLVMContext& context, llvm::Fun
 }
 
 // i - code instruction id
-std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& context, const vm_func_info* func_info, BuildContext& bcontext, int i)
+std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& context, const vm_func_info* func_info, BuildContext& bcontext, const int i)
 {
 	std::vector<llvm::Value*> args;
 
-	Instruction op_intr = bcontext.code[i];
-	int opcode = GET_OPCODE(op_intr);
+	const Instruction instruction = bcontext.code[i];
+	const int opcode = GET_OPCODE(instruction);
 
 	for (int x = 0; func_info->params[x] != VAR_T_VOID ; ++x)
 	{
@@ -379,22 +355,22 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 		switch(func_info->params[x])
 		{
 			case VAR_T_ARG_A:
-				val = llvm::ConstantInt::get(context, llvm::APInt(32,GETARG_A(op_intr)));
+				val = llvm::ConstantInt::get(context, llvm::APInt(32, GETARG_A(instruction)));
 				break;
 			case VAR_T_ARG_C:
-				val = llvm::ConstantInt::get(context, llvm::APInt(32,GETARG_C(op_intr)));
+				val = llvm::ConstantInt::get(context, llvm::APInt(32, GETARG_C(instruction)));
 				break;
 			case VAR_T_ARG_C_FB2INT:
-				val = llvm::ConstantInt::get(context, llvm::APInt(32,luaO_fb2int(GETARG_C(op_intr))));
+				val = llvm::ConstantInt::get(context, llvm::APInt(32, luaO_fb2int(GETARG_C(instruction))));
 				break;
 			case VAR_T_ARG_Bx_NUM_CONSTANT:
-				val = getProtoConstant(context, bcontext.k + INDEXK(GETARG_Bx(op_intr)));
+				val = getProtoConstant(context, bcontext.k + INDEXK(GETARG_Bx(instruction)));
 				break;
 			case VAR_T_ARG_C_NUM_CONSTANT:
-				val = getProtoConstant(context, bcontext.k + INDEXK(GETARG_C(op_intr)));
+				val = getProtoConstant(context, bcontext.k + INDEXK(GETARG_C(instruction)));
 				break;
 			case VAR_T_ARG_C_NEXT_INSTRUCTION: {
-				int c = GETARG_C(op_intr);
+				int c = GETARG_C(instruction);
 				// if C == 0, then next code value is used as ARG_C.
 				if (c == 0)
 				{
@@ -408,22 +384,22 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 				break;
 			}
 			case VAR_T_ARG_B:
-				val = llvm::ConstantInt::get(context, llvm::APInt(32,GETARG_B(op_intr)));
+				val = llvm::ConstantInt::get(context, llvm::APInt(32, GETARG_B(instruction)));
 				break;
 			case VAR_T_ARG_B_FB2INT:
-				val = llvm::ConstantInt::get(context, llvm::APInt(32, luaO_fb2int(GETARG_B(op_intr))));
+				val = llvm::ConstantInt::get(context, llvm::APInt(32, luaO_fb2int(GETARG_B(instruction))));
 				break;
 			case VAR_T_ARG_Bx:
-				val = llvm::ConstantInt::get(context, llvm::APInt(32,GETARG_Bx(op_intr)));
+				val = llvm::ConstantInt::get(context, llvm::APInt(32, GETARG_Bx(instruction)));
 				break;
 			case VAR_T_ARG_sBx:
-				val = llvm::ConstantInt::get(context, llvm::APInt(32,GETARG_sBx(op_intr)));
+				val = llvm::ConstantInt::get(context, llvm::APInt(32, GETARG_sBx(instruction)));
 				break;
 			case VAR_T_PC_OFFSET:
 				val = llvm::ConstantInt::get(context, llvm::APInt(32,i + 1 - bcontext.strip_ops));
 				break;
 			case VAR_T_INSTRUCTION:
-				val = llvm::ConstantInt::get(context, llvm::APInt(32,op_intr));
+				val = llvm::ConstantInt::get(context, llvm::APInt(32,instruction));
 				break;
 			case VAR_T_NEXT_INSTRUCTION:
 				val = llvm::ConstantInt::get(context, llvm::APInt(32, bcontext.code[i+1]));
@@ -438,13 +414,13 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 				val = bcontext.func_cl;
 				break;
 			case VAR_T_OP_VALUE_0:
-				if(op_values[i] != NULL) val = op_values[i]->get(0);
+				if(op_values[i]) val = op_values[i]->get(0);
 				break;
 			case VAR_T_OP_VALUE_1:
-				if(op_values[i] != NULL) val = op_values[i]->get(1);
+				if(op_values[i]) val = op_values[i]->get(1);
 				break;
 			case VAR_T_OP_VALUE_2:
-				if(op_values[i] != NULL) val = op_values[i]->get(2);
+				if(op_values[i]) val = op_values[i]->get(2);
 				break;
 			default:
 				fprintf(stderr, "Error: not implemented!\n");
@@ -454,11 +430,13 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 				exit(1);
 		}
 
-		if(val == NULL) {
+		if (val == nullptr)
+		{
 			fprintf(stderr, "Error: Missing parameter '%d' for this opcode(%d) function=%s!\n", x,
 							opcode, func_info->name);
 			exit(1);
 		}
+
 		args.push_back(val);
 	}
 
@@ -562,9 +540,12 @@ void LuaLLVMCompiler::сompileSingleProto(
 	preCreateBasicBlocks(context, func, bcontext);
 
 	// branch "entry" to first block.
-	if(need_op_block[0]) {
+	if (need_op_block[0])
+	{
 		builder.CreateBr(op_blocks[0]);
-	} else {
+	}
+    else
+    {
 		current_block = entry_block;
 	}
 
@@ -573,7 +554,8 @@ void LuaLLVMCompiler::сompileSingleProto(
 	{
 		if (op_blocks[i] != nullptr)
 		{
-			if(current_block) {
+			if (current_block)
+			{
 				// add branch to new block.
 				builder.CreateBr(op_blocks[i]);
 			}
@@ -582,14 +564,15 @@ void LuaLLVMCompiler::сompileSingleProto(
 		}
 
 		// skip dead unreachable code.
-		if (current_block == nullptr) {
+		if (current_block == nullptr)
+		{
 			if (m_stripCode) bcontext.strip_ops++;
 			continue;
 		}
 
 		int branch = i + 1;
-		Instruction op_intr = bcontext.code[i];
-		int opcode = GET_OPCODE(op_intr);
+		Instruction instruction = bcontext.code[i];
+		int opcode = GET_OPCODE(instruction);
 		// combined multiple simple ops into one call.
 		if(op_hints[i] & HINT_MINI_VM) {
 			int op_count = 1;
@@ -644,9 +627,10 @@ void LuaLLVMCompiler::сompileSingleProto(
 			if (bcontext.strip_ops > 0 && bcontext.strip_ops < (i+1))
 			{
 				// move opcodes we want to keep to new position.
-				bcontext.code[(i+1) - bcontext.strip_ops] = op_intr;
+				bcontext.code[(i+1) - bcontext.strip_ops] = instruction;
 			}
 		}
+
 		// setup arguments for opcode function.
 		auto func_info = opfunc->info;
 		if (func_info == nullptr)
@@ -655,63 +639,10 @@ void LuaLLVMCompiler::сompileSingleProto(
 			return;
 		}
 
-		// special handling of OP_FORLOOP
-		if (opcode == OP_FORLOOP)
-		{
-			llvm::BasicBlock *loop_test;
-			llvm::BasicBlock *prep_block;
-			llvm::BasicBlock *incr_block;
-			llvm::Value *init,*step,*idx_var,*cur_idx,*next_idx;
-			llvm::PHINode *PN;
-
-			OPValues* vals = op_values[i].get();
-			if (vals != nullptr)
-			{
-				// get init value from forprep block
-				init = vals->get(0);
-				// get for loop 'idx' variable.
-				step = vals->get(2);
-				idx_var = vals->get(3);
-
-				assert(idx_var != nullptr);
-				incr_block = current_block;
-				// init->getType() is not an error here. Since we need same type as init for phi node
-				cur_idx = builder.CreateLoad(init->getType(), idx_var);
-				if(op_hints[i] & HINT_USE_LONG) {
-					next_idx = builder.CreateAdd(cur_idx, step, "next_idx");
-				} else {
-					next_idx = builder.CreateFAdd(cur_idx, step, "next_idx");
-				}
-				builder.CreateStore(next_idx, idx_var); // store 'for_init' value.
-				// create extra BasicBlock for vm_OP_FORLOOP_*
-        char name_buf[128];
-				snprintf(name_buf,128,"op_block_%s_%d_loop_test",luaP_opnames[opcode],i);
-				loop_test = llvm::BasicBlock::Create(context, name_buf, func);
-				// create unconditional jmp from current block to loop test block
-				builder.CreateBr(loop_test);
-				// create unconditional jmp from forprep block to loop test block
-				prep_block = op_blocks[branch + GETARG_sBx(op_intr) - 1];
-				builder.SetInsertPoint(prep_block);
-				builder.CreateBr(loop_test);
-				// set current_block to loop_test block
-				current_block = loop_test;
-				builder.SetInsertPoint(current_block);
-				// Emit merge block
-				if(op_hints[i] & HINT_USE_LONG) {
-					PN = builder.CreatePHI(lua_ir->int64_t, 2, "idx");
-				} else {
-					PN = builder.CreatePHI(lua_ir->double_t, 2, "idx");
-				}
-				PN->addIncoming(init, prep_block);
-				PN->addIncoming(next_idx, incr_block);
-				vals->set(0, PN);
-			}
-		}
-
 		auto args = getOpCallArgs(context, func_info, bcontext, i);
 		llvm::CallInst* call = nullptr;
 		// create call to opcode function.
-		if(func_info->ret_type != VAR_T_VOID)
+		if (func_info->ret_type != VAR_T_VOID)
 		{
 			call = builder.CreateCall(opfunc->func, args, "retval");
 		}
@@ -724,7 +655,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 		switch (opcode) {
 			case OP_LOADBOOL:
 				// check C operand if C!=0 then skip over the next op_block.
-				if(GETARG_C(op_intr) != 0) branch += 1;
+				if(GETARG_C(instruction) != 0) branch += 1;
 				else branch = BRANCH_NONE;
 				break;
 			case OP_LOADK:
@@ -773,7 +704,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 				break;
 			case OP_JMP:
 				// always branch to the offset stored in operand sBx
-				branch += GETARG_sBx(op_intr);
+				branch += GETARG_sBx(instruction);
 				// call vm_OP_JMP just in case luai_threadyield is defined.
 				break;
 			case OP_EQ:
@@ -795,43 +726,17 @@ void LuaLLVMCompiler::сompileSingleProto(
 						bcontext.code[(i+1) - bcontext.strip_ops] = bcontext.code[i];
 					}
 				}
-				op_intr = bcontext.code[i];
-				branch += GETARG_sBx(op_intr);
+				instruction = bcontext.code[i];
+				branch += GETARG_sBx(instruction);
 				true_block = op_blocks[branch];
 				branch = BRANCH_COND; // do conditional branch
 				break;
 			case OP_FORLOOP: {
-				llvm::Function* set_func = lua_ir->vm_set_number_f;
-				llvm::CallInst* call2;
-
-				brcond = call;
-				brcond = builder.CreateICmpNE(brcond, llvm::ConstantInt::get(context, llvm::APInt(32, 0)), "brcond");
-				true_block = op_blocks[branch + GETARG_sBx(op_intr)];
+				brcond = builder.CreateICmpNE(call, llvm::ConstantInt::get(context, llvm::APInt(32, 0)), "brcond");
+				true_block = op_blocks[branch + GETARG_sBx(instruction)];
 				false_block = op_blocks[branch];
 				branch = BRANCH_COND; // do conditional branch
 
-				// update external index if needed.
-				OPValues* vals = op_values[i].get();
-
-				if (vals != nullptr)
-				{
-					llvm::BasicBlock *idx_block;
-					if(op_hints[i] & HINT_USE_LONG) {
-						set_func = lua_ir->vm_set_long_f;
-					}
-					// create extra BasicBlock
-					char name_buf[128];
-					snprintf(name_buf,128,"op_block_%s_%d_set_for_idx",luaP_opnames[opcode],i);
-					idx_block = llvm::BasicBlock::Create(context, name_buf, func);
-					builder.SetInsertPoint(idx_block);
-					// copy idx value to Lua-stack.
-					call2=builder.CreateCall(set_func, {bcontext.func_L,
-					llvm::ConstantInt::get(context, llvm::APInt(32,(GETARG_A(op_intr) + 3))), vals->get(0)});
-					// create jmp to true_block
-					builder.CreateBr(true_block);
-					true_block = idx_block;
-					builder.SetInsertPoint(current_block);
-				}
 				break;
 			}
 			case OP_FORPREP: {
@@ -840,54 +745,18 @@ void LuaLLVMCompiler::сompileSingleProto(
 				llvm::CallInst *call2;
 
 				op_blocks[i] = current_block;
-				branch += GETARG_sBx(op_intr);
-				OPValues* vals = op_values[branch].get();
-				// if no saved value, then use slow method.
-				if(vals == NULL) break;
-				if(op_hints[branch] & HINT_USE_LONG)
-				{
-					get_func = lua_ir->vm_get_long_f;
-				}
-				// get non-constant init from Lua stack.
-				if (vals->get(0) == nullptr)
-				{
-					call2 = builder.CreateCall(get_func, {bcontext.func_L,
-    				llvm::ConstantInt::get(context, llvm::APInt(32,(GETARG_A(op_intr) + 0)))}, "for_init");
-					vals->set(0, call2);
-				}
-				init = vals->get(0);
-				// get non-constant limit from Lua stack.
-				if (vals->get(1) == nullptr)
-				{
-					call2 = builder.CreateCall(get_func, {bcontext.func_L,
-					llvm::ConstantInt::get(context, llvm::APInt(32,(GETARG_A(op_intr) + 1)))}, "for_limit");
-					vals->set(1, call2);
-				}
-				// get non-constant step from Lua stack.
-				if (vals->get(2) == nullptr)
-				{
-					call2 = builder.CreateCall(get_func, {bcontext.func_L,
-					llvm::ConstantInt::get(context, llvm::APInt(32,(GETARG_A(op_intr) + 2)))}, "for_step");
-					vals->set(2, call2);
-				}
-				// get for loop 'idx' variable.
-				assert(vals->get(3) != nullptr);
-				idx_var = vals->get(3);
-				builder.CreateStore(init, idx_var); // store 'for_init' value.
-				vals->set(0, init);
-				current_block = nullptr; // have terminator
-				branch = BRANCH_NONE;
+				branch += GETARG_sBx(instruction);
 				break;
 			}
 			case OP_SETLIST:
 				// if C == 0, then next code value is used as ARG_C.
-				if(GETARG_C(op_intr) == 0) {
+				if(GETARG_C(instruction) == 0) {
 					i++;
 				}
 				branch = BRANCH_NONE;
 				break;
 			case OP_CLOSURE: {
-				Proto *p2 = p->p[GETARG_Bx(op_intr)];
+				Proto *p2 = p->p[GETARG_Bx(instruction)];
 				int nups = p2->nups;
 				if(m_stripCode && bcontext.strip_ops > 0) {
 					while(nups > 0) {

@@ -25,7 +25,7 @@ public:
   const int top;
 };
 
-void printLuaFunction(const Proto* f, int full);
+void printLuaFunction(const Proto* f, bool full);
 
 } //namespace as
 

@@ -158,10 +158,7 @@ llvm::Type* LuaIR::getVarType(llvm::LLVMContext& context, val_t type, hint_t hin
         case VAR_T_OP_VALUE_0:
         case VAR_T_OP_VALUE_1:
         case VAR_T_OP_VALUE_2:
-          if(hints & HINT_USE_LONG) {
-              return int64_t;
-          }
-        return double_t;
+            return double_t;
         default:
             fprintf(stderr, "Error: missing var_type=%d\n", type);
         exit(1);

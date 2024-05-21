@@ -316,139 +316,61 @@ int vm_OP_TESTSET(lua_State *L, int a, int b, int c) {
  * if one ore more of then are not numbers.
  *
  */
-void vm_OP_FORPREP(lua_State *L, int a, int sbx) {
-  TValue *ra = L->base + a;
-  const TValue *init = ra;
-  const TValue *plimit = ra+1;
-  const TValue *pstep = ra+2;
-  int valid=1;
-  valid &= ttisnumber(init);
-  valid &= ttisnumber(plimit);
-  valid &= ttisnumber(pstep);
-  if(!valid) {
-    vm_OP_FORPREP_slow(L,a,sbx);
-  }
-  // subtract pstep from init.
-  setnvalue(ra, luai_numsub(nvalue(init), nvalue(pstep)));
-  dojump(sbx);
+void vm_OP_FORPREP(lua_State *L, int a, int sbx)
+{
+    TValue *ra = L->base + a;
+    const TValue *init = ra;
+    const TValue *plimit = ra+1;
+    const TValue *pstep = ra+2;
+    int valid = 1;
+    valid &= ttisnumber(init);
+    valid &= ttisnumber(plimit);
+    valid &= ttisnumber(pstep);
+    if (!valid)
+    {
+        vm_OP_FORPREP_slow(L,a,sbx);
+    }
+    // subtract pstep from init.
+    setnvalue(ra, luai_numsub(nvalue(init), nvalue(pstep)));
+    dojump(sbx);
 }
 
-void vm_OP_FORPREP_no_sub(lua_State *L, int a, int sbx) {
-  TValue *ra = L->base + a;
-  const TValue *init = ra;
-  const TValue *plimit = ra+1;
-  const TValue *pstep = ra+2;
-  int valid=1;
-  valid &= ttisnumber(init);
-  valid &= ttisnumber(plimit);
-  valid &= ttisnumber(pstep);
-  if(!valid) {
-    vm_OP_FORPREP_slow(L,a,sbx);
-  }
-  dojump(sbx);
+void vm_OP_FORPREP_CONST(lua_State *L, int a, int sbx, lua_Number step)
+{
+    TValue *ra = L->base + a;
+    setnvalue(ra, luai_numsub(nvalue(ra), step));
+    dojump(sbx);
 }
 
-/*
- * limit & step are number constants.  Only test if init is a number.
- */
-void vm_OP_FORPREP_M_N_N(lua_State *L, int a, int sbx, lua_Number limit, lua_Number step) {
+int vm_OP_FORLOOP(lua_State *L, int a, int sbx)
+{
   TValue *ra = L->base + a;
-  const TValue *init = ra;
-  if(!ttisnumber(init)) {
-    setnvalue(ra+1, limit);
-    setnvalue(ra+2, step);
-    vm_OP_FORPREP_slow(L,a,sbx);
-  }
-  dojump(sbx);
-}
-
-/*
- * init & pstep are number constants.  Only test if plimit is a number.
- */
-void vm_OP_FORPREP_N_M_N(lua_State *L, int a, int sbx, lua_Number init, lua_Number step) {
-  TValue *ra = L->base + a;
-  const TValue *plimit = ra+1;
-  if(!ttisnumber(plimit)) {
-    setnvalue(ra, init);
-    setnvalue(ra+2, step);
-    vm_OP_FORPREP_slow(L,a,sbx);
-  }
-  dojump(sbx);
-}
-
-/*
- * init, plimit & pstep are number constants.
- */
-void vm_OP_FORPREP_N_N_N(lua_State *L, int a, int sbx, lua_Number init, lua_Number step) {
-  dojump(sbx);
-}
-
-int vm_OP_FORLOOP(lua_State *L, int a, int sbx) {
-  TValue *ra = L->base + a;
-  lua_Number step = nvalue(ra+2);
+  lua_Number step = nvalue(ra + 2);
   lua_Number idx = luai_numadd(nvalue(ra), step); /* increment index */
-  lua_Number limit = nvalue(ra+1);
+  lua_Number limit = nvalue(ra + 1);
   if (luai_numlt(0, step) ? luai_numle(idx, limit)
                           : luai_numle(limit, idx)) {
     dojump(sbx);  /* jump back */
     setnvalue(ra, idx);  /* update internal index... */
-    setnvalue(ra+3, idx);  /* ...and external index */
+    setnvalue(ra + 3, idx);  /* ...and external index */
     return 1;
   }
   return 0;
 }
 
-int vm_OP_FORLOOP_N_N(lua_State *L, int a, int sbx, lua_Number limit, lua_Number step) {
-  TValue *ra = L->base + a;
-  lua_Number idx = luai_numadd(nvalue(ra), step); /* increment index */
-  if (luai_numlt(0, step) ? luai_numle(idx, limit)
-                          : luai_numle(limit, idx)) {
-    dojump(sbx);  /* jump back */
-    setnvalue(ra, idx);  /* update internal index... */
-    return 1;
-  }
-  return 0;
-}
+int vm_OP_FORLOOP_CONST(lua_State *L, int a, int sbx, lua_Number limit, lua_Number step) {
+    TValue *ra = L->base + a;
+    lua_Number idx = luai_numadd(nvalue(ra), step); /* increment index */
 
-int vm_OP_FORLOOP_N_N_N(lua_State *L, int a, int sbx, lua_Number idx, lua_Number limit, lua_Number step) {
-  if (luai_numlt(0, step) ? luai_numle(idx, limit)
-                          : luai_numle(limit, idx)) {
-    dojump(sbx);  /* jump back */
-    return 1;
-  }
-  return 0;
-}
+    if ( luai_numlt(0, step) ? luai_numle(idx, limit) : luai_numle(limit, idx) )
+    {
+        dojump(sbx);  /* jump back */
+        setnvalue(ra, idx);  /* update internal index... */
+        setnvalue(ra + 3, idx);  /* ...and external index */
+        return 1;
+    }
 
-int vm_OP_FORLOOP_up(lua_State *L, int a, int sbx, lua_Number idx, lua_Number limit) {
-  if (luai_numle(idx, limit)) {
-    dojump(sbx);  /* jump back */
-    return 1;
-  }
-  return 0;
-}
-
-int vm_OP_FORLOOP_down(lua_State *L, int a, int sbx, lua_Number idx, lua_Number limit) {
-  if (luai_numle(limit, idx)) {
-    dojump(sbx);  /* jump back */
-    return 1;
-  }
-  return 0;
-}
-
-int vm_OP_FORLOOP_long_up(lua_State *L, int a, int sbx, lua_Long idx, lua_Long limit) {
-  if (luai_numle(idx, limit)) {
-    dojump(sbx);  /* jump back */
-    return 1;
-  }
-  return 0;
-}
-
-int vm_OP_FORLOOP_long_down(lua_State *L, int a, int sbx, lua_Long idx, lua_Long limit) {
-  if (luai_numle(limit, idx)) {
-    dojump(sbx);  /* jump back */
-    return 1;
-  }
-  return 0;
+    return 0;
 }
 
 void vm_OP_CLOSE(lua_State *L, int a) {

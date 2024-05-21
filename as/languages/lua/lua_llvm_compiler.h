@@ -97,6 +97,7 @@ private:
 
 	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> function_aliases;
 
+    llvm::Constant* findConstantInCodeAbove(llvm::LLVMContext& context, BuildContext& bcontext, int fromInstruction, int reg);
 	void prepareOpcodeData(int code_len);
     llvm::Value* getProtoConstant(llvm::LLVMContext& context, TValue* constant);
     std::string generateFunctionName(Proto* p);

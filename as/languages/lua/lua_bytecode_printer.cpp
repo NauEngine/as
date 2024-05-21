@@ -151,7 +151,7 @@ static void printCode(const Proto* f)
             case OP_JMP:
             case OP_FORLOOP:
             case OP_FORPREP:
-             printf("\t; to %d", sbx+pc+2);
+             printf("\t; to %d", sbx + pc + 2);
             break;
             case OP_CLOSURE:
                 printf("\t; %p", VOID(f->p[bx]));
@@ -226,7 +226,7 @@ static void printUpvalues(const Proto* f)
     }
 }
 
-void printLuaFunction(const Proto* f, int full)
+void printLuaFunction(const Proto* f, bool full)
 {
     printHeader(f);
     printCode(f);
