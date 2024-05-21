@@ -70,6 +70,19 @@ namespace as
     return language_script;
   }
 
+  std::shared_ptr<ScriptInterface> Core::getInterface(const std::string& name, const std::string& source_code)
+  {
+    return m_cpp_parser->getInterface(name, source_code);
+  }
+
+  std::shared_ptr<ScriptModule<EmptyInterface>> Core::newScriptModule(const std::string& source_code, const std::string& filename, const std::string& language_name)
+  {
+      auto language_script = loadScript(filename, language_name);
+      auto interface = getInterface("TestScript", source_code);
+      return std::make_shared<ScriptModule<EmptyInterface>>(filename, language_script, interface, m_jit, m_ts_context);
+  }
+
+
   void Core::registerInstance(
     void* instance,
     const std::string& instance_name,

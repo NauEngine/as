@@ -25,6 +25,9 @@ namespace as
   struct ILanguageScript;
   template<typename Interface> class ScriptModule;
   class CPPParser;
+  struct ScriptInterface;
+
+  struct EmptyInterface {};
 
   class Core
   {
@@ -33,11 +36,14 @@ namespace as
     ~Core();
 
     void registerLanguage(const std::string& language_name, std::shared_ptr<ILanguage> language);
+
     template<typename Interface> std::shared_ptr<ScriptModule<Interface>> newScriptModule(const std::string& filename, const std::string& language_name = "")
     {
       auto language_script = loadScript(filename, language_name);
-      return std::make_shared<ScriptModule<Interface>>(filename, language_script, m_cpp_parser, m_jit, m_ts_context);
+      return std::make_shared<ScriptModule<Interface>>(filename, language_script, getInterface<Interface>(), m_jit, m_ts_context);
     }
+
+    std::shared_ptr<ScriptModule<EmptyInterface>> newScriptModule(const std::string& interface, const std::string& filename, const std::string& language_name = "");
 
     template<typename Interface> void registerInstance(Interface* instance, const std::string& instance_name)
     {
@@ -45,6 +51,15 @@ namespace as
       const char* type_name = getTypeName<Interface>();
       registerInstance(instance, instance_name, type_name, source_code);
     }
+
+    template<typename Interface> std::shared_ptr<ScriptInterface> getInterface()
+    {
+      const char* source_code = getSourceCode<Interface>();
+      const char* type_name = getTypeName<Interface>();
+      return getInterface(type_name, source_code);
+    }
+
+    std::shared_ptr<ScriptInterface> getInterface(const std::string& name, const std::string& source_code);
 
   private:
     std::unordered_map<std::string, std::shared_ptr<ILanguage>> m_languages;
