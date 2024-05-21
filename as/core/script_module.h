@@ -19,68 +19,48 @@ namespace llvm
 namespace as
 {
 
-struct ILanguageScript;
-struct ILanguage;
-
-struct ScriptInterface;
-
-class ScriptModuleImpl
+class ScriptModuleVTable
 {
 public:
-  explicit ScriptModuleImpl(
-    const std::string& filename,
-    std::shared_ptr<ILanguageScript> language_script,
-    std::shared_ptr<ScriptInterface> interface,
+  explicit ScriptModuleVTable(
+    const std::string& safe_name,
+    std::shared_ptr<ScriptModuleCompile> module,
     std::shared_ptr<llvm::orc::LLJIT> jit,
     llvm::orc::ThreadSafeContext ts_context);
 
   void* newInstance();
-  void dump(llvm::raw_fd_ostream& stream);
 
 private:
-  std::string m_safe_name;
-  std::shared_ptr<ILanguageScript> m_language_script;
-  std::shared_ptr<ScriptInterface> m_interface;
+  std::shared_ptr<ScriptModuleCompile> m_module;
+  llvm::orc::ExecutorAddr m_vtable;
 
-  std::shared_ptr<llvm::orc::LLJIT> m_jit;
-  llvm::orc::ThreadSafeContext m_ts_context;
-
-  std::unique_ptr<llvm::Module> m_module;
-  std::string m_vtable_name;
-
-  llvm::orc::ExecutorAddr getVTableAddr();
-  void compile();
+  llvm::orc::ExecutorAddr getVTableAddr(const std::string& safe_name,
+      std::unique_ptr<llvm::Module> module,
+      std::shared_ptr<llvm::orc::LLJIT> jit,
+      llvm::orc::ThreadSafeContext ts_context);
 };
 
 template<typename Interface> class ScriptModule
 {
 public:
-  explicit ScriptModule(
-    const std::string& filename,
-    std::shared_ptr<ILanguageScript> language_script,
-    std::shared_ptr<ScriptInterface> interface,
+  explicit ScriptModule(const std::string& safe_name,
+    std::shared_ptr<ScriptModuleCompile> module,
     std::shared_ptr<llvm::orc::LLJIT> jit,
     llvm::orc::ThreadSafeContext ts_context):
 
-    impl(filename,
-      std::move(language_script),
-      std::move(interface),
+    m_vtable(safe_name,
+      std::move(module),
       std::move(jit),
       std::move(ts_context))
   {}
 
   Interface* newInstance()
   {
-    return static_cast<Interface*>(impl.newInstance());
-  }
-
-  void dump(llvm::raw_fd_ostream& stream)
-  {
-      impl.dump(stream);
+    return static_cast<Interface*>(m_vtable.newInstance());
   }
 
 private:
-  ScriptModuleImpl impl;
+  ScriptModuleVTable m_vtable;
 };
 
 } // as

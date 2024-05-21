@@ -12,6 +12,7 @@
 #include "script_module.h"
 
 #include "cpp_interface_parser.h"
+#include "script_module_compile.h"
 
 
 namespace as
@@ -23,86 +24,36 @@ struct ScriptObject
     explicit ScriptObject(void* vtable): vtable(vtable) { }
 };
 
-ScriptModuleImpl::ScriptModuleImpl(
-    const std::string& filename,
-    std::shared_ptr<ILanguageScript> language_script,
-    std::shared_ptr<ScriptInterface> interface,
+ScriptModuleVTable::ScriptModuleVTable(const std::string& safe_name,
+    std::shared_ptr<ScriptModuleCompile> module,
     std::shared_ptr<llvm::orc::LLJIT> jit,
-    llvm::orc::ThreadSafeContext ts_context) :
-    m_safe_name(ir::safe_name(filename)),
-    m_language_script(std::move(language_script)),
-    m_interface(interface),
-    m_jit(std::move(jit)),
-    m_ts_context(std::move(ts_context))
+    llvm::orc::ThreadSafeContext ts_context):
+    m_module(module)
 {
-    compile();
+    auto llvm_module = m_module->getModule(); // compile(safe_name, interface, ts_context);
+    m_vtable = getVTableAddr(safe_name, std::move(llvm_module), jit, ts_context);
 }
 
-void* ScriptModuleImpl::newInstance()
+void* ScriptModuleVTable::newInstance()
 {
-    return new ScriptObject(getVTableAddr().toPtr<void*>());
+    return new ScriptObject(m_vtable.toPtr<void*>());
 }
 
-void ScriptModuleImpl::compile()
+llvm::orc::ExecutorAddr ScriptModuleVTable::getVTableAddr(const std::string& safe_name,
+    std::unique_ptr<llvm::Module> module,
+    std::shared_ptr<llvm::orc::LLJIT> jit,
+    llvm::orc::ThreadSafeContext ts_context)
 {
-    auto module_name = ir::interface_module_name(m_safe_name, m_interface->name);
-    auto vtable_name = ir::interface_vtable_name(m_safe_name, m_interface->name);
+    auto vtable_name = safe_name; //ir::interface_vtable_name(m_safe_name, m_interface->name);
 
-    auto& context = *m_ts_context.getContext();
+    auto& context = *ts_context.getContext();
 
-    m_module = std::make_unique<llvm::Module>(module_name, context);
+    m_module->getScript()->executeModule(jit, context, module.get());
 
-    m_language_script->prepareModule(context, m_module.get());
+    llvm::errs() << "\nINTERFACE MODULE: \n" << *module << "\n";
+    llvm::cantFail(jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(module), ts_context)));
 
-    auto num_methods = m_interface->methodNames.size();
-    std::vector<llvm::Constant*> vtableMethods(num_methods);
-
-    llvm::PointerType* opaque_ptr_t = llvm::PointerType::get(context, 0);
-    llvm::Constant* opaque_null_ptr = llvm::ConstantPointerNull::get(opaque_ptr_t);
-
-    for (int i = 0; i < m_interface->methodNames.size(); ++i)
-    {
-        if (auto funcType = m_interface->methodTypes[i])
-        {
-            auto funcName = m_interface->methodNames[i];
-            llvm::Function* method = m_language_script->buildFunction(funcName, funcType, context, m_module.get());
-            vtableMethods[i] = method;
-        }
-        else
-        {
-            vtableMethods[i] = opaque_null_ptr;
-        }
-    }
-
-    // Create a global vtable
-    new llvm::GlobalVariable(*m_module, m_interface->vtable_t, true, llvm::GlobalValue::ExternalLinkage,
-        llvm::ConstantStruct::get(m_interface->vtable_t, vtableMethods),
-        vtable_name);
-}
-
-llvm::orc::ExecutorAddr ScriptModuleImpl::getVTableAddr()
-{
-    if (!m_vtable_name.empty())
-    {
-        return llvm::cantFail(m_jit->lookup(m_vtable_name));
-    }
-
-    auto vtable_name = ir::interface_vtable_name(m_safe_name, m_interface->name);
-
-    auto& context = *m_ts_context.getContext();
-    m_vtable_name = std::move(vtable_name);
-
-    m_language_script->executeModule(m_jit, context, m_module.get());
-
-    llvm::errs() << "\nINTERFACE MODULE: \n" << *m_module << "\n";
-    llvm::cantFail(m_jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(m_module), m_ts_context)));
-
-    return llvm::cantFail(m_jit->lookup(m_vtable_name));
-}
-
-void ScriptModuleImpl::dump(llvm::raw_fd_ostream& stream)
-{
-    stream << *m_module;
+    return llvm::cantFail(jit->lookup(safe_name));
 }
 
 }

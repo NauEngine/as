@@ -17,6 +17,10 @@ add_library(AScript STATIC
     core/cpp_interface_parser.h
     core/cpp_interface.h
     core/errors.h
+    core/core_compile.cpp
+    core/core_compile.h
+    core/script_module_compile.cpp
+    core/script_module_compile.h
 )
 
 target_include_directories(AScript PUBLIC "${CMAKE_SOURCE_DIR}")
