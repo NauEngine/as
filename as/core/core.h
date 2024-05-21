@@ -11,7 +11,9 @@
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 
 #include "as.h"
+#include "core_compile.h"
 #include "cpp_interface.h"
+#include "ir.h"
 
 
 namespace llvm::orc
@@ -27,23 +29,21 @@ namespace as
   class CPPParser;
   struct ScriptInterface;
 
-  struct EmptyInterface {};
-
   class Core
   {
   public:
     Core();
     ~Core();
 
-    void registerLanguage(const std::string& language_name, std::shared_ptr<ILanguage> language);
+    void registerLanguage(const std::string& language_name, const std::shared_ptr<ILanguage>& language);
 
-    template<typename Interface> std::shared_ptr<ScriptModule<Interface>> newScriptModule(const std::string& filename, const std::string& language_name = "")
+    template<typename Interface>
+    std::shared_ptr<ScriptModule<Interface>> newScriptModule(const std::string& filename, const std::string& language_name = "")
     {
-      auto language_script = loadScript(filename, language_name);
-      return std::make_shared<ScriptModule<Interface>>(filename, language_script, getInterface<Interface>(), m_jit, m_ts_context);
+      auto module = m_compile.newScriptModule(getInterface<Interface>(), filename, language_name);
+      return std::make_shared<ScriptModule<Interface>>(ir::safe_name(filename), module, m_jit, m_compile.getContext());
     }
 
-    std::shared_ptr<ScriptModule<EmptyInterface>> newScriptModule(const std::string& interface, const std::string& filename, const std::string& language_name = "");
 
     template<typename Interface> void registerInstance(Interface* instance, const std::string& instance_name)
     {
@@ -52,27 +52,29 @@ namespace as
       registerInstance(instance, instance_name, type_name, source_code);
     }
 
-    template<typename Interface> std::shared_ptr<ScriptInterface> getInterface()
+    template<typename Interface>
+    [[nodiscard]]
+    std::shared_ptr<ScriptInterface> getInterface() const
     {
       const char* source_code = getSourceCode<Interface>();
       const char* type_name = getTypeName<Interface>();
       return getInterface(type_name, source_code);
     }
 
-    std::shared_ptr<ScriptInterface> getInterface(const std::string& name, const std::string& source_code);
+    [[nodiscard]]
+    std::shared_ptr<ScriptInterface> getInterface(const std::string& name, const std::string& source_code) const
+    {
+      return m_compile.getInterface(name, source_code);
+    }
 
   private:
-    std::unordered_map<std::string, std::shared_ptr<ILanguage>> m_languages;
+    CoreCompile m_compile;
     std::shared_ptr<llvm::orc::LLJIT> m_jit;
-    llvm::orc::ThreadSafeContext m_ts_context;
-    std::shared_ptr<CPPParser> m_cpp_parser;
-
-    std::shared_ptr<ILanguageScript> loadScript(const std::string& filename, const std::string& language_name);
 
     void registerInstance(void* instance,
       const std::string& instance_name,
       const std::string& type_name,
-      const std::string& source_code);
+      const std::string& source_code) const;
   };
 
 } // as

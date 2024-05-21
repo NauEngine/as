@@ -6,8 +6,10 @@
 #include <fstream>
 
 #include "as/core/core.h"
+#include "as/core/core_compile.h"
 #include "as/core/script_module.h"
 #include "as/core/cpp_interface_parser.h"
+#include "as/core/script_module_compile.h"
 
 #include "as/languages/lua/lua_language.h"
 #include "as/languages/squirrel/sq_language.h"
@@ -29,7 +31,7 @@ static void printVersion(llvm::raw_ostream &out) {
 
 int main(int argc, char **argv)
 {
-    auto script_core = std::make_shared<as::Core>();
+    auto script_core = std::make_shared<as::CoreCompile>();
     auto lua_language = std::make_shared<as::LuaLanguage>();
     auto squirrel_language = std::make_shared<as::SquirrelLanguage>();
     auto ivnscript_language = std::make_shared<as::IvnScriptLanguage>();
@@ -48,7 +50,8 @@ int main(int argc, char **argv)
     std::ifstream ifs(headerFilename);
     const std::string headerContent{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
 
-    auto module = script_core->newScriptModule(headerContent, inputFilename);
+    auto interface = script_core->getInterface("TestScript", headerContent);
+    auto module = script_core->newScriptModule(interface, inputFilename);
     module->dump(llvm::errs());
 
     return 0;

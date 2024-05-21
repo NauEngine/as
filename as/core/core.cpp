@@ -37,11 +37,9 @@ namespace
 
 namespace as
 {
-  Core::Core()
+  Core::Core():
+    m_compile()
   {
-    m_ts_context = std::make_unique<llvm::LLVMContext>();
-    m_cpp_parser = std::make_shared<CPPParser>(*m_ts_context.getContext());
-
     llvm::InitializeAllTargets();
     llvm::InitializeAllTargetMCs();
     llvm::InitializeAllAsmPrinters();
@@ -52,46 +50,23 @@ namespace as
 
   Core::~Core()
   {
-    m_languages.clear();
-    llvm::llvm_shutdown();
   }
 
-  void Core::registerLanguage(const std::string& language_name, std::shared_ptr<ILanguage> language)
+  void Core::registerLanguage(const std::string& language_name, const std::shared_ptr<ILanguage>& language)
   {
-    language->init(m_jit, m_ts_context);
-    m_languages[language_name] = std::move(language);
+    language->init(m_jit, m_compile.getContext());
+    m_compile.registerLanguage(language_name, language);
   }
-
-  std::shared_ptr<ILanguageScript> Core::loadScript(const std::string& filename, const std::string& language_name)
-  {
-    auto language_script = m_languages[getLanguageName(filename, language_name)]->newScript();
-    language_script->load(filename);
-
-    return language_script;
-  }
-
-  std::shared_ptr<ScriptInterface> Core::getInterface(const std::string& name, const std::string& source_code)
-  {
-    return m_cpp_parser->getInterface(name, source_code);
-  }
-
-  std::shared_ptr<ScriptModule<EmptyInterface>> Core::newScriptModule(const std::string& source_code, const std::string& filename, const std::string& language_name)
-  {
-      auto language_script = loadScript(filename, language_name);
-      auto interface = getInterface("TestScript", source_code);
-      return std::make_shared<ScriptModule<EmptyInterface>>(filename, language_script, interface, m_jit, m_ts_context);
-  }
-
 
   void Core::registerInstance(
     void* instance,
     const std::string& instance_name,
     const std::string& type_name,
-    const std::string& source_code)
+    const std::string& source_code) const
   {
-    auto scriptInterface = m_cpp_parser->getInterface(type_name, source_code);
+    auto scriptInterface = m_compile.getInterface(type_name, source_code);
 
-    for (auto& [name, language] : m_languages)
+    for (auto& [name, language] : m_compile.getLanguages())
     {
       language->registerInstance(instance, instance_name, scriptInterface);
     }
