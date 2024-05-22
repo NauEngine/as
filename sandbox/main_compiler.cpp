@@ -11,19 +11,35 @@
 
 // #include "./scripts/test_script.h"
 
-extern "C" double foo(int a, double b);
+struct ScriptObject
+{
+    void* m_vtable;
+    explicit ScriptObject(void* vtable): m_vtable(vtable) { }
+};
 
-// DEFINE_SCRIPT_INTERFACE(TestScript,
-// struct TestScript
-// {
-//   virtual double foo(int a, double b) = 0;
-//   virtual int bar(int a) = 0;
-// };
-// )
+struct TestScript
+{
+    virtual int foo(int a, int b) = 0;
+    virtual int bar(int a) = 0;
+};
+
+extern "C" void* ______sandbox_scripts_test_1_is_13297541326829458225;
 
 int main()
 {
-  assert(foo(10, 20) == 30);
+    auto s = new ScriptObject(&______sandbox_scripts_test_1_is_13297541326829458225);
+    auto t = static_cast<TestScript*>(static_cast<void*>(s));
+    assert(t->foo(10, 20) == 30);
+    assert(t->bar(10) == 100);
+
+    return 0
+}
+
+/*
+    // assert(______sandbox_scripts_test_1_is_13297541326829458225.bar(nullptr, 10) == 100);
+    // ScriptObject* s = new ScriptObject(______sandbox_scripts_test_1_is_13297541326829458225);
+    // TestScript* t = static_cast<TestScript*>(static_cast<void*>(s));
+    // t->foo(10, 20);
 
   // auto script_core = std::make_shared<as::Core>();
   // auto lua_language = std::make_shared<as::LuaLanguage>();

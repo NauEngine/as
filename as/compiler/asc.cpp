@@ -50,6 +50,7 @@ static void dumpFile(as::ScriptModuleCompile* module, const std::string& filenam
 
         llvm::outs() << "Compile module to " << filename << "\n";
         module->dump(fout->os());
+        fout->keep();
     }
 }
 
@@ -76,7 +77,7 @@ int main(int argc, char **argv)
 
     const auto interface = script_core->getInterface("TestScript", headerContent);
     const auto module = script_core->newScriptModule(interface, inputFilename);
-    dumpFile(module.get(), "");
+
     dumpFile(module.get(), outputFilename.getValue());
 
     return 0;
