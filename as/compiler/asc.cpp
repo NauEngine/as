@@ -5,6 +5,8 @@
 #include <filesystem>
 #include <fstream>
 
+#include "llvm/Support/ToolOutputFile.h"
+
 #include "as/core/core.h"
 #include "as/core/core_compile.h"
 #include "as/core/script_module.h"
@@ -29,6 +31,26 @@ static void printVersion(llvm::raw_ostream &out) {
     llvm::cl::PrintVersionMessage();
 }
 
+static void dumpFile(as::ScriptModuleCompile* module, const std::string& filename)
+{
+    if (filename.empty())
+    {
+        module->dump(llvm::outs());
+    }
+    else
+    {
+        std::error_code ec;
+        const llvm::sys::fs::OpenFlags flags = llvm::sys::fs::OF_TextWithCRLF;
+        const auto fout = std::make_unique<llvm::ToolOutputFile>(outputFilename, ec, flags);
+        if (ec)
+        {
+            return;
+        }
+
+        module->dump(fout->os());
+    }
+}
+
 int main(int argc, char **argv)
 {
     auto script_core = std::make_shared<as::CoreCompile>();
@@ -42,17 +64,17 @@ int main(int argc, char **argv)
 
     llvm::cl::ParseCommandLineOptions(argc, argv, PROGRAM_NAME"\n");
 
-    llvm::outs() << "Current dir: " << std::filesystem::current_path() << "\n";
-    llvm::outs() << "Input file:  " << inputFilename << "\n";
-    llvm::outs() << "Header file: " << headerFilename << "\n";
-    llvm::outs() << "Output file: " << outputFilename << "\n";
+    // llvm::outs() << "Current dir: " << std::filesystem::current_path() << "\n";
+    // llvm::outs() << "Input file:  " << inputFilename << "\n";
+    // llvm::outs() << "Header file: " << headerFilename << "\n";
+    // llvm::outs() << "Output file: " << outputFilename << "\n";
 
     std::ifstream ifs(headerFilename);
     const std::string headerContent{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
 
-    auto interface = script_core->getInterface("TestScript", headerContent);
-    auto module = script_core->newScriptModule(interface, inputFilename);
-    module->dump(llvm::errs());
+    const auto interface = script_core->getInterface("TestScript", headerContent);
+    const auto module = script_core->newScriptModule(interface, inputFilename);
+    dumpFile(module.get(), outputFilename.getValue());
 
     return 0;
 }
