@@ -36,3 +36,8 @@ target_link_libraries(SandboxTests
     SquirrelIntegration
     IvnScriptIntegration
 )
+
+add_executable(SandboxCompiler
+    main_compiler.cpp)
+
+add_llvm_ll_library(SandboxCompiler scripts/test_script.ll)
