@@ -41,12 +41,14 @@ static void dumpFile(as::ScriptModuleCompile* module, const std::string& filenam
     {
         std::error_code ec;
         const llvm::sys::fs::OpenFlags flags = llvm::sys::fs::OF_TextWithCRLF;
-        const auto fout = std::make_unique<llvm::ToolOutputFile>(outputFilename, ec, flags);
+        const auto fout = std::make_unique<llvm::ToolOutputFile>(filename, ec, flags);
         if (ec)
         {
+            llvm::errs() << "Cannot create file" << "\n";
             return;
         }
 
+        llvm::outs() << "Compile module to " << filename << "\n";
         module->dump(fout->os());
     }
 }
@@ -74,6 +76,7 @@ int main(int argc, char **argv)
 
     const auto interface = script_core->getInterface("TestScript", headerContent);
     const auto module = script_core->newScriptModule(interface, inputFilename);
+    dumpFile(module.get(), "");
     dumpFile(module.get(), outputFilename.getValue());
 
     return 0;
