@@ -30,9 +30,6 @@ public:
         const std::string& language_name = "");
 
     [[nodiscard]]
-    std::shared_ptr<ILanguageScript> loadScript(const std::string& filename, const std::string& language_name) const;
-
-    [[nodiscard]]
     const ScriptInterface& getInterface(const std::string& name, const std::string& source_code) const;
 
     [[nodiscard]]

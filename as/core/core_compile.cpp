@@ -58,16 +58,6 @@ std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(
     return std::make_shared<ScriptModuleCompile>(ir::safe_name(filename), interface, language_script, *m_ts_context.getContext(), m_add_init);
 }
 
-std::shared_ptr<ILanguageScript> CoreCompile::loadScript(const std::string& filename, const std::string& language_name) const
-{
-    auto language = getLanguage(resolveLanguageName(filename, language_name));
-
-    auto language_script = language->newScript();
-    language_script->load(filename);
-    return language_script;
-}
-
-
 const ScriptInterface& CoreCompile::getInterface(const std::string& name, const std::string& source_code) const
 {
     return *m_cpp_parser->getInterface(name, source_code);
