@@ -20,6 +20,8 @@ add_library(AScript STATIC
     core/core_compile.h
     core/script_module_compile.cpp
     core/script_module_compile.h
+        core/script_module_runtime.cpp
+        core/script_module_runtime.h
 )
 
 target_include_directories(AScript PUBLIC "${CMAKE_SOURCE_DIR}")

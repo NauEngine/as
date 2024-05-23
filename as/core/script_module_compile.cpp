@@ -9,8 +9,11 @@
 
 #include "script_module_compile.h"
 
+#include <llvm/ExecutionEngine/Orc/LLJIT.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Verifier.h>
+
+#include "script_module_runtime.h"
 
 static llvm::Function* callRegisterFunction(llvm::Module& module, const std::string& register_name, const std::string& export_name, llvm::GlobalVariable* vtable)
 {
@@ -78,41 +81,58 @@ namespace as {
 ScriptModuleCompile::ScriptModuleCompile(const std::string& export_name,
         const ScriptInterface& interface,
         std::shared_ptr<ILanguageScript> language_script,
-        llvm::orc::ThreadSafeContext ts_context,
+        llvm::LLVMContext& context,
         bool add_init):
-    m_language_script(std::move(language_script)),
-    m_ts_context(std::move(ts_context))
+    m_export_name(export_name),
+    m_language_script(std::move(language_script))
 {
-    compile(export_name, interface, add_init);
+    compile(interface, context, add_init);
 }
 
-void ScriptModuleCompile::dump(llvm::raw_fd_ostream& stream)
+void ScriptModuleCompile::dump(llvm::raw_fd_ostream& stream) const
 {
     stream << *m_module;
 }
 
-void ScriptModuleCompile::compile(const std::string& export_name, const ScriptInterface& interface, bool add_init)
+std::shared_ptr<ScriptModuleRuntime> ScriptModuleCompile::materialize(std::shared_ptr<llvm::orc::LLJIT>& jit,
+    llvm::orc::ThreadSafeContext ts_context)
 {
-    auto& context = *m_ts_context.getContext();
-    m_module = std::make_unique<llvm::Module>(export_name, context);
+    auto& context = *ts_context.getContext();
+
+    m_language_script->executeModule(jit, context, m_module.get());
+
+    llvm::errs() << "\nINTERFACE MODULE: \n" << *m_module << "\n";
+    llvm::cantFail(jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(m_module), ts_context)));
+
+    auto script = std::move(m_language_script);
+    auto vtable = llvm::cantFail(jit->lookup(m_export_name));
+
+    return std::make_shared<ScriptModuleRuntime>(script, vtable);
+}
+
+void ScriptModuleCompile::compile(const ScriptInterface& interface,
+    llvm::LLVMContext& context,
+    bool add_init)
+{
+    m_module = std::make_unique<llvm::Module>(m_export_name, context);
 
     auto vtableMethods = compileFunctions(interface, context);
 
     // Create a global vtable
     auto vtable = new llvm::GlobalVariable(*m_module, interface.vtable_t, true, llvm::GlobalValue::ExternalLinkage,
         llvm::ConstantStruct::get(interface.vtable_t, vtableMethods),
-        export_name);
+        m_export_name);
 
     if (add_init)
     {
-        auto ctor = callRegisterFunction(*m_module, "registerInterface", export_name, vtable);
+        auto ctor = callRegisterFunction(*m_module, "registerInterface", m_export_name, vtable);
         addGlobalConstructor(*m_module, ctor, 65535);
     }
 
     llvm::verifyModule(*m_module, &llvm::errs());
 }
 
-std::vector<llvm::Constant*> ScriptModuleCompile::compileFunctions(const ScriptInterface& interface, llvm::LLVMContext& context)
+std::vector<llvm::Constant*> ScriptModuleCompile::compileFunctions(const ScriptInterface& interface, llvm::LLVMContext& context) const
 {
     m_language_script->prepareModule(context, m_module.get());
 

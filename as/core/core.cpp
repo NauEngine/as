@@ -60,17 +60,18 @@ void Core::registerInstance(void* instance,
     }
 }
 
-llvm::orc::ExecutorAddr Core::materializeModule(const std::string& safe_name, ScriptModuleCompile& module) const
+std::shared_ptr<ScriptModuleRuntime> Core::getModuleRuntime(const ScriptInterface& interface,
+            const std::string& filename,
+            const std::string& language_name)
 {
-    auto& context = *m_compile.getContext().getContext();
-    auto llvm_module = module.getModule();
+    const auto result = m_modules.find(filename);
+    if (result != m_modules.end())
+        return result->second;
 
-    module.getScript()->executeModule(m_jit, context, llvm_module.get());
-
-    llvm::errs() << "\nINTERFACE MODULE: \n" << *llvm_module << "\n";
-    llvm::cantFail(m_jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(llvm_module), m_compile.getContext())));
-
-    return llvm::cantFail(m_jit->lookup(safe_name));
+    auto module_compile = m_compile.newScriptModule(interface, filename, language_name);
+    auto module = module_compile->materialize(m_jit, m_compile.getContext());
+    m_modules[filename] = module;
+    return module;
 }
 
 

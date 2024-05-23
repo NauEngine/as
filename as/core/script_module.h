@@ -5,45 +5,31 @@
 #ifndef AS_PROTO_SCRIPT_MODULE_H
 #define AS_PROTO_SCRIPT_MODULE_H
 
-#include "llvm/ExecutionEngine/Orc/LLJIT.h"
-#include "llvm/ExecutionEngine/Orc/Shared/ExecutorAddress.h"
-
-#include "cpp_interface.h"
-
-namespace llvm
-{
-    class StructType;
-    class Module;
-}
-
 namespace as
 {
 
-struct ScriptObject
+template<typename T>
+concept HasNewInstance = requires(const T v)
 {
-    void* vtable;
-    explicit ScriptObject(void* vtable): vtable(vtable) { }
+    { v.newInstance() } -> std::same_as<void*>;
 };
 
-template<typename Interface>
+template<typename Interface, HasNewInstance Module>
 class ScriptModule
 {
 public:
-    explicit ScriptModule(std::shared_ptr<ScriptModuleCompile> module,
-        llvm::orc::ExecutorAddr vtable):
-            m_vtable(vtable),
-            m_module(std::move(module))
+    explicit ScriptModule(std::shared_ptr<Module> module):
+        m_module(std::move(module))
     {
     }
 
     Interface* newInstance()
     {
-        return static_cast<Interface*>(static_cast<void*>(new ScriptObject(m_vtable.toPtr<void*>())));
+        return static_cast<Interface*>(m_module->newInstance());
     }
 
 private:
-    std::shared_ptr<ScriptModuleCompile> m_module;
-    llvm::orc::ExecutorAddr m_vtable;
+    std::shared_ptr<Module> m_module;
 };
 
 } // as

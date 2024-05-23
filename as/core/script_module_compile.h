@@ -9,7 +9,10 @@
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 
 namespace as {
+
+class ScriptModuleRuntime;
 struct ILanguageScript;
+
 struct ScriptInterface;
 
 class ScriptModuleCompile {
@@ -17,31 +20,19 @@ public:
     explicit ScriptModuleCompile(const std::string& export_name,
         const ScriptInterface& interface,
         std::shared_ptr<ILanguageScript> language_script,
-        llvm::orc::ThreadSafeContext ts_context,
+        llvm::LLVMContext& context,
         bool add_init);
 
-    [[nodiscard]]
-    ILanguageScript* getScript() const
-    {
-        return m_language_script.get();
-    }
-
-    [[nodiscard]]
-    std::unique_ptr<llvm::Module> getModule()
-    {
-        return std::move(m_module);
-    }
-
-    void dump(llvm::raw_fd_ostream& stream);
+    void dump(llvm::raw_fd_ostream& stream) const;
+    std::shared_ptr<ScriptModuleRuntime> materialize(std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::orc::ThreadSafeContext ts_context);
 
 private:
-    std::shared_ptr<ILanguageScript> m_language_script;
-    llvm::orc::ThreadSafeContext m_ts_context;
-
+    std::string m_export_name;
     std::unique_ptr<llvm::Module> m_module;
+    std::shared_ptr<ILanguageScript> m_language_script;
 
-    void compile(const std::string& export_name, const ScriptInterface& interface, bool add_init);
-    std::vector<llvm::Constant*> compileFunctions(const ScriptInterface& interface, llvm::LLVMContext& context);
+    void compile(const ScriptInterface& interface, llvm::LLVMContext& context, bool add_init);
+    std::vector<llvm::Constant*> compileFunctions(const ScriptInterface& interface, llvm::LLVMContext& context) const;
 };
 
 } // as
