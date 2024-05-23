@@ -10,6 +10,7 @@
 #include "script_module_compile.h"
 
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Verifier.h>
 
 static llvm::Function* callRegisterFunction(llvm::Module& module, const std::string& register_name, const std::string& export_name, llvm::GlobalVariable* vtable)
 {
@@ -107,6 +108,8 @@ void ScriptModuleCompile::compile(const std::string& export_name, const ScriptIn
         auto ctor = callRegisterFunction(*m_module, "registerInterface", export_name, vtable);
         addGlobalConstructor(*m_module, ctor, 65535);
     }
+
+    llvm::verifyModule(*m_module, &llvm::errs());
 }
 
 std::vector<llvm::Constant*> ScriptModuleCompile::compileFunctions(const ScriptInterface& interface, llvm::LLVMContext& context)
