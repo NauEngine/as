@@ -20,7 +20,7 @@ struct ScriptInterface;
 class CoreCompile
 {
 public:
-    CoreCompile();
+    CoreCompile(bool add_init);
     ~CoreCompile();
 
     void registerLanguage(const std::string& language_name, std::shared_ptr<ILanguage> language);
@@ -46,6 +46,7 @@ private:
     std::unordered_map<std::string, std::shared_ptr<ILanguage>> m_languages;
     std::unique_ptr<CPPParser> m_cpp_parser;
     llvm::orc::ThreadSafeContext m_ts_context;
+    bool m_add_init;
 };
 
 } // as

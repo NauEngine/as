@@ -1,5 +1,6 @@
 #include <cassert>
 #include <iostream>
+#include <unordered_map>
 
 // #include "as/core/core.h"
 // #include "as/core/script_module.h"
@@ -23,19 +24,23 @@ struct TestScript
     virtual int bar(int a) = 0;
 };
 
-extern "C" void* ______sandbox_scripts_test_1_is_13297541326829458225;
+std::unordered_map<std::string, void*> vtables;
+
+extern "C" void registerInterface(const char* name, void* ptr)
+{
+    std::cout << "Register: " << name << std::endl;
+    vtables[name] = ptr;
+}
+
+static newModule
 
 int main()
 {
-    auto s = new ScriptObject(&______sandbox_scripts_test_1_is_13297541326829458225);
-    auto t = static_cast<TestScript*>(static_cast<void*>(s));
-    assert(t->foo(10, 20) == 30);
-    assert(t->bar(10) == 100);
+    // auto s = new ScriptObject(&______sandbox_scripts_test_1_is_13297541326829458225);
+    // auto t = static_cast<TestScript*>(static_cast<void*>(s));
+    // assert(t->foo(10, 20) == 30);
+    // assert(t->bar(10) == 100);
 
-    return 0
-}
-
-/*
     // assert(______sandbox_scripts_test_1_is_13297541326829458225.bar(nullptr, 10) == 100);
     // ScriptObject* s = new ScriptObject(______sandbox_scripts_test_1_is_13297541326829458225);
     // TestScript* t = static_cast<TestScript*>(static_cast<void*>(s));

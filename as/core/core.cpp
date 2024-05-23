@@ -38,7 +38,7 @@ namespace
 namespace as
 {
   Core::Core():
-    m_compile()
+    m_compile(false)
   {
     llvm::InitializeAllTargets();
     llvm::InitializeAllTargetMCs();

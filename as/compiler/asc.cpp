@@ -56,7 +56,7 @@ static void dumpFile(as::ScriptModuleCompile* module, const std::string& filenam
 
 int main(int argc, char **argv)
 {
-    auto script_core = std::make_shared<as::CoreCompile>();
+    auto script_core = std::make_shared<as::CoreCompile>(true);
     auto lua_language = std::make_shared<as::LuaLanguage>();
     auto squirrel_language = std::make_shared<as::SquirrelLanguage>();
     auto ivnscript_language = std::make_shared<as::IvnScriptLanguage>();

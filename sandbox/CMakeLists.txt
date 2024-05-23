@@ -41,3 +41,8 @@ add_executable(SandboxCompiler
     main_compiler.cpp)
 
 add_llvm_ll_library(SandboxCompiler scripts/test_script.ll)
+#target_link_libraries(SandboxCompiler
+#    LuaIntegration
+#    SquirrelIntegration
+#    IvnScriptIntegration
+#)

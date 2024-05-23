@@ -1,9 +1,13 @@
 ; ModuleID = './sandbox/main_compiler_export.cpp'
 source_filename = "./sandbox/main_compiler_export.cpp"
+target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
+target triple = "arm64-apple-macosx14.0.0"
 
 %struct.Interface = type { ptr }
 
-@______sandbox_scripts_test_1_is_13297541326829458225 = constant %struct.Interface { ptr @_ZL3fooPvii }
+@i = global %struct.Interface { ptr @_ZL3fooPvii }, align 8
+@.str = private unnamed_addr constant [53 x i8] c"______sandbox_scripts_test_1_is_13297541326829458225\00", align 1
+@llvm.global_ctors = appending global [1 x { i32, ptr, ptr }] [{ i32, ptr, ptr } { i32 65535, ptr @_GLOBAL__sub_I_main_compiler_export.cpp, ptr null }]
 
 ; Function Attrs: mustprogress noinline nounwind optnone ssp uwtable(sync)
 define internal noundef i32 @_ZL3fooPvii(ptr noundef %0, i32 noundef %1, i32 noundef %2) #0 {
@@ -19,7 +23,18 @@ define internal noundef i32 @_ZL3fooPvii(ptr noundef %0, i32 noundef %1, i32 nou
   ret i32 %9
 }
 
+declare void @registerInterface(ptr noundef, ptr noundef) #3
+
+; Function Attrs: noinline ssp uwtable(sync)
+define internal void @_GLOBAL__sub_I_main_compiler_export.cpp() #1 section "__TEXT,__StaticInit,regular,pure_instructions" {
+  call void @registerInterface(ptr noundef @.str, ptr noundef @i)
+  ret void
+}
+
 attributes #0 = { mustprogress noinline nounwind optnone ssp uwtable(sync) "frame-pointer"="non-leaf" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="apple-m1" "target-features"="+aes,+crc,+dotprod,+fp-armv8,+fp16fml,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+sha3,+v8.1a,+v8.2a,+v8.3a,+v8.4a,+v8.5a,+v8a,+zcm,+zcz" }
+attributes #1 = { noinline ssp uwtable(sync) "frame-pointer"="non-leaf" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="apple-m1" "target-features"="+aes,+crc,+dotprod,+fp-armv8,+fp16fml,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+sha3,+v8.1a,+v8.2a,+v8.3a,+v8.4a,+v8.5a,+v8a,+zcm,+zcz" }
+attributes #2 = { noinline optnone ssp uwtable(sync) "frame-pointer"="non-leaf" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="apple-m1" "target-features"="+aes,+crc,+dotprod,+fp-armv8,+fp16fml,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+sha3,+v8.1a,+v8.2a,+v8.3a,+v8.4a,+v8.5a,+v8a,+zcm,+zcz" }
+attributes #3 = { "frame-pointer"="non-leaf" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="apple-m1" "target-features"="+aes,+crc,+dotprod,+fp-armv8,+fp16fml,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+sha3,+v8.1a,+v8.2a,+v8.3a,+v8.4a,+v8.5a,+v8a,+zcm,+zcz" }
 
 !llvm.module.flags = !{!0, !1, !2, !3}
 !llvm.ident = !{!4}

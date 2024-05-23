@@ -27,7 +27,8 @@ static std::string resolveLanguageName(const std::string& filename, const std::s
 
 namespace as
 {
-CoreCompile::CoreCompile()
+CoreCompile::CoreCompile(bool add_init):
+    m_add_init(add_init)
 {
     m_ts_context = std::make_unique<llvm::LLVMContext>();
     m_cpp_parser = std::make_unique<CPPParser>(*m_ts_context.getContext());
@@ -44,7 +45,8 @@ void CoreCompile::registerLanguage(const std::string& language_name, std::shared
     m_languages[language_name] = std::move(language);
 }
 
-std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(std::shared_ptr<ScriptInterface> interface,
+std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(
+        std::shared_ptr<ScriptInterface> interface,
         const std::string& filename,
         const std::string& language_name)
 {
@@ -53,7 +55,7 @@ std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(std::shared_pt
     auto language_script = language->newScript();
     language_script->load(filename);
 
-    return std::make_shared<ScriptModuleCompile>(ir::safe_name(filename), interface, language_script, m_ts_context);
+    return std::make_shared<ScriptModuleCompile>(ir::safe_name(filename), *interface, language_script, m_ts_context, m_add_init);
 }
 
 std::shared_ptr<ILanguageScript> CoreCompile::loadScript(const std::string& filename, const std::string& language_name) const

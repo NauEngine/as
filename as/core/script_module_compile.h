@@ -15,9 +15,10 @@ struct ScriptInterface;
 class ScriptModuleCompile {
 public:
     explicit ScriptModuleCompile(const std::string& export_name,
-        std::shared_ptr<ScriptInterface> interface,
+        const ScriptInterface& interface,
         std::shared_ptr<ILanguageScript> language_script,
-        llvm::orc::ThreadSafeContext ts_context);
+        llvm::orc::ThreadSafeContext ts_context,
+        bool add_init);
 
     [[nodiscard]]
     ILanguageScript* getScript() const
@@ -39,7 +40,8 @@ private:
 
     std::unique_ptr<llvm::Module> m_module;
 
-    void compile(const std::string& export_name, std::shared_ptr<ScriptInterface> interface);
+    void compile(const std::string& export_name, const ScriptInterface& interface, bool add_init);
+    std::vector<llvm::Constant*> compileFunctions(const ScriptInterface& interface, llvm::LLVMContext& context);
 };
 
 } // as
