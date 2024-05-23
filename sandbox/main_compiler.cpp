@@ -32,8 +32,6 @@ extern "C" void registerInterface(const char* name, void* ptr)
     vtables[name] = ptr;
 }
 
-static newModule
-
 int main()
 {
     // auto s = new ScriptObject(&______sandbox_scripts_test_1_is_13297541326829458225);

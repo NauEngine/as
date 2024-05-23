@@ -46,7 +46,7 @@ void CoreCompile::registerLanguage(const std::string& language_name, std::shared
 }
 
 std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(
-        std::shared_ptr<ScriptInterface> interface,
+        const ScriptInterface& interface,
         const std::string& filename,
         const std::string& language_name)
 {
@@ -55,7 +55,7 @@ std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(
     auto language_script = language->newScript();
     language_script->load(filename);
 
-    return std::make_shared<ScriptModuleCompile>(ir::safe_name(filename), *interface, language_script, m_ts_context, m_add_init);
+    return std::make_shared<ScriptModuleCompile>(ir::safe_name(filename), interface, language_script, m_ts_context, m_add_init);
 }
 
 std::shared_ptr<ILanguageScript> CoreCompile::loadScript(const std::string& filename, const std::string& language_name) const
@@ -68,7 +68,12 @@ std::shared_ptr<ILanguageScript> CoreCompile::loadScript(const std::string& file
 }
 
 
-std::shared_ptr<ScriptInterface> CoreCompile::getInterface(const std::string& name, const std::string& source_code) const
+const ScriptInterface& CoreCompile::getInterface(const std::string& name, const std::string& source_code) const
+{
+    return *m_cpp_parser->getInterface(name, source_code);
+}
+
+std::shared_ptr<ScriptInterface> CoreCompile::getInterfacePtr(const std::string& name, const std::string& source_code) const
 {
     return m_cpp_parser->getInterface(name, source_code);
 }

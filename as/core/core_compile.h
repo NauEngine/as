@@ -26,13 +26,17 @@ public:
     void registerLanguage(const std::string& language_name, std::shared_ptr<ILanguage> language);
 
     [[nodiscard]]
-    std::shared_ptr<ScriptModuleCompile> newScriptModule(std::shared_ptr<ScriptInterface> interface, const std::string& filename, const std::string& language_name = "");
+    std::shared_ptr<ScriptModuleCompile> newScriptModule(const ScriptInterface& interface, const std::string& filename,
+        const std::string& language_name = "");
 
     [[nodiscard]]
     std::shared_ptr<ILanguageScript> loadScript(const std::string& filename, const std::string& language_name) const;
 
     [[nodiscard]]
-    std::shared_ptr<ScriptInterface> getInterface(const std::string& name, const std::string& source_code) const;
+    const ScriptInterface& getInterface(const std::string& name, const std::string& source_code) const;
+
+    [[nodiscard]]
+    std::shared_ptr<ScriptInterface> getInterfacePtr(const std::string& name, const std::string& source_code) const;
 
     [[nodiscard]]
     ILanguage* getLanguage(const std::string& language_name) const;

@@ -18,57 +18,45 @@
 #include "ir.h"
 #include "language_script.h"
 
-static std::string getLanguageName(const std::string& filename, const std::string& language_name)
-{
-  if (!language_name.empty())
-    return language_name;
-
-  auto result = std::filesystem::path(filename).extension().string();
-  if (result.empty() || result.at(0) != '.')
-    return result;
-
-  return result.substr(1);
-}
-
 namespace
 {
-  llvm::ExitOnError ExitOnErr;
+    llvm::ExitOnError ExitOnErr;
 }
 
 namespace as
 {
-  Core::Core():
+Core::Core():
     m_compile(false)
-  {
+{
     llvm::InitializeAllTargets();
     llvm::InitializeAllTargetMCs();
     llvm::InitializeAllAsmPrinters();
     llvm::InitializeAllAsmParsers();
 
     m_jit = ExitOnErr(llvm::orc::LLJITBuilder().create());
-  }
+}
 
-  Core::~Core()
-  {
-  }
+Core::~Core()
+{
+}
 
-  void Core::registerLanguage(const std::string& language_name, const std::shared_ptr<ILanguage>& language)
-  {
+void Core::registerLanguage(const std::string& language_name, const std::shared_ptr<ILanguage>& language)
+{
     language->init(m_jit, m_compile.getContext());
     m_compile.registerLanguage(language_name, language);
-  }
+}
 
-  void Core::registerInstance(
-    void* instance,
-    const std::string& instance_name,
-    const std::string& type_name,
-    const std::string& source_code) const
-  {
-    auto scriptInterface = m_compile.getInterface(type_name, source_code);
+void Core::registerInstance(void* instance,
+        const std::string& instance_name,
+        const std::string& type_name,
+        const std::string& source_code) const
+{
+    auto scriptInterface = m_compile.getInterfacePtr(type_name, source_code);
 
-    for (auto& [name, language] : m_compile.getLanguages())
+    for (auto& [name, language]: m_compile.getLanguages())
     {
-      language->registerInstance(instance, instance_name, scriptInterface);
+        language->registerInstance(instance, instance_name, scriptInterface);
     }
-  }
+}
+
 } // as
