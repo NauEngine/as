@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
+#include "llvm/ExecutionEngine/Orc/LLJIT.h"
 
 namespace as
 {
@@ -25,29 +26,34 @@ public:
 
     void registerLanguage(const std::string& language_name, std::shared_ptr<ILanguage> language);
 
-    [[nodiscard]]
+    void registerInstance(void* instance, const std::string& instance_name, const ScriptInterface& interface);
+
     std::shared_ptr<ScriptModuleCompile> newScriptModule(const ScriptInterface& interface, const std::string& filename,
         const std::string& language_name = "");
 
-    [[nodiscard]]
     const ScriptInterface& getInterface(const std::string& name, const std::string& source_code) const;
 
-    [[nodiscard]]
-    std::shared_ptr<ScriptInterface> getInterfacePtr(const std::string& name, const std::string& source_code) const;
-
-    [[nodiscard]]
-    ILanguage* getLanguage(const std::string& language_name) const;
-
-    [[nodiscard]]
     const std::unordered_map<std::string, std::shared_ptr<ILanguage>>& getLanguages() const;
 
-    [[nodiscard]]
-    llvm::orc::ThreadSafeContext getContext() const;
+    llvm::orc::ThreadSafeContext getContext() const
+    {
+        return m_ts_context;
+    }
+
+    std::shared_ptr<llvm::orc::LLJIT>& getJit()
+    {
+        return m_jit;
+    }
+
 private:
     std::unordered_map<std::string, std::shared_ptr<ILanguage>> m_languages;
     std::unique_ptr<CPPParser> m_cpp_parser;
     llvm::orc::ThreadSafeContext m_ts_context;
+    std::shared_ptr<llvm::orc::LLJIT> m_jit;
     bool m_add_init;
+
+    [[nodiscard]]
+    ILanguage* getLanguage(const std::string& language_name) const;
 };
 
 } // as

@@ -13,6 +13,9 @@ struct ScriptObject
 
 void* ScriptModuleRuntime::newInstance() const
 {
-    return static_cast<void*>(new ScriptObject(m_vtable.toPtr<void*>()));
+    if (m_vtable)
+        return static_cast<void*>(new ScriptObject(m_vtable));
+
+    return static_cast<void*>(new ScriptObject(m_jit_vtable.toPtr<void*>()));
 }
 } // as

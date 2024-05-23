@@ -24,55 +24,53 @@ namespace
     llvm::ExitOnError ExitOnErr;
 }
 
+std::unordered_map<std::string, void*>& getVtables()
+{
+    static std::unordered_map<std::string, void*> vtables;
+    return vtables;
+}
+
+extern "C" void registerInterface(const char* name, void* ptr)
+{
+    getVtables()[name] = ptr;
+}
+
 namespace as
 {
+
 Core::Core():
     m_compile(false)
 {
-    llvm::InitializeAllTargets();
-    llvm::InitializeAllTargetMCs();
-    llvm::InitializeAllAsmPrinters();
-    llvm::InitializeAllAsmParsers();
-
-    m_jit = ExitOnErr(llvm::orc::LLJITBuilder().create());
 }
 
 Core::~Core()
 {
 }
 
-void Core::registerLanguage(const std::string& language_name, const std::shared_ptr<ILanguage>& language)
+std::shared_ptr<ScriptModuleRuntime> Core::getCachedModule(const std::string& filename) const
 {
-    language->init(m_jit, m_compile.getContext());
-    m_compile.registerLanguage(language_name, language);
+    const auto module = m_modules.find(filename);
+    return module != m_modules.end() ? module->second : nullptr;
 }
 
-void Core::registerInstance(void* instance,
-        const std::string& instance_name,
-        const std::string& type_name,
-        const std::string& source_code) const
+std::shared_ptr<ScriptModuleRuntime> Core::getLinkedModule(const std::string& filename)
 {
-    auto scriptInterface = m_compile.getInterfacePtr(type_name, source_code);
+    const auto vtable = getVtables().find(ir::safe_name(filename));
+    if (vtable == getVtables().end())
+        return nullptr;
 
-    for (auto& [name, language]: m_compile.getLanguages())
-    {
-        language->registerInstance(instance, instance_name, scriptInterface);
-    }
-}
-
-std::shared_ptr<ScriptModuleRuntime> Core::getModuleRuntime(const ScriptInterface& interface,
-            const std::string& filename,
-            const std::string& language_name)
-{
-    const auto result = m_modules.find(filename);
-    if (result != m_modules.end())
-        return result->second;
-
-    auto module_compile = m_compile.newScriptModule(interface, filename, language_name);
-    auto module = module_compile->materialize(m_jit, m_compile.getContext());
+    auto module = std::make_shared<ScriptModuleRuntime>(vtable->second);
     m_modules[filename] = module;
     return module;
 }
 
+std::shared_ptr<ScriptModuleRuntime> Core::getCompiledModule(const ScriptInterface& interface,
+        const std::string& filename, const std::string& language_name)
+{
+    auto module_compile = m_compile.newScriptModule(interface, filename, language_name);
+    auto module = module_compile->materialize(m_compile.getJit(), m_compile.getContext());
+    m_modules[filename] = module;
+    return module;
+}
 
 } // as

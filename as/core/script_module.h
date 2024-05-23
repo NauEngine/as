@@ -4,21 +4,16 @@
 
 #ifndef AS_PROTO_SCRIPT_MODULE_H
 #define AS_PROTO_SCRIPT_MODULE_H
+#include "script_module_runtime.h"
 
 namespace as
 {
 
-template<typename T>
-concept HasNewInstance = requires(const T v)
-{
-    { v.newInstance() } -> std::same_as<void*>;
-};
-
-template<typename Interface, HasNewInstance Module>
+template<typename Interface>
 class ScriptModule
 {
 public:
-    explicit ScriptModule(std::shared_ptr<Module> module):
+    explicit ScriptModule(std::shared_ptr<ScriptModuleRuntime> module):
         m_module(std::move(module))
     {
     }
@@ -29,7 +24,7 @@ public:
     }
 
 private:
-    std::shared_ptr<Module> m_module;
+    std::shared_ptr<ScriptModuleRuntime> m_module;
 };
 
 } // as
