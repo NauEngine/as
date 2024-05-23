@@ -40,7 +40,7 @@ target_link_libraries(SandboxTests
 add_executable(SandboxCompiler
     main_compiler.cpp)
 
-target_link_scripts(SandboxCompiler scripts/test_script.ll)
+target_link_scripts(SandboxCompiler scripts/test_script.is)
 target_link_libraries(SandboxCompiler
     AScript
 )

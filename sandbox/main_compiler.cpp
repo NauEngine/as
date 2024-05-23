@@ -18,7 +18,7 @@ int main()
 {
     auto script_core = std::make_shared<as::Core>();
     // auto ivnscript_language = std::make_shared<as::IvnScriptLanguage>();
-    const auto test_1_is = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_script.is");
+    const auto test_1_is = script_core->newScriptModule<TestScript>("scripts/test_script.is");
     const auto test_1_is_instance1(test_1_is->newInstance());
     assert(test_1_is_instance1->foo(10, 20) == 30);
 

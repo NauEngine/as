@@ -43,14 +43,25 @@ macro(target_link_scripts target)
     set(OUT_FILES)
     set(TARGET_SCRIPT "${target}_SCRIPTS")
     foreach(source ${ARGN})
+        get_filename_component(source_file_path ${source} DIRECTORY)
         get_filename_component(source_file_name ${source} NAME_WE)
+
+        add_custom_command(OUTPUT ${bc_target_header}
+            OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMAND asc ${source} -h ${CMAKE_CURRENT_SOURCE_DIR}/${source_file_path}/${source_file_name}.h -o ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll
+            DEPENDS asc ${CMAKE_CURRENT_SOURCE_DIR}/${source}
+            VERBATIM
+        )
+
         set(OUT ${CMAKE_CURRENT_BINARY_DIR}/${source_file_name}.o)
         add_custom_command(
             OUTPUT ${OUT}
-            COMMAND ${LLVM_CC} -c ${CMAKE_CURRENT_SOURCE_DIR}/${source} -o ${CMAKE_CURRENT_BINARY_DIR}/${source_file_name}.o
-            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${source}
+            COMMAND ${LLVM_CC} -c ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll -o ${CMAKE_CURRENT_BINARY_DIR}/${source_file_name}.o
+            DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll
             VERBATIM
         )
+
         list(APPEND OUT_FILES ${OUT})
     endforeach()
     add_custom_target(${TARGET_SCRIPT} ALL DEPENDS ${OUT_FILES})
