@@ -9,6 +9,7 @@
 #include <unordered_set>
 
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
+#include "llvm/ExecutionEngine/Orc/Shared/ExecutorAddress.h"
 
 #include "as.h"
 #include "core_compile.h"
@@ -43,7 +44,8 @@ namespace as
             const std::string& language_name = "")
         {
             auto module_compile = m_compile.newScriptModule(getInterface<Interface>(), filename, language_name);
-            return std::make_shared<ScriptModule<Interface>>(ir::safe_name(filename), module_compile, m_jit, m_compile.getContext());
+            auto vtable = materializeModule(ir::safe_name(filename), *module_compile);
+            return std::make_shared<ScriptModule<Interface>>(module_compile, vtable);
         }
 
         template<typename Interface>
@@ -77,6 +79,8 @@ namespace as
             const std::string& instance_name,
             const std::string& type_name,
             const std::string& source_code) const;
+
+        llvm::orc::ExecutorAddr materializeModule(const std::string& safe_name, ScriptModuleCompile& module) const;
     };
 
 } // as

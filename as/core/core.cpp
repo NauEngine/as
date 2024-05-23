@@ -17,6 +17,7 @@
 #include "cpp_interface_parser.h"
 #include "ir.h"
 #include "language_script.h"
+#include "script_module_compile.h"
 
 namespace
 {
@@ -58,5 +59,19 @@ void Core::registerInstance(void* instance,
         language->registerInstance(instance, instance_name, scriptInterface);
     }
 }
+
+llvm::orc::ExecutorAddr Core::materializeModule(const std::string& safe_name, ScriptModuleCompile& module) const
+{
+    auto& context = *m_compile.getContext().getContext();
+    auto llvm_module = module.getModule();
+
+    module.getScript()->executeModule(m_jit, context, llvm_module.get());
+
+    llvm::errs() << "\nINTERFACE MODULE: \n" << *llvm_module << "\n";
+    llvm::cantFail(m_jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(llvm_module), m_compile.getContext())));
+
+    return llvm::cantFail(m_jit->lookup(safe_name));
+}
+
 
 } // as

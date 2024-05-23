@@ -12,55 +12,38 @@
 
 namespace llvm
 {
-  class StructType;
-  class Module;
+    class StructType;
+    class Module;
 }
 
 namespace as
 {
 
-class ScriptModuleVTable
+struct ScriptObject
 {
-public:
-  explicit ScriptModuleVTable(
-    const std::string& safe_name,
-    std::shared_ptr<ScriptModuleCompile> module,
-    std::shared_ptr<llvm::orc::LLJIT> jit,
-    llvm::orc::ThreadSafeContext ts_context);
-
-  void* newInstance();
-
-private:
-  std::shared_ptr<ScriptModuleCompile> m_module;
-  llvm::orc::ExecutorAddr m_vtable;
-
-  llvm::orc::ExecutorAddr getVTableAddr(const std::string& safe_name,
-      std::unique_ptr<llvm::Module> module,
-      std::shared_ptr<llvm::orc::LLJIT> jit,
-      llvm::orc::ThreadSafeContext ts_context);
+    void* vtable;
+    explicit ScriptObject(void* vtable): vtable(vtable) { }
 };
 
-template<typename Interface> class ScriptModule
+template<typename Interface>
+class ScriptModule
 {
 public:
-  explicit ScriptModule(const std::string& safe_name,
-    std::shared_ptr<ScriptModuleCompile> module,
-    std::shared_ptr<llvm::orc::LLJIT> jit,
-    llvm::orc::ThreadSafeContext ts_context):
+    explicit ScriptModule(std::shared_ptr<ScriptModuleCompile> module,
+        llvm::orc::ExecutorAddr vtable):
+            m_vtable(vtable),
+            m_module(std::move(module))
+    {
+    }
 
-    m_vtable(safe_name,
-      std::move(module),
-      std::move(jit),
-      std::move(ts_context))
-  {}
-
-  Interface* newInstance()
-  {
-    return static_cast<Interface*>(m_vtable.newInstance());
-  }
+    Interface* newInstance()
+    {
+        return static_cast<Interface*>(static_cast<void*>(new ScriptObject(m_vtable.toPtr<void*>())));
+    }
 
 private:
-  ScriptModuleVTable m_vtable;
+    std::shared_ptr<ScriptModuleCompile> m_module;
+    llvm::orc::ExecutorAddr m_vtable;
 };
 
 } // as

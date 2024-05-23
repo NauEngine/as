@@ -7,7 +7,6 @@ add_library(AScript STATIC
     core/ir.h
     core/llvm_optimizer.cpp
     core/llvm_optimizer.h
-    core/script_module.cpp
     core/script_module.h
     core/language.h
     core/language_script.h
