@@ -5,6 +5,8 @@
 #include <filesystem>
 #include <fstream>
 
+#include "llvm/Support/ToolOutputFile.h"
+
 #include "as/core/core.h"
 #include "as/core/core_compile.h"
 #include "as/core/script_module.h"
@@ -29,9 +31,32 @@ static void printVersion(llvm::raw_ostream &out) {
     llvm::cl::PrintVersionMessage();
 }
 
+static void dumpFile(as::ScriptModuleCompile* module, const std::string& filename)
+{
+    if (filename.empty())
+    {
+        module->dump(llvm::outs());
+    }
+    else
+    {
+        std::error_code ec;
+        const llvm::sys::fs::OpenFlags flags = llvm::sys::fs::OF_TextWithCRLF;
+        const auto fout = std::make_unique<llvm::ToolOutputFile>(filename, ec, flags);
+        if (ec)
+        {
+            llvm::errs() << "Cannot create file" << "\n";
+            return;
+        }
+
+        llvm::outs() << "Compile module to " << filename << "\n";
+        module->dump(fout->os());
+        fout->keep();
+    }
+}
+
 int main(int argc, char **argv)
 {
-    auto script_core = std::make_shared<as::CoreCompile>();
+    auto script_core = std::make_shared<as::CoreCompile>(true);
     auto lua_language = std::make_shared<as::LuaLanguage>();
     auto squirrel_language = std::make_shared<as::SquirrelLanguage>();
     auto ivnscript_language = std::make_shared<as::IvnScriptLanguage>();
@@ -42,17 +67,18 @@ int main(int argc, char **argv)
 
     llvm::cl::ParseCommandLineOptions(argc, argv, PROGRAM_NAME"\n");
 
-    llvm::outs() << "Current dir: " << std::filesystem::current_path() << "\n";
-    llvm::outs() << "Input file:  " << inputFilename << "\n";
-    llvm::outs() << "Header file: " << headerFilename << "\n";
-    llvm::outs() << "Output file: " << outputFilename << "\n";
+    // llvm::outs() << "Current dir: " << std::filesystem::current_path() << "\n";
+    // llvm::outs() << "Input file:  " << inputFilename << "\n";
+    // llvm::outs() << "Header file: " << headerFilename << "\n";
+    // llvm::outs() << "Output file: " << outputFilename << "\n";
 
     std::ifstream ifs(headerFilename);
     const std::string headerContent{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
 
-    auto interface = script_core->getInterface("TestScript", headerContent);
-    auto module = script_core->newScriptModule(interface, inputFilename);
-    module->dump(llvm::errs());
+    const auto interface = script_core->getInterface("TestScript", headerContent);
+    const auto module = script_core->newScriptModule(interface, inputFilename);
+
+    dumpFile(module.get(), outputFilename.getValue());
 
     return 0;
 }

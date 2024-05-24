@@ -44,8 +44,6 @@ llvm::orc::ExecutorAddr ScriptModuleVTable::getVTableAddr(const std::string& saf
     std::shared_ptr<llvm::orc::LLJIT> jit,
     llvm::orc::ThreadSafeContext ts_context)
 {
-    auto vtable_name = safe_name; //ir::interface_vtable_name(m_safe_name, m_interface->name);
-
     auto& context = *ts_context.getContext();
 
     m_module->getScript()->executeModule(jit, context, module.get());

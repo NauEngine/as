@@ -1,5 +1,5 @@
 struct TestScript
 {
-  virtual double foo(int a, double b) = 0;
+  virtual int foo(int a, int b) = 0;
   virtual int bar(int a) = 0;
 };

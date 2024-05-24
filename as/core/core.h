@@ -8,75 +8,72 @@
 #include <map>
 #include <unordered_set>
 
-#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
-
-#include "as.h"
 #include "core_compile.h"
 #include "cpp_interface.h"
-#include "ir.h"
-
+#include "script_module.h"
+#include "script_module_runtime.h"
 
 namespace llvm::orc
 {
-  class LLJIT;
+    class LLJIT;
 }
 
 namespace as
 {
-  struct ILanguage;
-  struct ILanguageScript;
-  template<typename Interface> class ScriptModule;
-  class CPPParser;
-  struct ScriptInterface;
+struct ILanguage;
+struct ScriptInterface;
 
-  class Core
-  {
-  public:
+class Core
+{
+public:
     Core();
     ~Core();
 
-    void registerLanguage(const std::string& language_name, const std::shared_ptr<ILanguage>& language);
-
-    template<typename Interface>
-    std::shared_ptr<ScriptModule<Interface>> newScriptModule(const std::string& filename, const std::string& language_name = "")
+    void registerLanguage(const std::string& language_name, const std::shared_ptr<ILanguage>& language)
     {
-      auto module = m_compile.newScriptModule(getInterface<Interface>(), filename, language_name);
-      return std::make_shared<ScriptModule<Interface>>(ir::safe_name(filename), module, m_jit, m_compile.getContext());
-    }
-
-
-    template<typename Interface> void registerInstance(Interface* instance, const std::string& instance_name)
-    {
-      const char* source_code = getSourceCode<Interface>();
-      const char* type_name = getTypeName<Interface>();
-      registerInstance(instance, instance_name, type_name, source_code);
+        m_compile.registerLanguage(language_name, language);
     }
 
     template<typename Interface>
-    [[nodiscard]]
-    std::shared_ptr<ScriptInterface> getInterface() const
+    std::shared_ptr<ScriptModule<Interface>> newScriptModule(const std::string& filename,
+        const std::string& language_name = "")
     {
-      const char* source_code = getSourceCode<Interface>();
-      const char* type_name = getTypeName<Interface>();
-      return getInterface(type_name, source_code);
+        const auto cached_module = getCachedModule(filename);
+        if (cached_module)
+            return std::make_shared<ScriptModule<Interface>>(cached_module);
+
+        const auto linked_module = getLinkedModule(filename);
+        if (linked_module)
+            return std::make_shared<ScriptModule<Interface>>(linked_module);
+
+        const auto compiled_module = getCompiledModule(getInterface<Interface>(), filename, language_name);
+        return std::make_shared<ScriptModule<Interface>>(compiled_module);
     }
 
-    [[nodiscard]]
-    std::shared_ptr<ScriptInterface> getInterface(const std::string& name, const std::string& source_code) const
+    template<typename Interface>
+    void registerInstance(Interface* instance, const std::string& instance_name)
     {
-      return m_compile.getInterface(name, source_code);
+        m_compile.registerInstance(instance, instance_name, getInterface<Interface>());
     }
 
-  private:
+private:
     CoreCompile m_compile;
-    std::shared_ptr<llvm::orc::LLJIT> m_jit;
+    std::unordered_map<std::string, std::shared_ptr<ScriptModuleRuntime>> m_modules;
 
-    void registerInstance(void* instance,
-      const std::string& instance_name,
-      const std::string& type_name,
-      const std::string& source_code) const;
-  };
+    template<typename Interface>
+    const ScriptInterface& getInterface() const
+    {
+        const char* source_code = getSourceCode<Interface>();
+        const char* type_name = getTypeName<Interface>();
+        return m_compile.getInterface(type_name, source_code);
+    }
 
+    std::shared_ptr<ScriptModuleRuntime> getCachedModule(const std::string& filename) const;
+    std::shared_ptr<ScriptModuleRuntime> getLinkedModule(const std::string& filename);
+    std::shared_ptr<ScriptModuleRuntime> getCompiledModule(const ScriptInterface& interface,
+        const std::string& filename,
+        const std::string& language_name);
+};
 } // as
 
 #endif //AS_PROTO_CORE_H

@@ -7,7 +7,6 @@ add_library(AScript STATIC
     core/ir.h
     core/llvm_optimizer.cpp
     core/llvm_optimizer.h
-    core/script_module.cpp
     core/script_module.h
     core/language.h
     core/language_script.h
@@ -21,6 +20,8 @@ add_library(AScript STATIC
     core/core_compile.h
     core/script_module_compile.cpp
     core/script_module_compile.h
+        core/script_module_runtime.cpp
+        core/script_module_runtime.h
 )
 
 target_include_directories(AScript PUBLIC "${CMAKE_SOURCE_DIR}")
