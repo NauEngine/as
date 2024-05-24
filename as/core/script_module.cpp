@@ -50,7 +50,7 @@ llvm::orc::ExecutorAddr ScriptModuleVTable::getVTableAddr(const std::string& saf
 
     m_module->getScript()->executeModule(jit, context, module.get());
 
-    llvm::errs() << "\nINTERFACE MODULE: \n" << *module << "\n";
+    //llvm::errs() << "\nINTERFACE MODULE: \n" << *module << "\n";
     llvm::cantFail(jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(module), ts_context)));
 
     return llvm::cantFail(jit->lookup(safe_name));

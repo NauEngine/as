@@ -54,10 +54,17 @@ LuaLanguageScript::~LuaLanguageScript()
 
 void LuaLanguageScript::load(const std::string& filename)
 {
-    luaL_loadfile(m_lua_state, filename.c_str());
+    const int result = luaL_loadfile(m_lua_state, filename.c_str());
+
+    if (result != 0)
+    {
+        llvm::errs() << "Failed to load script file: " << lua_tostring(m_lua_state, -1) << "\n";
+        exit(1);
+    }
+
     Closure* closure = clvalue(m_lua_state->top - 1);
-    llvm::errs() << "OPCODES: \n";
-    printLuaFunction(closure->l.p, true);
+    //llvm::errs() << "OPCODES: \n";
+    //printLuaFunction(closure->l.p, true);
     m_llvmCompiler->compile(m_ts_context, m_jit, m_lua_ir, m_lua_state, closure->l.p);
     m_registry_index = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
 }
