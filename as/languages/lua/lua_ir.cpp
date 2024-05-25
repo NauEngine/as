@@ -69,6 +69,7 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     vm_mini_vm_f = ir::сreateFunctionDecl(m_luaVMModule.get(), void_t,
         {lua_State_ptr_t, LClosure_ptr_t, int32_t, int32_t}, "vm_mini_vm");
     vm_get_current_closure_f = m_luaVMModule->getFunction("vm_get_current_closure");
+    vm_get_current_base_f = m_luaVMModule->getFunction("vm_get_current_base");
     vm_get_current_constants_f = m_luaVMModule->getFunction("vm_get_current_constants");
     vm_get_number_f = m_luaVMModule->getFunction("vm_get_number");
     vm_get_long_f = m_luaVMModule->getFunction("vm_get_long");
@@ -151,6 +152,7 @@ llvm::Type* LuaIR::getVarType(llvm::LLVMContext& context, val_t type, hint_t hin
           return int32_t;
         case VAR_T_LUA_STATE_PTR:
             return lua_State_ptr_t;
+        case VAR_T_BASE:
         case VAR_T_K:
             return TValue_ptr_t;
         case VAR_T_CL:

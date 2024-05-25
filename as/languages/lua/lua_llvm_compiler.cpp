@@ -395,7 +395,10 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 			case VAR_T_LUA_STATE_PTR:
 				val = bcontext.func_L;
 				break;
-			case VAR_T_K:
+		    case VAR_T_BASE:
+		        val = bcontext.base;
+		    break;
+		    case VAR_T_K:
 				val = bcontext.func_k;
 				break;
 			case VAR_T_CL:
@@ -517,8 +520,10 @@ void LuaLLVMCompiler::сompileSingleProto(
 
 	// get LClosure & constants.
 //  auto a = vm_module.func("vm_get_current_closure");
+    bcontext.base = builder.CreateCall(lua_ir->vm_get_current_base_f, bcontext.func_L, "base");
 	bcontext.func_cl = builder.CreateCall(lua_ir->vm_get_current_closure_f, bcontext.func_L);
 	bcontext.func_k = builder.CreateCall(lua_ir->vm_get_current_constants_f, bcontext.func_cl);
+
 
 	// find all jump/branch destinations and create a new basic block at that opcode.
 	// also build hints for some opcodes.

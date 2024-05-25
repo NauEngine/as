@@ -82,6 +82,7 @@ private:
 		int strip_ops = 0;
 
 		llvm::Value* func_L = nullptr;
+	    llvm::Value* base = nullptr;
 		llvm::CallInst* func_cl = nullptr;
 		llvm::CallInst* func_k = nullptr;
 	};

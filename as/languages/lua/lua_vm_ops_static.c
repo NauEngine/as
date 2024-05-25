@@ -33,7 +33,7 @@ extern "C" {
 
 const vm_func_info vm_op_functions[] = {
   { OP_MOVE, HINT_NONE, VAR_T_VOID, "vm_OP_MOVE",
-    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
+    {VAR_T_BASE, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
   },
   { OP_LOADK, HINT_NONE, VAR_T_VOID, "vm_OP_LOADK",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_Bx, VAR_T_VOID},
@@ -42,7 +42,7 @@ const vm_func_info vm_op_functions[] = {
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_Bx_NUM_CONSTANT, VAR_T_VOID},
   },
   { OP_LOADBOOL, HINT_NONE, VAR_T_VOID, "vm_OP_LOADBOOL",
-    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
+    {VAR_T_BASE, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
   { OP_LOADNIL, HINT_NONE, VAR_T_VOID, "vm_OP_LOADNIL",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},

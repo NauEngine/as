@@ -79,6 +79,7 @@ public:
     // lua vm functions
     llvm::Function* vm_mini_vm_f = nullptr;
     llvm::Function* vm_get_current_closure_f = nullptr;
+    llvm::Function* vm_get_current_base_f = nullptr;
     llvm::Function* vm_get_current_constants_f = nullptr;
     llvm::Function* vm_get_number_f = nullptr;
     llvm::Function* vm_get_long_f = nullptr;

@@ -28,10 +28,12 @@ extern "C" {
 //#include <stdio.h>
 //#include <assert.h>
 
-void vm_OP_MOVE(lua_State *L, int a, int b) {
-  TValue *base = L->base;
-  TValue *ra = base + a;
-  setobjs2s(L, ra, base + b);
+#define setobj_VM(obj1,obj2) \
+{ const TValue *o2=(obj2); TValue *o1=(obj1); \
+o1->value = o2->value; o1->tt=o2->tt; }
+
+void vm_OP_MOVE(TValue *base, int a, int b) {
+  setobj_VM(base + a, base + b);
 }
 
 void vm_OP_LOADK(lua_State *L, TValue *k, int a, int bx) {
@@ -46,8 +48,7 @@ void vm_OP_LOADK_N(lua_State *L, int a, lua_Number nb) {
   setnvalue(ra, nb);
 }
 
-void vm_OP_LOADBOOL(lua_State *L, int a, int b, int c) {
-  TValue *base = L->base;
+void vm_OP_LOADBOOL(TValue *base, int a, int b, int c) {
   TValue *ra = base + a;
   setbvalue(ra, b);
 }
@@ -375,6 +376,11 @@ int vm_OP_FORLOOP_CONST(lua_State *L, int a, int sbx, lua_Number limit, lua_Numb
 
 void vm_OP_CLOSE(lua_State *L, int a) {
   luaF_close(L, L->base + a);
+}
+
+TValue *vm_get_current_base(lua_State *L)
+{
+    return L->base;
 }
 
 LClosure *vm_get_current_closure(lua_State *L) {

@@ -49,6 +49,7 @@ typedef enum {
 	VAR_T_INSTRUCTION,
 	VAR_T_NEXT_INSTRUCTION,
 	VAR_T_LUA_STATE_PTR,
+	VAR_T_BASE,
 	VAR_T_K,
 	VAR_T_CL,
 	VAR_T_OP_VALUE_0,
@@ -66,13 +67,13 @@ typedef struct {
 
 extern const vm_func_info vm_op_functions[];
 
-extern void vm_OP_MOVE(lua_State *L, int a, int b);
+extern void vm_OP_MOVE(TValue *base, int a, int b);
 
 extern void vm_OP_LOADK(lua_State *L, TValue *k, int a, int bx);
 
 extern void vm_OP_LOADK_N(lua_State *L, int a, lua_Number nb);
 
-extern void vm_OP_LOADBOOL(lua_State *L, int a, int b, int c);
+extern void vm_OP_LOADBOOL(TValue *base, int a, int b, int c);
 
 extern void vm_OP_LOADNIL(lua_State *L, int a, int b);
 
@@ -161,7 +162,7 @@ extern void vm_mini_vm(lua_State *L, LClosure *cl, int count, int pseudo_ops_off
 extern void vm_op_hint_locals(char *locals, int stacksize, TValue *k, const Instruction i);
 
 extern LClosure *vm_get_current_closure(lua_State *L);
-
+extern TValue *vm_get_current_base(lua_State *L);
 extern TValue *vm_get_current_constants(LClosure *cl);
 
 extern lua_Number vm_get_number(lua_State *L, int idx);
