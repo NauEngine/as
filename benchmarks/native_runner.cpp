@@ -5,34 +5,18 @@
 #include <unordered_map>
 
 #include "native_runner.h"
-
-namespace
-{
-
-double cycle_Test()
-{
-    double sum = 0.0;
-
-    for (int i = 1; i <= 10000; ++i)
-    {
-        sum += 1.0;
-        sum *= 2.0;
-        sum -= 15.0;
-
-    }
-
-    return sum;
-}
-
-std::unordered_map<std::string, as::benchmark::TestFunc> testFunctions =
-{
-    {"../../benchmarks/lua/scripts/test_1.lua", cycle_Test}
-};
-
-}
+#include "native/native_tests.h"
 
 namespace as::benchmark
 {
+
+std::unordered_map<std::string, as::benchmark::TestFunc> testFunctions =
+{
+    {"../../benchmarks/lua/scripts/test_cycle.lua", test_Cycle},
+    {"../../benchmarks/lua/scripts/test_array.lua", test_Array},
+    {"../../benchmarks/lua/scripts/test_nqueen.lua", test_NQueen},
+};
+
 
 void NativeBenchmarkRunnner::prepare(const std::string& filename)
 {

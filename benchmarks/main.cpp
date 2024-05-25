@@ -17,7 +17,9 @@ typedef void (*RunScript)(const std::string& filename);
 int main()
 {
     std::tuple<std::string, std::string> script_tests[] = {
-        {"cycle", "../../benchmarks/lua/scripts/test_1.lua"},
+        {"cycle", "../../benchmarks/lua/scripts/test_cycle.lua"},
+        {"array", "../../benchmarks/lua/scripts/test_array.lua"},
+        {"n queen", "../../benchmarks/lua/scripts/test_nqueen.lua"},
     };
 
     std::string title = std::format("| {:<10}|", "title");
@@ -61,9 +63,11 @@ int main()
 
             runner->shutdown();
         }
+
+        std::cout << std::endl;
     }
 
-    std::cout << std::endl << delimeter << std::endl;
+    std::cout << delimeter << std::endl;
 
     return 0;
 }

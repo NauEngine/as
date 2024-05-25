@@ -73,7 +73,7 @@ int main()
 
   std::shared_ptr<as::ScriptModule<TestScript>> script_modules[NUM_SCRIPTS];
 
-  script_modules[0] = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.lua", "lua");
+  script_modules[0] = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_cycle.lua", "lua");
   script_modules[1] = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.lua", "lua");
   script_modules[2] = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.nut", "sq");
   script_modules[3] = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.nut", "sq");

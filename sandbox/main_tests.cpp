@@ -52,7 +52,7 @@ int main()
   LoggerImpl logger;
   script_core->registerInstance<Logger>(&logger, "logger");
 
-  auto test_1_lua = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.lua");
+  auto test_1_lua = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_cycle.lua");
   auto test_2_lua = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.lua");
 
   auto test_1_nut = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.nut");
