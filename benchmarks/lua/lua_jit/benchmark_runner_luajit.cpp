@@ -31,10 +31,11 @@ void BenchmarkRunnerLuaJit::prepare(const std::string& filename)
     luaL_dofile(state, filename.c_str());
 }
 
-void BenchmarkRunnerLuaJit::run()
+double BenchmarkRunnerLuaJit::run()
 {
     lua_getglobal(state, "test");
-    lua_call(state, 0, 0);
+    lua_call(state, 0, 1);
+    return lua_tonumber(state, -1);
 }
 
 void BenchmarkRunnerLuaJit::shutdown()

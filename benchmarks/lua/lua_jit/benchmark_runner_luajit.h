@@ -15,7 +15,7 @@ struct BenchmarkRunnerLuaJit final : IBenchmarkRunner
 
     const char* title() override { return "luajit 2.1"; }
     void prepare(const std::string& filename) override;
-    void run() override;
+    double run() override;
     void shutdown() override;
 };
 

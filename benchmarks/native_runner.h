@@ -17,7 +17,7 @@ struct NativeBenchmarkRunnner final : IBenchmarkRunner
 
     const char* title() override { return "native"; }
     void prepare(const std::string& filename) override;
-    void run() override;
+    double run() override;
     void shutdown() override;
 private:
     TestFunc m_testFunction = nullptr;

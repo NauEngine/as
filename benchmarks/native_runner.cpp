@@ -23,9 +23,9 @@ void NativeBenchmarkRunnner::prepare(const std::string& filename)
     m_testFunction = testFunctions[filename];
 }
 
-void NativeBenchmarkRunnner::run()
+double NativeBenchmarkRunnner::run()
 {
-    m_testFunction();
+    return m_testFunction();
 }
 
 void NativeBenchmarkRunnner::shutdown()

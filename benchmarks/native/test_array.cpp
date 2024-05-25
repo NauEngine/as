@@ -23,13 +23,16 @@ namespace as::benchmark
             t[i].f = i * 0.25;
         };
 
+        double sum = 0.0;
+
         for(j=0; j<S; j++) {
             for(i=0; i<N; i++) {
                 t[i].a += t[i].b * t[i].f;
                 t[i].b -= t[i].a * t[i].f;
+                sum += 1.0;
             }
         }
 
-        return 0;
+        return sum;
     }
 }

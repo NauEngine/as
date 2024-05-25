@@ -33,9 +33,10 @@ int main()
 
     for (const auto& runner : runners)
     {
-        title += std::format(" {:<15}|", runner->title());
+        title += std::format(" {:<20}|", runner->title());
     }
 
+    std::cout << std::endl << "All measurements are presented in milliseconds:" << std::endl;
     std::string delimeter;
     for (int i = 0; i < title.length(); ++i)
     {
@@ -54,12 +55,12 @@ int main()
             runner->prepare(std::get<1>(test));
 
             auto start = std::chrono::high_resolution_clock::now();
-            runner->run();
+            auto result = runner->run();
             auto end = std::chrono::high_resolution_clock::now();
 
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-            std::cout << std::format(" {:<15}|", duration.count());
-            //std::cout << std::format("({}) Time taken: {} microseconds\n", runner->title(), duration.count());
+            auto duration_ms = (double)duration.count() / 1000.0;
+            std::cout << std::format(" {:<8.2f}{:>12.2f}|", duration_ms, result);
 
             runner->shutdown();
         }

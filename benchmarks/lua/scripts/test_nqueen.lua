@@ -52,10 +52,11 @@ function test()
 
     local startv = 1
     local endv = 12
+    local sum = 0
 
     for n = startv, endv do
-	    solve(n,a)
+	    sum = sum + solve(n,a)
     end
 
-    return 0
+    return sum
 end

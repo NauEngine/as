@@ -58,10 +58,11 @@ void BenchmarkRunnerLuaClassic::prepare(const std::string& filename)
     luaL_dofile(state, filename.c_str());
 }
 
-void BenchmarkRunnerLuaClassic::run()
+double BenchmarkRunnerLuaClassic::run()
 {
     lua_getglobal(state, "test");
-    lua_call(state, 0, 0);
+    lua_call(state, 0, 1);
+    return lua_tonumber(state, -1);
 }
 
 void BenchmarkRunnerLuaClassic::shutdown()

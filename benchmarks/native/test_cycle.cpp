@@ -11,7 +11,7 @@ namespace as::benchmark
         for (int i = 1; i <= 10000; ++i)
         {
             sum += 1.0;
-            sum *= 2.0;
+            sum *= 0.1;
             sum -= 15.0;
 
         }

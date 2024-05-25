@@ -12,7 +12,7 @@
 DEFINE_SCRIPT_INTERFACE(TestCase,
 struct TestCase
 {
-  virtual void test() = 0;
+  virtual double test() = 0;
 };
 )
 
@@ -34,9 +34,9 @@ void BenchmarkRunnerLuaAs::prepare(const std::string& filename)
     m_testCase = m_scriptModule->newInstance();
 }
 
-void BenchmarkRunnerLuaAs::run()
+double BenchmarkRunnerLuaAs::run()
 {
-    m_testCase->test();
+    return m_testCase->test();
 }
 
 void BenchmarkRunnerLuaAs::shutdown()

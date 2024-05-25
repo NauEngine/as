@@ -21,7 +21,7 @@ struct BenchmarkRunnerLuaAs final : IBenchmarkRunner
 
     const char* title() override { return "lau as"; }
     void prepare(const std::string& filename) override;
-    void run() override;
+    double run() override;
     void shutdown() override;
 private:
     TestCase* m_testCase = nullptr;

@@ -12,10 +12,15 @@ function test()
         }
     end
 
-    for j = 1, S-1 do
-        for i = 1, N-1 do
+    local sum = 0
+
+    for j = 1, S do
+        for i = 1, N do
             t[i].a = t[i].a + t[i].b * t[i].f
             t[i].b = t[i].b - t[i].a * t[i].f
+            sum = sum + 1;
         end
     end
+
+    return sum
 end

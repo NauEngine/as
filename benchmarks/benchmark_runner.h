@@ -16,7 +16,7 @@ struct IBenchmarkRunner
 
     virtual const char* title() = 0;
     virtual void prepare(const std::string& filename) = 0;
-    virtual void run() = 0;
+    virtual double run() = 0;
     virtual void shutdown() = 0;
 };
 
