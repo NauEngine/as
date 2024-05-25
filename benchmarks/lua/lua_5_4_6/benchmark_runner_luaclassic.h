@@ -13,7 +13,7 @@ struct BenchmarkRunnerLuaClassic final : IBenchmarkRunner
 {
     ~BenchmarkRunnerLuaClassic() override = default;
 
-    const char* title() override { return "Lua"; }
+    const char* title() override { return "lua 5.4.6"; }
     void prepare(const std::string& filename) override;
     void run() override;
     void shutdown() override;

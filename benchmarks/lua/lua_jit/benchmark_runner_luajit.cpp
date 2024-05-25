@@ -26,6 +26,8 @@ std::unique_ptr<IBenchmarkRunner> getRunnerLuaJit()
 void BenchmarkRunnerLuaJit::prepare(const std::string& filename)
 {
     state = luaL_newstate();
+    luaL_dostring(state, "jit.on()"); // Включение JIT
+    //luaL_dostring(state, "jit.off()"); // Отключение JIT
     luaL_dofile(state, filename.c_str());
 }
 

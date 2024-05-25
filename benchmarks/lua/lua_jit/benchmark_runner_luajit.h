@@ -13,7 +13,7 @@ struct BenchmarkRunnerLuaJit final : IBenchmarkRunner
 {
     ~BenchmarkRunnerLuaJit() override = default;
 
-    const char* title() override { return "LuaJit"; }
+    const char* title() override { return "luajit 2.1"; }
     void prepare(const std::string& filename) override;
     void run() override;
     void shutdown() override;

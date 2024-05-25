@@ -19,7 +19,7 @@ struct BenchmarkRunnerLuaAs final : IBenchmarkRunner
 {
     ~BenchmarkRunnerLuaAs() override = default;
 
-    const char* title() override { return "LuaAs"; }
+    const char* title() override { return "lau as"; }
     void prepare(const std::string& filename) override;
     void run() override;
     void shutdown() override;

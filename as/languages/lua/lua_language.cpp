@@ -94,7 +94,7 @@ void LuaLanguage::createInterfaceMetatable(const std::shared_ptr<ScriptInterface
     }
   }
 
-  llvm::errs() << *module << "\n";
+  //llvm::errs() << *module << "\n";
 
   if (auto error = m_jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(module), m_ts_context)))
   {

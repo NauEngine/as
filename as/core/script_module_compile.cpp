@@ -101,7 +101,7 @@ std::shared_ptr<ScriptModuleRuntime> ScriptModuleCompile::materialize(std::share
 
     m_language_script->executeModule(jit, context, m_module.get());
 
-    llvm::errs() << "\nINTERFACE MODULE: \n" << *m_module << "\n";
+    //llvm::errs() << "\nINTERFACE MODULE: \n" << *m_module << "\n";
     llvm::cantFail(jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(m_module), ts_context)));
 
     auto script = std::move(m_language_script);
@@ -129,7 +129,7 @@ void ScriptModuleCompile::compile(const ScriptInterface& interface,
         addGlobalConstructor(*m_module, ctor, 65535);
     }
 
-    llvm::verifyModule(*m_module, &llvm::errs());
+    //llvm::verifyModule(*m_module, &llvm::errs());
 }
 
 std::vector<llvm::Constant*> ScriptModuleCompile::compileFunctions(const ScriptInterface& interface, llvm::LLVMContext& context) const
