@@ -26,7 +26,7 @@ struct ScriptInterface;
 class Core
 {
 public:
-    Core();
+    explicit Core(const std::string& base_path = "");
     ~Core();
 
     void registerLanguage(const std::string& language_name, const std::shared_ptr<ILanguage>& language)

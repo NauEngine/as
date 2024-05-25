@@ -34,7 +34,8 @@ static std::string resolveLanguageName(const std::string& filename, const std::s
 
 namespace as
 {
-CoreCompile::CoreCompile(bool add_init):
+CoreCompile::CoreCompile(const std::string& base_path, bool add_init):
+    m_base_path(base_path),
     m_add_init(add_init)
 {
     m_ts_context = std::make_unique<llvm::LLVMContext>();
@@ -78,7 +79,7 @@ std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(
     auto language = getLanguage(resolveLanguageName(filename, language_name));
 
     auto language_script = language->newScript();
-    language_script->load(filename);
+    language_script->load(m_base_path / filename);
 
     return std::make_shared<ScriptModuleCompile>(ir::safe_name(filename), interface, language_script, *m_ts_context.getContext(), m_add_init);
 }

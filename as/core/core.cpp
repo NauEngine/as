@@ -38,8 +38,8 @@ extern "C" void registerInterface(const char* name, void* ptr)
 namespace as
 {
 
-Core::Core():
-    m_compile(false)
+Core::Core(const std::string& base_path):
+    m_compile(base_path, false)
 {
 }
 

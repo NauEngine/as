@@ -6,6 +6,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <filesystem>
 
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
@@ -21,7 +22,7 @@ struct ScriptInterface;
 class CoreCompile
 {
 public:
-    CoreCompile(bool add_init);
+    CoreCompile(const std::string& base_path, bool add_init);
     ~CoreCompile();
 
     void registerLanguage(const std::string& language_name, std::shared_ptr<ILanguage> language);
@@ -50,6 +51,7 @@ private:
     std::unique_ptr<CPPParser> m_cpp_parser;
     llvm::orc::ThreadSafeContext m_ts_context;
     std::shared_ptr<llvm::orc::LLJIT> m_jit;
+    std::filesystem::path m_base_path;
     bool m_add_init;
 
     [[nodiscard]]
