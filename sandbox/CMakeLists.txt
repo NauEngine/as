@@ -42,5 +42,5 @@ add_executable(SandboxCompiler
 
 target_link_scripts(SandboxCompiler scripts/test_script.is)
 target_link_libraries(SandboxCompiler
-    AScript
+    IvnScriptIntegration
 )
