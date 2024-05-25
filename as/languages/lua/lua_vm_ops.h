@@ -69,9 +69,9 @@ extern const vm_func_info vm_op_functions[];
 
 extern void vm_OP_MOVE(TValue *base, int a, int b);
 
-extern void vm_OP_LOADK(lua_State *L, TValue *k, int a, int bx);
+extern void vm_OP_LOADK(TValue *base, TValue *k, int a, int bx);
 
-extern void vm_OP_LOADK_N(lua_State *L, int a, lua_Number nb);
+extern void vm_OP_LOADK_N(TValue *base, int a, lua_Number nb);
 
 extern void vm_OP_LOADBOOL(TValue *base, int a, int b, int c);
 

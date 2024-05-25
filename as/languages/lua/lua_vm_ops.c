@@ -36,16 +36,12 @@ void vm_OP_MOVE(TValue *base, int a, int b) {
   setobj_VM(base + a, base + b);
 }
 
-void vm_OP_LOADK(lua_State *L, TValue *k, int a, int bx) {
-  TValue *base = L->base;
-  TValue *ra = base + a;
-  setobj2s(L, ra, k + bx);
+void vm_OP_LOADK(TValue *base, TValue *k, int a, int bx) {
+  setobj_VM(base + a, k + bx);
 }
 
-void vm_OP_LOADK_N(lua_State *L, int a, lua_Number nb) {
-  TValue *base = L->base;
-  TValue *ra = base + a;
-  setnvalue(ra, nb);
+void vm_OP_LOADK_N(TValue *base, int a, lua_Number nb) {
+  setnvalue(base + a, nb);
 }
 
 void vm_OP_LOADBOOL(TValue *base, int a, int b, int c) {
