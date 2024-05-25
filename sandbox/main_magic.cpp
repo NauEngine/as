@@ -43,7 +43,7 @@ Foo* newInstance<Foo, test_2_lua>() {
 
 
 int main() {
-    const auto inst1 = newInstance<Foo, ScriptPath("../../sandbox/scripts/test_cycle.lua")>();
+    const auto inst1 = newInstance<Foo, ScriptPath("../../sandbox/scripts/test_1.lua")>();
     const auto inst2 = newInstance<Foo, ScriptPath("../../sandbox/scripts/test_2.lua")>();
 
     std::cout << inst1->bar() << "\n";
