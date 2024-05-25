@@ -237,18 +237,6 @@ void LuaLLVMCompiler::findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRB
 			case OP_EQ:
 			case OP_LT:
 			case OP_LE:
-				// check if arg C is a number constant.
-				if(ISK(GETARG_C(instruction)))
-				{
-					TValue *rc = bcontext.k + INDEXK(GETARG_C(instruction));
-					if(ttisnumber(rc)) op_hints[i] |= HINT_C_NUM_CONSTANT;
-				}
-
-				if(GETARG_A(instruction) == 1)
-				{
-					op_hints[i] |= HINT_NOT;
-				}
-				// fall-through
 			case OP_TEST:
 			case OP_TESTSET:
 			case OP_TFORLOOP:
