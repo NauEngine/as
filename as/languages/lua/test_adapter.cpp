@@ -17,11 +17,7 @@ struct Logger
 };
 
 
-int warn_A(lua_State* state)
+TValue* warn_A(TValue* base, TMS tms)
 {
-	Logger* obj = *(Logger**)luaL_checkudata(state, 1, "Logger");
-	int a = luaL_checkinteger(state, 2);
-	int b = luaL_checkinteger(state, 3);
-	obj->warn(a, b);
-	return 0;
+    return base + 10;
 }

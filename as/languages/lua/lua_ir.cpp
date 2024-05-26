@@ -71,10 +71,24 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     vm_get_current_closure_f = m_luaVMModule->getFunction("vm_get_current_closure");
     vm_get_current_base_f = m_luaVMModule->getFunction("vm_get_current_base");
     vm_get_current_constants_f = m_luaVMModule->getFunction("vm_get_current_constants");
+    vm_is_number_f = m_luaVMModule->getFunction("vm_is_number");
     vm_get_number_f = m_luaVMModule->getFunction("vm_get_number");
-    vm_get_long_f = m_luaVMModule->getFunction("vm_get_long");
     vm_set_number_f = m_luaVMModule->getFunction("vm_set_number");
-    vm_set_long_f = m_luaVMModule->getFunction("vm_set_long");
+    vm_arith_f = m_luaVMModule->getFunction("vm_arith");
+
+    vm_num_f[OP_ADD] = m_luaVMModule->getFunction("vm_NUM_ADD");
+    vm_num_f[OP_SUB] = m_luaVMModule->getFunction("vm_NUM_SUB");
+    vm_num_f[OP_MUL] = m_luaVMModule->getFunction("vm_NUM_MUL");
+    vm_num_f[OP_DIV] = m_luaVMModule->getFunction("vm_NUM_DIV");
+    vm_num_f[OP_MOD] = m_luaVMModule->getFunction("vm_NUM_MOD");
+    vm_num_f[OP_POW] = m_luaVMModule->getFunction("vm_NUM_POW");
+
+    vm_arith_tms_map[OP_ADD] = TM_ADD;
+    vm_arith_tms_map[OP_SUB] = TM_SUB;
+    vm_arith_tms_map[OP_MUL] = TM_MUL;
+    vm_arith_tms_map[OP_DIV] = TM_DIV;
+    vm_arith_tms_map[OP_MOD] = TM_MOD;
+    vm_arith_tms_map[OP_POW] = TM_POW;
 
     prepareVMOpcodes(context);
 

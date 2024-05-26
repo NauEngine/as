@@ -81,10 +81,13 @@ public:
     llvm::Function* vm_get_current_closure_f = nullptr;
     llvm::Function* vm_get_current_base_f = nullptr;
     llvm::Function* vm_get_current_constants_f = nullptr;
+    llvm::Function* vm_is_number_f = nullptr;
     llvm::Function* vm_get_number_f = nullptr;
-    llvm::Function* vm_get_long_f = nullptr;
     llvm::Function* vm_set_number_f = nullptr;
-    llvm::Function* vm_set_long_f = nullptr;
+    llvm::Function* vm_arith_f = nullptr;
+
+    std::unordered_map<int, llvm::Function*> vm_num_f;
+    std::unordered_map<int, TMS> vm_arith_tms_map;
 
     void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context, lua_State* lua_state);
 

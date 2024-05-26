@@ -40,7 +40,9 @@ public:
 	~LuaLLVMCompiler();
 
 	void setStripCode(bool strip) { m_stripCode = strip; }
-	void setDumpCompiled(bool dump) { m_dumpCompiled = dump; }
+
+    void setDumpCompiled(bool dump) { m_dumpCompiled = dump; }
+    bool getDumpCompiled() const { return m_dumpCompiled; }
 
 	void compile(
 	    llvm::orc::ThreadSafeContext ts_context,
@@ -85,6 +87,8 @@ private:
 	    llvm::Value* base = nullptr;
 		llvm::CallInst* func_cl = nullptr;
 		llvm::CallInst* func_k = nullptr;
+
+	    std::vector<llvm::Value*> localVars;
 	};
 
 	bool m_stripCode = false;
@@ -99,11 +103,27 @@ private:
 	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> function_aliases;
 
     llvm::Constant* findConstantInCodeAbove(llvm::LLVMContext& context, BuildContext& bcontext, int fromInstruction, int reg);
+    static llvm::Constant* getConstantIfNumeric(llvm::LLVMContext& context, BuildContext& bcontext, int arg);
+
 	void prepareOpcodeData(int code_len);
     llvm::Value* getProtoConstant(llvm::LLVMContext& context, TValue* constant);
     std::string generateFunctionName(Proto* p);
 	void findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRBuilder<>& builder, BuildContext& bcontext);
 	void preCreateBasicBlocks(llvm::LLVMContext& context, llvm::Function* func, BuildContext& bcontext);
+
+    static void buildLocalVars(
+        llvm::LLVMContext& context,
+        BuildContext& bcontext,
+        llvm::IRBuilder<>& builder,
+        const std::shared_ptr<LuaIR>& lua_ir, const Proto* proto);
+
+    void buildArithOp(
+        llvm::LLVMContext& context,
+        const BuildContext& bcontext,
+        llvm::IRBuilder<>& builder,
+        const std::shared_ptr<LuaIR>& lua_ir,
+        llvm::Function* func,
+        int i);
 
     std::vector<llvm::Value*> getOpCallArgs(
         llvm::LLVMContext& context,

@@ -8,6 +8,7 @@ extern "C" {
 
 #include "lua_core.h"
 #include "lua/lobject.h"
+#include "lua/ltm.h"
 
 typedef struct {
   TValue *k;
@@ -29,6 +30,8 @@ typedef unsigned int hint_t;
 #define HINT_SKIP_OP			(1<<4)
 #define HINT_MINI_VM			(1<<5)
 #define HINT_NO_SUB				(1<<6)
+#define HINT_NO_OPCODE_FUNC		(1<<7)
+#define HINT_NUMERIC_ARITH		(1<<7)
 
 typedef enum {
 	VAR_T_VOID = 0,
@@ -57,7 +60,8 @@ typedef enum {
 	VAR_T_OP_VALUE_2
 } val_t;
 
-typedef struct {
+typedef struct
+{
 	int opcode; /* Lua opcode */
 	hint_t hint; /* Specialized version. [0=generic] */
 	val_t ret_type; /* return type */
@@ -75,7 +79,7 @@ extern void vm_OP_LOADK_N(TValue *base, int a, lua_Number nb);
 
 extern void vm_OP_LOADBOOL(TValue *base, int a, int b, int c);
 
-extern void vm_OP_LOADNIL(lua_State *L, int a, int b);
+extern void vm_OP_LOADNIL(TValue *base, int a, int b);
 
 extern void vm_OP_GETUPVAL(lua_State *L, LClosure *cl, int a, int b);
 
@@ -92,24 +96,6 @@ extern void vm_OP_SETTABLE(lua_State *L, TValue *k, int a, int b, int c);
 extern void vm_OP_NEWTABLE(lua_State *L, int a, int b, int c);
 
 extern void vm_OP_SELF(lua_State *L, TValue *k, int a, int b, int c);
-
-extern void vm_OP_ADD(lua_State *L, TValue *k, int a, int b, int c);
-extern void vm_OP_ADD_NC(lua_State *L, TValue *k, int a, int b, lua_Number nc, int c);
-
-extern void vm_OP_SUB(lua_State *L, TValue *k, int a, int b, int c);
-extern void vm_OP_SUB_NC(lua_State *L, TValue *k, int a, int b, lua_Number nc, int c);
-
-extern void vm_OP_MUL(lua_State *L, TValue *k, int a, int b, int c);
-extern void vm_OP_MUL_NC(lua_State *L, TValue *k, int a, int b, lua_Number nc, int c);
-
-extern void vm_OP_DIV(lua_State *L, TValue *k, int a, int b, int c);
-extern void vm_OP_DIV_NC(lua_State *L, TValue *k, int a, int b, lua_Number nc, int c);
-
-extern void vm_OP_MOD(lua_State *L, TValue *k, int a, int b, int c);
-extern void vm_OP_MOD_NC(lua_State *L, TValue *k, int a, int b, lua_Number nc, int c);
-
-extern void vm_OP_POW(lua_State *L, TValue *k, int a, int b, int c);
-extern void vm_OP_POW_NC(lua_State *L, TValue *k, int a, int b, lua_Number nc, int c);
 
 extern void vm_OP_UNM(lua_State *L, int a, int b);
 
@@ -161,15 +147,23 @@ extern void vm_mini_vm(lua_State *L, LClosure *cl, int count, int pseudo_ops_off
 
 extern void vm_op_hint_locals(char *locals, int stacksize, TValue *k, const Instruction i);
 
+extern lua_Number vm_NUM_ADD(lua_Number a, lua_Number b);
+extern lua_Number vm_NUM_SUB(lua_Number a, lua_Number b);
+extern lua_Number vm_NUM_MUL(lua_Number a, lua_Number b);
+extern lua_Number vm_NUM_DIV(lua_Number a, lua_Number b);
+extern lua_Number vm_NUM_MOD(lua_Number a, lua_Number b);
+extern lua_Number vm_NUM_POW(lua_Number a, lua_Number b);
+
+extern void vm_arith(lua_State *L, TValue* base, TValue* k, TValue* ra, int b, int c, TMS op);
+
 extern LClosure *vm_get_current_closure(lua_State *L);
 extern TValue *vm_get_current_base(lua_State *L);
 extern TValue *vm_get_current_constants(LClosure *cl);
 
-extern lua_Number vm_get_number(lua_State *L, int idx);
-extern void vm_set_number(lua_State *L, int idx, lua_Number num);
+extern int vm_is_number(TValue *value);
 
-extern lua_Long vm_get_long(lua_State *L, int idx);
-extern void vm_set_long(lua_State *L, int idx, lua_Long num);
+extern lua_Number vm_get_number(TValue *value);
+extern void vm_set_number(TValue *value, lua_Number num);
 
 /*
 ** some macros for common tasks in `vm_OP_*' functions.
@@ -194,30 +188,6 @@ extern void vm_set_long(lua_State *L, int idx, lua_Long num);
 
 
 #define Protect(x)  { {x;}; base = L->base; }
-
-#define arith_op(op,tm) { \
-        TValue *ra = base + a; \
-        TValue *rb = RK(b); \
-        TValue *rc = RK(c); \
-        if (ttisnumber(rb) && ttisnumber(rc)) { \
-          lua_Number nb = nvalue(rb), nc = nvalue(rc); \
-          setnvalue(ra, op(nb, nc)); \
-        } \
-        else \
-          luaV_arith(L, ra, rb, rc, tm); \
-      }
-
-#define arith_op_nc(op,tm) { \
-        TValue *ra = base + a; \
-        TValue *rb = RK(b); \
-        if (ttisnumber(rb)) { \
-          lua_Number nb = nvalue(rb); \
-          setnvalue(ra, op(nb, nc)); \
-        } \
-        else \
-          luaV_arith(L, ra, rb, RK(c), tm); \
-      }
-
 
 #ifdef __cplusplus
 }

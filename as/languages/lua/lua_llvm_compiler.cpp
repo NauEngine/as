@@ -140,9 +140,7 @@ std::string LuaLLVMCompiler::generateFunctionName(Proto *p)
 
 llvm::Constant* LuaLLVMCompiler::findConstantInCodeAbove(llvm::LLVMContext& context, BuildContext& bcontext, int fromInstruction, int reg)
 {
-    bool no_jmp_end_point = true;
-
-    for (int i = 1; (fromInstruction - i) >= 0 && no_jmp_end_point; ++i)
+    for (int i = 1; (fromInstruction - i) >= 0; ++i)
     {
         const int instructionSlot = fromInstruction - i;
         const Instruction insruction = bcontext.code[instructionSlot];
@@ -151,7 +149,10 @@ llvm::Constant* LuaLLVMCompiler::findConstantInCodeAbove(llvm::LLVMContext& cont
         const int RA = GETARG_A(insruction);
 
         // check for jmp end-point.
-        no_jmp_end_point = !(need_op_block[instructionSlot]);
+        if (need_op_block[instructionSlot])
+        {
+            break;
+        }
 
         if (RA != reg)
         {
@@ -167,16 +168,31 @@ llvm::Constant* LuaLLVMCompiler::findConstantInCodeAbove(llvm::LLVMContext& cont
                 return llvm::ConstantFP::get(context, llvm::APFloat(number));
             }
         }
-        else if (opcode == OP_MOVE)
+        // else if (opcode == OP_MOVE)
+        // {
+        //     const int RB = GETARG_B(insruction);
+        //     return findConstantInCodeAbove(context, bcontext, instructionSlot, RB);
+        // }
+        else
         {
-            const int RB = GETARG_B(insruction);
-            return findConstantInCodeAbove(context, bcontext, instructionSlot, RB);
+            break;
         }
     }
 
     return nullptr;
 }
 
+llvm::Constant* LuaLLVMCompiler::getConstantIfNumeric(llvm::LLVMContext& context, BuildContext& bcontext, int arg)
+{
+    TValue* luaConst = bcontext.k + INDEXK(arg);
+    if (ttisnumber(luaConst))
+    {
+        const lua_Number number = nvalue(luaConst);
+        return llvm::ConstantFP::get(context, llvm::APFloat(number));
+    }
+
+    return nullptr;
+}
 
 void LuaLLVMCompiler::findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRBuilder<>& builder, BuildContext& bcontext)
 {
@@ -289,17 +305,40 @@ void LuaLLVMCompiler::findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRB
 					i++;
 				}
 				break;
-			case OP_ADD:
+			case OP_ADD: // R(A) := RK(B) + RK(C)
 			case OP_SUB:
 			case OP_MUL:
 			case OP_DIV:
 			case OP_MOD:
 			case OP_POW:
-				// check if arg C is a number constant.
-				if(ISK(GETARG_C(instruction))) {
-					TValue *rc = bcontext.k + INDEXK(GETARG_C(instruction));
-					if(ttisnumber(rc)) op_hints[i] |= HINT_C_NUM_CONSTANT;
-				}
+			    {
+		            const int R_OP[2] = {GETARG_B(instruction), GETARG_C(instruction)};
+    		        auto opVals = std::make_unique<OPValues>(2);
+                    int countConst = 0;
+		            for (int op = 0; op < 2; ++op)
+		            {
+		                llvm::Constant* llvmConst = nullptr;
+		                if (ISK(R_OP[op]))
+		                {
+		                    llvmConst = getConstantIfNumeric(context, bcontext, R_OP[op]);
+		                }
+
+		                if (llvmConst)
+		                {
+		                    countConst++;
+		                }
+
+		                opVals->set(op, llvmConst);
+		            }
+
+			        op_values[i] = std::move(opVals);
+
+		            op_hints[i] |= HINT_NO_OPCODE_FUNC;
+			        if (countConst == 2)
+			        {
+			            op_hints[i] |= HINT_NUMERIC_ARITH;
+			        }
+			    }
 				break;
 			default:
 				break;
@@ -456,6 +495,8 @@ void LuaLLVMCompiler::compile(
 		llvm::errs() << *module;
 	}
 
+    llvm::verifyModule(*module);
+
     llvm::cantFail(jit->addIRModule({std::move(module), ts_context}));
 
     for (auto [proto, func_name] : func_names)
@@ -481,6 +522,103 @@ void LuaLLVMCompiler::сompileAllProtos(
     for (int i = 0; i < p->sizep; ++i)
     {
         сompileAllProtos(context, lua_ir, module, optimizer, L, p->p[i], func_names);
+    }
+}
+
+void LuaLLVMCompiler::buildArithOp(
+    llvm::LLVMContext& context,
+    const BuildContext& bcontext,
+    llvm::IRBuilder<>& builder,
+    const std::shared_ptr<LuaIR>& lua_ir,
+    llvm::Function* func,
+    const int i)
+{
+    const Instruction instruction = bcontext.code[i];
+    const int opcode = GET_OPCODE(instruction);
+
+    llvm::Function* num_func = lua_ir->vm_num_f[opcode];
+    const int RA = GETARG_A(instruction);
+    const int RB = GETARG_B(instruction);
+    const int RC = GETARG_C(instruction);
+
+    if (op_values[i]->get(0) && op_values[i]->get(1))
+    {
+        llvm::Value* result = builder.CreateCall(num_func, {op_values[i]->get(0), op_values[i]->get(1)});
+        builder.CreateCall(lua_ir->vm_set_number_f, {bcontext.localVars[RA], result});
+        return;
+    }
+
+    llvm::BasicBlock* nanBlock = llvm::BasicBlock::Create(context, "nan_block", func);
+
+    llvm::Value* args[2] = {op_values[i]->get(0), op_values[i]->get(1)};
+    llvm::BasicBlock* numBlocks[2] = {nullptr, nullptr};
+    int regs[2] = {RB, RC};
+
+    for (int n = 0; n < 2; ++n)
+    {
+        if (args[n] == nullptr)
+        {
+            llvm::Value* is_number_int = builder.CreateCall(lua_ir->vm_is_number_f, {bcontext.localVars[regs[n]]}, "is_number");
+            llvm::Value* is_number_bool = builder.CreateICmpEQ(is_number_int, llvm::ConstantInt::get(context, llvm::APInt(32, 1)));
+            numBlocks[n] = llvm::BasicBlock::Create(context, "num_block", func);
+            builder.CreateCondBr(is_number_bool, numBlocks[n], nanBlock);
+            builder.SetInsertPoint(numBlocks[n]);
+            args[n] = builder.CreateCall(lua_ir->vm_get_number_f, {bcontext.localVars[regs[n]]}, "num");
+        }
+    }
+
+    llvm::Value* result = builder.CreateCall(num_func, {args[0], args[1]});
+    builder.CreateCall(lua_ir->vm_set_number_f, {bcontext.localVars[RA], result});
+
+    llvm::Constant* tms_code = llvm::ConstantInt::get(context, llvm::APInt(32, lua_ir->vm_arith_tms_map[opcode]));
+
+    builder.SetInsertPoint(nanBlock);
+    builder.CreateCall(lua_ir->vm_arith_f, {
+        bcontext.func_L,
+        bcontext.base,
+        bcontext.func_k,
+        bcontext.localVars[RA],
+        llvm::ConstantInt::get(context, llvm::APInt(32, RB)),
+        llvm::ConstantInt::get(context, llvm::APInt(32, RC)),
+        tms_code});
+
+    llvm::BasicBlock* nextBlock = llvm::BasicBlock::Create(context, "next_block", func);
+    builder.CreateBr(nextBlock);
+
+    for (int n = 1; n >= 0; --n)
+    {
+        if (numBlocks[n] != nullptr)
+        {
+            builder.SetInsertPoint(numBlocks[n]);
+            builder.CreateBr(nextBlock);
+            break;
+        }
+    }
+
+    builder.SetInsertPoint(nextBlock);
+}
+
+void LuaLLVMCompiler::buildLocalVars(
+    llvm::LLVMContext& context,
+    BuildContext& bcontext,
+    llvm::IRBuilder<>& builder,
+    const std::shared_ptr<LuaIR>& lua_ir,
+    const Proto* proto)
+{
+    bcontext.localVars.resize(proto->maxstacksize, nullptr);
+
+    for (int i = 0; i < proto->maxstacksize; ++i)
+    {
+        const auto shift = llvm::ConstantInt::get(lua_ir->int64_t, llvm::APInt(64, i));
+        if (i  < proto->sizelocvars)
+        {
+            const auto varName = getstr(proto->locvars[i].varname);
+            bcontext.localVars[i] = builder.CreateGEP(lua_ir->TValue_t, bcontext.base, shift, varName);
+        }
+        else
+        {
+            bcontext.localVars[i] = builder.CreateGEP(lua_ir->TValue_t, bcontext.base, shift, "stack_var");
+        }
     }
 }
 
@@ -524,6 +662,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 	bcontext.func_cl = builder.CreateCall(lua_ir->vm_get_current_closure_f, bcontext.func_L);
 	bcontext.func_k = builder.CreateCall(lua_ir->vm_get_current_constants_f, bcontext.func_cl);
 
+    buildLocalVars(context, bcontext, builder, lua_ir, p);
 
 	// find all jump/branch destinations and create a new basic block at that opcode.
 	// also build hints for some opcodes.
@@ -605,52 +744,56 @@ void LuaLLVMCompiler::сompileSingleProto(
 			}
 		}
 
-		auto opfunc = lua_ir->getOpcodeVariant(opcode, op_hints[i]);
+	    if (op_hints[i] & HINT_SKIP_OP)
+	    {
+	        continue;
+	    }
 
-		if (op_hints[i] & HINT_SKIP_OP)
-		{
-			if (m_stripCode) bcontext.strip_ops++;
-			continue;
-		}
-
-		if (m_stripCode)
-		{
-			// strip all opcodes.
-			bcontext.strip_ops++;
-			if (bcontext.strip_ops > 0 && bcontext.strip_ops < (i+1))
-			{
-				// move opcodes we want to keep to new position.
-				bcontext.code[(i+1) - bcontext.strip_ops] = instruction;
-			}
-		}
-
-		// setup arguments for opcode function.
-		auto func_info = opfunc->info;
-		if (func_info == nullptr)
-		{
-			fprintf(stderr, "Error missing vm_OP_* function for opcode: %d\n", opcode);
-			return;
-		}
-
-		auto args = getOpCallArgs(context, func_info, bcontext, i);
 		llvm::CallInst* call = nullptr;
-		// create call to opcode function.
-		if (func_info->ret_type != VAR_T_VOID)
-		{
-			call = builder.CreateCall(opfunc->func, args, "retval");
-		}
-		else
-		{
-			call = builder.CreateCall(opfunc->func, args);
-		}
+
+	    if (!(op_hints[i] & HINT_NO_OPCODE_FUNC))
+	    {
+	        auto opfunc = lua_ir->getOpcodeVariant(opcode, op_hints[i]);
+
+	        // setup arguments for opcode function.
+	        auto func_info = opfunc->info;
+	        if (func_info == nullptr)
+	        {
+	            fprintf(stderr, "Error missing vm_OP_* function for opcode: %d\n", opcode);
+	            return;
+	        }
+
+	        auto args = getOpCallArgs(context, func_info, bcontext, i);
+	        // create call to opcode function.
+	        if (func_info->ret_type != VAR_T_VOID)
+	        {
+	            call = builder.CreateCall(opfunc->func, args, "retval");
+	        }
+	        else
+	        {
+	            call = builder.CreateCall(opfunc->func, args);
+	        }
+	    }
 
 		// handle retval from opcode function.
-		switch (opcode) {
+		switch (opcode)
+		{
 			case OP_LOADBOOL:
 				// check C operand if C!=0 then skip over the next op_block.
 				if(GETARG_C(instruction) != 0) branch += 1;
 				else branch = BRANCH_NONE;
 				break;
+		    case OP_ADD:
+            case OP_SUB:
+            case OP_MUL:
+            case OP_DIV:
+            case OP_MOD:
+            case OP_POW:
+		        {
+		            buildArithOp(context, bcontext, builder, lua_ir, func, i);
+    		        branch = BRANCH_NONE;
+		        }
+		        break;
 			case OP_LOADK:
 			case OP_LOADNIL:
 			case OP_GETGLOBAL:
@@ -659,12 +802,6 @@ void LuaLLVMCompiler::сompileSingleProto(
 			case OP_SETTABLE:
 			case OP_NEWTABLE:
 			case OP_SELF:
-			case OP_ADD:
-			case OP_SUB:
-			case OP_MUL:
-			case OP_DIV:
-			case OP_MOD:
-			case OP_POW:
 			case OP_UNM:
 			case OP_NOT:
 			case OP_LEN:
@@ -733,10 +870,6 @@ void LuaLLVMCompiler::сompileSingleProto(
 				break;
 			}
 			case OP_FORPREP: {
-				llvm::Function* get_func = lua_ir->vm_get_number_f;
-				llvm::Value *idx_var,*init;
-				llvm::CallInst *call2;
-
 				op_blocks[i] = current_block;
 				branch += GETARG_sBx(instruction);
 				break;
@@ -784,20 +917,6 @@ void LuaLLVMCompiler::сompileSingleProto(
 			builder.CreateCondBr(brcond, true_block, false_block);
 			current_block = nullptr; // have terminator
 		}
-	}
-
-	// strip Lua bytecode and debug info.
-	if (m_stripCode && bcontext.strip_ops > 0)
-	{
-		bcontext.code_len -= bcontext.strip_ops;
-		luaM_reallocvector(L, p->code, p->sizecode, bcontext.code_len, Instruction);
-		p->sizecode = bcontext.code_len;
-		luaM_reallocvector(L, p->lineinfo, p->sizelineinfo, 0, int);
-		p->sizelineinfo = 0;
-		luaM_reallocvector(L, p->locvars, p->sizelocvars, 0, LocVar);
-		p->sizelocvars = 0;
-		luaM_reallocvector(L, p->upvalues, p->sizeupvalues, 0, TString *);
-		p->sizeupvalues = 0;
 	}
 
     optimizer->inlineAll(func);
