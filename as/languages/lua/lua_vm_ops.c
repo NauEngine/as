@@ -36,12 +36,8 @@ void vm_OP_MOVE(TValue *base, int a, int b) {
   setobj_VM(base + a, base + b);
 }
 
-void vm_OP_LOADK(TValue *base, TValue *k, int a, int bx) {
-  setobj_VM(base + a, k + bx);
-}
-
-void vm_OP_LOADK_N(TValue *base, int a, lua_Number nb) {
-  setnvalue(base + a, nb);
+void vm_OP_LOADK(TValue *var, TValue *value) {
+  setobj_VM(var, value);
 }
 
 void vm_OP_LOADBOOL(TValue *base, int a, int b, int c) {
@@ -292,14 +288,13 @@ int vm_OP_FORLOOP(lua_State *L, int a, int sbx)
   return 0;
 }
 
-int vm_OP_FORLOOP_CONST(lua_State *L, int a, int sbx, lua_Number limit, lua_Number step) {
-    TValue *ra = L->base + a;
+int vm_OP_FORLOOP_CONST(TValue* ra, TValue* ra_3, lua_Number limit, lua_Number step) {
     lua_Number idx = luai_numadd(nvalue(ra), step); /* increment index */
 
     if ( luai_numlt(0, step) ? luai_numle(idx, limit) : luai_numle(limit, idx) )
     {
         setnvalue(ra, idx);  /* update internal index... */
-        setnvalue(ra + 3, idx);  /* ...and external index */
+        setnvalue(ra_3, idx);  /* ...and external index */
         return 1;
     }
 

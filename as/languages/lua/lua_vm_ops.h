@@ -57,7 +57,11 @@ typedef enum {
 	VAR_T_CL,
 	VAR_T_OP_VALUE_0,
 	VAR_T_OP_VALUE_1,
-	VAR_T_OP_VALUE_2
+	VAR_T_OP_VALUE_2,
+
+	VAR_T_VAR_A,
+	VAR_T_VAR_A_3,
+	VAR_T_CONST_Bx,
 } val_t;
 
 typedef struct
@@ -73,9 +77,7 @@ extern const vm_func_info vm_op_functions[];
 
 extern void vm_OP_MOVE(TValue *base, int a, int b);
 
-extern void vm_OP_LOADK(TValue *base, TValue *k, int a, int bx);
-
-extern void vm_OP_LOADK_N(TValue *base, int a, lua_Number nb);
+extern void vm_OP_LOADK(TValue *var, TValue *value);
 
 extern void vm_OP_LOADBOOL(TValue *base, int a, int b, int c);
 
@@ -126,7 +128,7 @@ extern int vm_OP_RETURN(lua_State *L, int a, int b);
 extern int vm_OP_TAILCALL(lua_State *L, int a, int b);
 
 extern int vm_OP_FORLOOP(lua_State *L, int a, int sbx);
-extern int vm_OP_FORLOOP_CONST(lua_State *L, int a, int sbx, lua_Number limit, lua_Number step);
+extern int vm_OP_FORLOOP_CONST(TValue* ra, TValue* ra_3, lua_Number limit, lua_Number step);
 
 extern void vm_OP_FORPREP(lua_State *L, int a, int sbx);
 extern void vm_OP_FORPREP_CONST(lua_State *L, int a, int sbx, lua_Number step);

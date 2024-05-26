@@ -202,21 +202,6 @@ void LuaLLVMCompiler::findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRB
 	{
 		Instruction instruction = bcontext.code[i];
 		const int opcode = GET_OPCODE(instruction);
-		// combine simple ops into one function call.
-
-	    if (is_mini_vm_op(opcode))
-	    {
-			mini_op_repeat++;
-		}
-	    else
-	    {
-			if (mini_op_repeat >= 3 && OptLevel > 1)
-			{
-				op_hints[i - mini_op_repeat] |= HINT_MINI_VM;
-			}
-
-			mini_op_repeat = 0;
-		}
 
 		switch (opcode)
 		{
@@ -228,13 +213,6 @@ void LuaLLVMCompiler::findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRB
 						++branch;
 					need_op_block[branch] = true;
 				}
-				break;
-			case OP_LOADK:
-			    {
-			        // check if arg Bx is a number constant.
-			        TValue *rb = bcontext.k + INDEXK(GETARG_Bx(instruction));
-			        if(ttisnumber(rb)) op_hints[i] |= HINT_Bx_NUM_CONSTANT;
-			    }
 				break;
 			case OP_JMP:
 				{
@@ -381,6 +359,15 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 
 		switch(func_info->params[x])
 		{
+		    case VAR_T_VAR_A:
+                val = bcontext.localVars[GETARG_A(instruction)];
+		        break;
+		    case VAR_T_VAR_A_3:
+                val = bcontext.localVars[GETARG_A(instruction) + 3];
+		        break;
+		    case VAR_T_CONST_Bx:
+		        val = bcontext.constants[INDEXK(GETARG_Bx(instruction))];
+    		    break;
 			case VAR_T_ARG_A:
 				val = llvm::ConstantInt::get(context, llvm::APInt(32, GETARG_A(instruction)));
 				break;
@@ -622,6 +609,22 @@ void LuaLLVMCompiler::buildLocalVars(
     }
 }
 
+void LuaLLVMCompiler::buildConstants(
+    llvm::LLVMContext& context,
+    BuildContext& bcontext,
+    llvm::IRBuilder<>& builder,
+    const std::shared_ptr<LuaIR>& lua_ir,
+    const Proto* proto)
+{
+    bcontext.constants.resize(proto->sizek, nullptr);
+
+    for (int i = 0; i < proto->sizek; ++i)
+    {
+        const auto shift = llvm::ConstantInt::get(lua_ir->int64_t, llvm::APInt(64, i));
+        const auto constName = std::format("const{}", i);
+        bcontext.constants[i] = builder.CreateGEP(lua_ir->TValue_t, bcontext.func_k, shift, constName);
+    }
+}
 
 void LuaLLVMCompiler::сompileSingleProto(
 	llvm::LLVMContext& context,
@@ -663,6 +666,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 	bcontext.func_k = builder.CreateCall(lua_ir->vm_get_current_constants_f, bcontext.func_cl);
 
     buildLocalVars(context, bcontext, builder, lua_ir, p);
+    buildConstants(context, bcontext, builder, lua_ir, p);
 
 	// find all jump/branch destinations and create a new basic block at that opcode.
 	// also build hints for some opcodes.
@@ -705,44 +709,6 @@ void LuaLLVMCompiler::сompileSingleProto(
 		int branch = i + 1;
 		Instruction instruction = bcontext.code[i];
 		int opcode = GET_OPCODE(instruction);
-		// combined multiple simple ops into one call.
-		if(op_hints[i] & HINT_MINI_VM) {
-			int op_count = 1;
-			// count mini ops and check for any branch end-points.
-			while(is_mini_vm_op(GET_OPCODE(bcontext.code[i + op_count])) &&
-					(op_hints[i + op_count] & HINT_SKIP_OP) == 0) {
-				// branch end-point in middle of mini ops block.
-				if(need_op_block[i + op_count]) {
-					op_hints[i + op_count] |= HINT_MINI_VM; // mark start of new mini vm ops.
-					break;
-				}
-				op_count++;
-			}
-			if(op_count >= 3) {
-				    // large block of mini ops add function call to vm_mini_vm()
-                builder.CreateCall(lua_ir->vm_mini_vm_f, {
-                    bcontext.func_L,
-                    bcontext.func_cl,
-                    llvm::ConstantInt::get(context, llvm::APInt(32,op_count)),
-                    llvm::ConstantInt::get(context, llvm::APInt(32,i - bcontext.strip_ops))
-                });
-
-				if(m_stripCode && bcontext.strip_ops > 0) {
-					while(op_count > 0) {
-						bcontext.code[i - bcontext.strip_ops] = bcontext.code[i];
-						i++;
-						op_count--;
-					}
-				} else {
-					i += op_count;
-				}
-				i--;
-				continue;
-			} else {
-				// mini ops block too small.
-				op_hints[i] &= ~(HINT_MINI_VM);
-			}
-		}
 
 	    if (op_hints[i] & HINT_SKIP_OP)
 	    {

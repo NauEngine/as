@@ -89,6 +89,7 @@ private:
 		llvm::CallInst* func_k = nullptr;
 
 	    std::vector<llvm::Value*> localVars;
+	    std::vector<llvm::Value*> constants;
 	};
 
 	bool m_stripCode = false;
@@ -115,7 +116,15 @@ private:
         llvm::LLVMContext& context,
         BuildContext& bcontext,
         llvm::IRBuilder<>& builder,
-        const std::shared_ptr<LuaIR>& lua_ir, const Proto* proto);
+        const std::shared_ptr<LuaIR>& lua_ir,
+        const Proto* proto);
+
+    static void buildConstants(
+        llvm::LLVMContext& context,
+        BuildContext& bcontext,
+        llvm::IRBuilder<>& builder,
+        const std::shared_ptr<LuaIR>& lua_ir,
+        const Proto* proto);
 
     void buildArithOp(
         llvm::LLVMContext& context,
