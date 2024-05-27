@@ -59,8 +59,11 @@ typedef enum {
 	VAR_T_OP_VALUE_1,
 	VAR_T_OP_VALUE_2,
 
-	VAR_T_VAR_A,
-	VAR_T_VAR_A_3,
+	VAR_T_R_A,
+	VAR_T_R_A_3, // special case of FORPREP
+	VAR_T_R_B,
+	VAR_T_RK_B,
+	VAR_T_RK_C,
 	VAR_T_CONST_Bx,
 } val_t;
 
@@ -87,13 +90,13 @@ extern void vm_OP_GETUPVAL(lua_State *L, LClosure *cl, int a, int b);
 
 extern void vm_OP_GETGLOBAL(lua_State *L, TValue *k, LClosure *cl, int a, int bx);
 
-extern void vm_OP_GETTABLE(lua_State *L, TValue *k, int a, int b, int c);
+extern void vm_OP_GETTABLE(lua_State *L, TValue* ra, TValue* rb, TValue* rc);
 
 extern void vm_OP_SETGLOBAL(lua_State *L, TValue *k, LClosure *cl, int a, int bx);
 
 extern void vm_OP_SETUPVAL(lua_State *L, LClosure *cl, int a, int b);
 
-extern void vm_OP_SETTABLE(lua_State *L, TValue *k, int a, int b, int c);
+extern void vm_OP_SETTABLE(lua_State *L, TValue *ra, TValue *rb, TValue *rc);
 
 extern void vm_OP_NEWTABLE(lua_State *L, int a, int b, int c);
 
@@ -162,7 +165,7 @@ extern LClosure *vm_get_current_closure(lua_State *L);
 extern TValue *vm_get_current_base(lua_State *L);
 extern TValue *vm_get_current_constants(LClosure *cl);
 
-extern int vm_is_number(TValue *value);
+extern int vm_get_type(TValue *value);
 
 extern lua_Number vm_get_number(TValue *value);
 extern void vm_set_number(TValue *value, lua_Number num);

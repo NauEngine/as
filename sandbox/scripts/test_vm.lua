@@ -1,10 +1,20 @@
 
+
+
 function foo(a, b) -- 10 20
-    local sum = 0
-    sum = sum + 2
-    sum = sum * 0.1
-    sum = sum - 15
-    return sum
+    local table = {
+        1, 2, 3
+    }
+
+    local id = 1
+
+    table[id] = 100
+
+    print(table[id])
+    print(table[2])
+    print("--")
+
+    return 0
 end
 
 

@@ -8,6 +8,7 @@ add_executable(Benchmark
     native/test_nqueen.cpp
     main.cpp
 )
+target_compile_options(Benchmark PUBLIC -fno-omit-frame-pointer)
 target_link_libraries(Benchmark
     BanchmarkLuaAs
     BanchmarkLuaClassic

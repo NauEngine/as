@@ -19,13 +19,16 @@ LLVMOptimizer::LLVMOptimizer(llvm::Module* module)
 {
     m_passManager = std::make_unique<llvm::legacy::FunctionPassManager>(module);
 
+    m_passManager->add(llvm::createDeadCodeEliminationPass());
     m_passManager->add(llvm::createPromoteMemoryToRegisterPass());
     m_passManager->add(llvm::createInstructionCombiningPass());
+    // m_passManager->add(llvm::createJumpThreadingPass());
+    // m_passManager->add(llvm::createConstantPropagationPass());
     m_passManager->add(llvm::createReassociatePass());
     m_passManager->add(llvm::createGVNPass());
     m_passManager->add(llvm::createCFGSimplificationPass());
+    m_passManager->add(llvm::createEarlyCSEPass());
     m_passManager->doInitialization();
-
 }
 
 void LLVMOptimizer::runOptimizationPasses(llvm::Function* func) const

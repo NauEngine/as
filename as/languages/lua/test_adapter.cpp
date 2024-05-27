@@ -17,7 +17,7 @@ struct Logger
 };
 
 
-TValue* warn_A(TValue* base, TMS tms)
+bool warn_A(TValue* base, TMS tms)
 {
-    return base + 10;
+    return base->tt == LUA_TNUMBER;
 }

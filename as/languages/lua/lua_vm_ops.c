@@ -69,10 +69,20 @@ void vm_OP_GETGLOBAL(lua_State *L, TValue *k, LClosure *cl, int a, int bx) {
   luaV_gettable(L, &g, rb, ra);
 }
 
-void vm_OP_GETTABLE(lua_State *L, TValue *k, int a, int b, int c) {
-  TValue *base = L->base;
-  TValue *ra = base + a;
-  luaV_gettable(L, base + b, RK(c), ra);
+void vm_OP_GETTABLE(lua_State *L, TValue* ra, TValue* rb, TValue* rc)
+{
+    if (rb->tt == LUA_TTABLE && rc->tt == LUA_TNUMBER && (floor(rc->value.n) == rc->value.n))
+    {
+        unsigned int key = (unsigned int)rc->value.n - 1;
+        Table *h = hvalue(rb);
+        if (key < cast(unsigned int, h->sizearray))
+        {
+            setobj_VM(ra, &h->array[key]);
+            return;
+        }
+    }
+
+    luaV_gettable(L, rb, rc, ra);
 }
 
 void vm_OP_SETGLOBAL(lua_State *L, TValue *k, LClosure *cl, int a, int bx) {
@@ -92,10 +102,8 @@ void vm_OP_SETUPVAL(lua_State *L, LClosure *cl, int a, int b) {
   luaC_barrier(L, uv, ra);
 }
 
-void vm_OP_SETTABLE(lua_State *L, TValue *k, int a, int b, int c) {
-  TValue *base = L->base;
-  TValue *ra = base + a;
-  luaV_settable(L, ra, RK(b), RK(c));
+void vm_OP_SETTABLE(lua_State *L, TValue *ra, TValue *rb, TValue *rc) {
+  luaV_settable(L, ra, rb, rc);
 }
 
 void vm_OP_NEWTABLE(lua_State *L, int a, int b_fb2int, int c_fb2int) {
@@ -318,18 +326,19 @@ TValue *vm_get_current_constants(LClosure *cl) {
   return cl->p->k;
 }
 
-int vm_is_number(TValue *value) {
-   return ttisnumber(value);
+int vm_get_type(TValue *value) {
+   return value->tt;
 }
 
 lua_Number vm_get_number(TValue *value)
 {
-    return nvalue(value);
+    return *(lua_Number*)value;
 }
 
 void vm_set_number(TValue *value, lua_Number num)
 {
-    setnvalue(value, num);
+    *(lua_Number*)value = num;
+    value->tt=LUA_TNUMBER;
 }
 
 #ifdef __cplusplus

@@ -71,7 +71,7 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     vm_get_current_closure_f = m_luaVMModule->getFunction("vm_get_current_closure");
     vm_get_current_base_f = m_luaVMModule->getFunction("vm_get_current_base");
     vm_get_current_constants_f = m_luaVMModule->getFunction("vm_get_current_constants");
-    vm_is_number_f = m_luaVMModule->getFunction("vm_is_number");
+    vm_get_type_f = m_luaVMModule->getFunction("vm_get_type");
     vm_get_number_f = m_luaVMModule->getFunction("vm_get_number");
     vm_set_number_f = m_luaVMModule->getFunction("vm_set_number");
     vm_arith_f = m_luaVMModule->getFunction("vm_arith");

@@ -359,11 +359,26 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 
 		switch(func_info->params[x])
 		{
-		    case VAR_T_VAR_A:
+		    case VAR_T_R_A:
                 val = bcontext.localVars[GETARG_A(instruction)];
 		        break;
-		    case VAR_T_VAR_A_3:
-                val = bcontext.localVars[GETARG_A(instruction) + 3];
+		    case VAR_T_R_A_3: // FORPREP special case
+		        val = bcontext.localVars[GETARG_A(instruction) + 3];
+	    	    break;
+		    case VAR_T_R_B:
+		        val = bcontext.localVars[GETARG_B(instruction)];
+    		    break;
+		    case VAR_T_RK_B:
+		        {
+		            const int argb = GETARG_B(instruction);
+		            val = ISK(argb) ? bcontext.constants[INDEXK(argb)] : bcontext.localVars[argb];
+		        }
+		        break;
+		    case VAR_T_RK_C:
+		        {
+		            const int argc = GETARG_C(instruction);
+		            val = ISK(argc) ? bcontext.constants[INDEXK(argc)] : bcontext.localVars[argc];
+		        }
 		        break;
 		    case VAR_T_CONST_Bx:
 		        val = bcontext.constants[INDEXK(GETARG_Bx(instruction))];
@@ -545,8 +560,8 @@ void LuaLLVMCompiler::buildArithOp(
     {
         if (args[n] == nullptr)
         {
-            llvm::Value* is_number_int = builder.CreateCall(lua_ir->vm_is_number_f, {bcontext.localVars[regs[n]]}, "is_number");
-            llvm::Value* is_number_bool = builder.CreateICmpEQ(is_number_int, llvm::ConstantInt::get(context, llvm::APInt(32, 1)));
+            llvm::Value* type = builder.CreateCall(lua_ir->vm_get_type_f, {bcontext.localVars[regs[n]]}, "is_number");
+            llvm::Value* is_number_bool = builder.CreateICmpEQ(type, llvm::ConstantInt::get(context, llvm::APInt(32, LUA_TNUMBER)));
             numBlocks[n] = llvm::BasicBlock::Create(context, "num_block", func);
             builder.CreateCondBr(is_number_bool, numBlocks[n], nanBlock);
             builder.SetInsertPoint(numBlocks[n]);
