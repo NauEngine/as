@@ -114,7 +114,9 @@ void ScriptModuleCompile::compile(const ScriptInterface& interface,
     llvm::LLVMContext& context,
     bool add_init)
 {
-    m_module = std::make_unique<llvm::Module>(m_export_name, context);
+    m_module = std::move(m_language_script->createModule(m_export_name, context));
+    if (!m_module)
+        m_module = std::make_unique<llvm::Module>(m_export_name, context);
 
     auto vtableMethods = compileFunctions(interface, context);
 

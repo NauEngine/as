@@ -14,6 +14,11 @@ public:
 
     void load(const std::string& filename) override;
 
+    std::unique_ptr<llvm::Module> createModule(const std::string& export_name, llvm::LLVMContext& context) override
+    {
+        return nullptr;
+    }
+
     void prepareModule(llvm::LLVMContext& context, llvm::Module* module) override;
 
     llvm::Function* buildFunction(const std::string& bare_name, llvm::FunctionType* signature,
