@@ -1228,7 +1228,7 @@ auto Scanner::getLineStarts(SourceFileLike sourceFile) -> std::vector<number>
 auto Scanner::computeLineAndCharacterOfPosition(std::vector<number> lineStarts, number position) -> LineAndCharacter
 {
     auto lineNumber = computeLineOfPosition(lineStarts, position);
-    return LineAndCharacter({lineNumber, position - lineStarts[lineNumber]});
+    return LineAndCharacter(lineNumber, position - lineStarts[lineNumber]);
 }
 
 /**

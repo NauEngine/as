@@ -1,5 +1,3 @@
-set_Options()
-
 set(LLVM_LINK_COMPONENTS
     # for Obj/ASM
     AllTargetsAsmParsers
@@ -60,3 +58,7 @@ target_compile_definitions(tsc PUBLIC TSC_PACKAGE_VERSION="${TSC_PACKAGE_VERSION
 MESSAGE (STATUS "VERSION = " ${TSC_PACKAGE_VERSION})
 
 mlir_check_all_link_libraries(tsc)
+
+add_library(tsc_lib compile.cpp transform.cpp dump.cpp jit.cpp obj.cpp exe.cpp TextDiagnostic.cpp TextDiagnosticPrinter.cpp utils.cpp opts.cpp)
+target_link_libraries(tsc_lib PRIVATE ${LIBS})
+mlir_check_all_link_libraries(tsc_lib)

@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "ts_language.h"
 #include "as/core/core.h"
 #include "as/core/script_module.h"
 #include "as/core/cpp_interface_parser.h"
@@ -44,10 +45,12 @@ int main()
   auto lua_language = std::make_shared<as::LuaLanguage>();
   auto squirrel_language = std::make_shared<as::SquirrelLanguage>();
   auto ivnscript_language = std::make_shared<as::IvnScriptLanguage>();
+  auto typescript_language = std::make_shared<as::TypeScriptLanguage>();
 
   script_core->registerLanguage("lua", std::move(lua_language));
   script_core->registerLanguage("nut", std::move(squirrel_language));
   script_core->registerLanguage("is", std::move(ivnscript_language));
+  script_core->registerLanguage("ts", std::move(typescript_language));
 
   LoggerImpl logger;
   script_core->registerInstance<Logger>(&logger, "logger");
@@ -60,6 +63,9 @@ int main()
 
   auto test_1_is = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.is");
   auto test_2_is = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.is");
+
+  auto test_1_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.ts");
+  auto test_2_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.ts");
 
 //********************************************************************************************************************//
 

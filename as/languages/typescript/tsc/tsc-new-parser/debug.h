@@ -72,7 +72,8 @@ namespace ts
                 msg += message;
             }
 
-            throw msg;
+            // TODO [Ivn] More correct error handling there
+            std::wcerr << msg.c_str();
         }
 
         template<typename T>
