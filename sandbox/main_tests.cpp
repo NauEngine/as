@@ -64,8 +64,8 @@ int main()
   auto test_1_is = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.is");
   auto test_2_is = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.is");
 
-  auto test_1_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.ts");
-  auto test_2_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.ts");
+  // auto test_1_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.ts");
+  // auto test_2_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.ts");
 
 //********************************************************************************************************************//
 

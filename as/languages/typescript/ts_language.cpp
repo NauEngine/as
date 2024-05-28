@@ -28,6 +28,10 @@
 
 #include "ts_language.h"
 
+#include "TypeScript/TypeScriptDialectTranslation.h"
+#include "mlir/Target/LLVMIR/Dialect/Builtin/BuiltinToLLVMIRTranslation.h"
+#include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
+
 
 #include "ts_language_script.h"
 
@@ -48,6 +52,10 @@ TypeScriptLanguage::TypeScriptLanguage() :
     m_context.getOrLoadDialect<mlir::func::FuncDialect>();
     m_context.getOrLoadDialect<mlir::DLTIDialect>();
     m_context.getOrLoadDialect<mlir::LLVM::LLVMDialect>();
+
+    mlir::registerBuiltinDialectTranslation(m_context);
+    mlir::registerLLVMDialectTranslation(m_context);
+    mlir::typescript::registerTypeScriptDialectTranslation(m_context);
 }
 
 void TypeScriptLanguage::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext context)

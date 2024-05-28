@@ -13,6 +13,7 @@
 #include <TypeScript/MLIRGen.h>
 #include <llvm/TargetParser/Host.h>
 #include <llvm/TargetParser/Triple.h>
+#include <mlir/Target/LLVMIR/ModuleTranslation.h>
 
 CompileOptions prepareOptions()
 {
@@ -77,6 +78,12 @@ namespace as {
         source_mgr.AddNewSourceBuffer(std::move(*file_err), llvm::SMLoc());
 
         m_module = typescript::mlirGenFromSource(m_context, filename, source_mgr, compile_options);
+    }
+
+    std::unique_ptr<llvm::Module> TypeScriptLanguageScript::createModule(const std::string& export_name,
+            llvm::LLVMContext& context)
+    {
+        return mlir::translateModuleToLLVMIR(*m_module, context, export_name);
     }
 
     void TypeScriptLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Module* module)
