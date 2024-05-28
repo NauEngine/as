@@ -24,6 +24,7 @@ public:
 
 private:
     mlir::MLIRContext& m_context;
+    mlir::OwningOpRef<mlir::ModuleOp> m_module;
 };
 
 } // as

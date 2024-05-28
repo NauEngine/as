@@ -148,7 +148,7 @@ std::vector<llvm::Constant*> ScriptModuleCompile::compileFunctions(const ScriptI
         {
             auto funcName = interface.methodNames[i];
             llvm::Function* method = m_language_script->buildFunction(funcName, funcType, context, m_module.get());
-            vtableMethods[i] = method;
+            vtableMethods[i] = method ? method : opaque_null_ptr;
         }
         else
         {
