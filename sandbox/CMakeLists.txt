@@ -35,6 +35,7 @@ target_link_libraries(SandboxTests
     LuaIntegration
     SquirrelIntegration
     IvnScriptIntegration
+    TypeScriptIntegration
 )
 
 add_executable(SandboxCompiler
