@@ -9,6 +9,8 @@ namespace ts
     struct LineAndCharacter {
 
         LineAndCharacter() = default;
+        explicit LineAndCharacter(const number line, const number character):
+            line(line), character(character) {}
 
         /** 0-based. */
         number line;

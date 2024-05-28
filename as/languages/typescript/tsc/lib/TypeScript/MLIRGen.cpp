@@ -11021,14 +11021,15 @@ class MLIRGenImpl
     {
         if (numericLiteral->text.find(S(".")) == string::npos)
         {
-            try
-            {
+            // TODO [Ivn] Return correct number convertion
+            // try
+            // {
                 return builder.getI32IntegerAttr(to_unsigned_integer(numericLiteral->text));
-            }
-            catch (const std::out_of_range &)
-            {
-                return builder.getI64IntegerAttr(to_bignumber(numericLiteral->text));
-            }
+            // }
+            // catch (const std::out_of_range &)
+            // {
+            //     return builder.getI64IntegerAttr(to_bignumber(numericLiteral->text));
+            // }
         }
 
 #ifdef NUMBER_F64
@@ -11042,18 +11043,19 @@ class MLIRGenImpl
     {
         if (numericLiteral->text.find(S(".")) == string::npos)
         {
-            try
-            {
+            // TODO [Ivn] Return correct number convertion
+            // try
+            // {
                 auto attrVal = builder.getI32IntegerAttr(to_unsigned_integer(numericLiteral->text));
                 auto literalType = mlir_ts::LiteralType::get(attrVal, builder.getI32Type());
                 return V(builder.create<mlir_ts::ConstantOp>(loc(numericLiteral), literalType, attrVal));
-            }
-            catch (const std::out_of_range &)
-            {
-                auto attrVal = builder.getI64IntegerAttr(to_bignumber(numericLiteral->text));
-                auto literalType = mlir_ts::LiteralType::get(attrVal, builder.getI64Type());
-                return V(builder.create<mlir_ts::ConstantOp>(loc(numericLiteral), literalType, attrVal));
-            }
+            // }
+            // catch (const std::out_of_range &)
+            // {
+            //     auto attrVal = builder.getI64IntegerAttr(to_bignumber(numericLiteral->text));
+            //     auto literalType = mlir_ts::LiteralType::get(attrVal, builder.getI64Type());
+            //     return V(builder.create<mlir_ts::ConstantOp>(loc(numericLiteral), literalType, attrVal));
+            // }
         }
 
 #ifdef NUMBER_F64
