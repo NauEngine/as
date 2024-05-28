@@ -7,6 +7,7 @@
 namespace as {
     void TsLanguageScript::load(const std::string& filename)
     {
+
     }
 
     void TsLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Module* module)

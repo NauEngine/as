@@ -1,5 +1,3 @@
-set_Options()
-
 set(LLVM_LINK_COMPONENTS
     # for Obj/ASM
     AllTargetsAsmParsers

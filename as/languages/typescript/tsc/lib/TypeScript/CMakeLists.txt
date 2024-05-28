@@ -1,7 +1,5 @@
 message(STATUS ">>> lib >>> TypeScript")
 
-set_Options()
-
 include_directories(
     ${PROJECT_SOURCE_DIR}/tsc-new-parser
     )
