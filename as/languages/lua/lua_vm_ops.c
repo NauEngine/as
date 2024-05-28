@@ -28,9 +28,7 @@ extern "C" {
 //#include <stdio.h>
 //#include <assert.h>
 
-#define setobj_VM(obj1,obj2) \
-{ const TValue *o2=(obj2); TValue *o1=(obj1); \
-o1->value = o2->value; o1->tt=o2->tt; }
+#define setobj_VM(obj1,obj2) *(obj1) = *(obj2)
 
 void vm_OP_MOVE(TValue *base, int a, int b) {
   setobj_VM(base + a, base + b);
@@ -69,20 +67,66 @@ void vm_OP_GETGLOBAL(lua_State *L, TValue *k, LClosure *cl, int a, int bx) {
   luaV_gettable(L, &g, rb, ra);
 }
 
+//	A B C	R(A) := R(B)[RK(C)]
 void vm_OP_GETTABLE(lua_State *L, TValue* ra, TValue* rb, TValue* rc)
 {
-    if (rb->tt == LUA_TTABLE && rc->tt == LUA_TNUMBER && (floor(rc->value.n) == rc->value.n))
+    if (rb->tt == LUA_TTABLE)
     {
-        unsigned int key = (unsigned int)rc->value.n - 1;
-        Table *h = hvalue(rb);
-        if (key < cast(unsigned int, h->sizearray))
+        if (rc->tt == LUA_TNUMBER && (floor(rc->value.n) == rc->value.n))
         {
-            setobj_VM(ra, &h->array[key]);
+            const unsigned int key = (unsigned int)rc->value.n - 1;
+            const Table *h = hvalue(rb);
+            if (key < cast(unsigned int, h->sizearray))
+            {
+                setobj_VM(ra, &h->array[key]);
+                return;
+            }
+        }
+
+        if (rc->tt == LUA_TSTRING)
+        {
+            Table *h = hvalue(rb);
+            setobj_VM(ra, luaH_getstr(h, rawtsvalue(rc)));
             return;
         }
     }
 
     luaV_gettable(L, rb, rc, ra);
+}
+
+// A B C	R(A)[RK(B)] := RK(C)
+void vm_OP_SETTABLE(lua_State *L, TValue *ra, TValue *rb, TValue *rc)
+{
+    if (ra->tt == LUA_TTABLE)
+    {
+        if (rb->tt == LUA_TNUMBER && (floor(rb->value.n) == rb->value.n))
+        {
+            const unsigned int key = (unsigned int)rb->value.n - 1;
+            Table *h = hvalue(ra);
+            if (key < cast(unsigned int, h->sizearray))
+            {
+                TValue* oldval = &h->array[key];
+                if (oldval->tt != LUA_TNIL)
+                {
+                    setobj_VM(oldval, rc);
+                    return;
+                }
+            }
+        }
+
+        if (rc->tt == LUA_TSTRING)
+        {
+            Table *h = hvalue(rb);
+            TValue* oldval = (TValue*)luaH_getstr(h, rawtsvalue(rc));
+            if (oldval->tt != LUA_TNIL)
+            {
+                setobj_VM(oldval, ra);
+                return;
+            }
+        }
+    }
+
+    luaV_settable(L, ra, rb, rc);
 }
 
 void vm_OP_SETGLOBAL(lua_State *L, TValue *k, LClosure *cl, int a, int bx) {
@@ -100,10 +144,6 @@ void vm_OP_SETUPVAL(lua_State *L, LClosure *cl, int a, int b) {
   UpVal *uv = cl->upvals[b];
   setobj(L, uv->v, ra);
   luaC_barrier(L, uv, ra);
-}
-
-void vm_OP_SETTABLE(lua_State *L, TValue *ra, TValue *rb, TValue *rc) {
-  luaV_settable(L, ra, rb, rc);
 }
 
 void vm_OP_NEWTABLE(lua_State *L, int a, int b_fb2int, int c_fb2int) {

@@ -305,6 +305,7 @@ static void resizenodevector (lua_State *L, Table *t, int oldsize, int newsize) 
     }
   }
   t->lsizenode = cast_byte(lsize);
+  t->lsizenode_d2 = 1 << t->lsizenode;
   t->lastfree = gnode(t, newsize);  /* reset lastfree to end of table. */
 }
 
@@ -396,6 +397,7 @@ static void resize_hashpart (lua_State *L, Table *t, int nhsize) {
   else { /* hash part might be shrinking */
     if (nhsize > 0) {
       t->lsizenode = cast_byte(lsize);
+      t->lsizenode_d2 = 1 << t->lsizenode;
       t->lastfree = gnode(t, nhsize);  /* reset lastfree back to end of table. */
     }
     else { /* new hashpart size is zero. */
@@ -494,6 +496,7 @@ Table *luaH_new (lua_State *L, int narray, int nhash) {
   t->array = NULL;
   t->sizearray = 0;
   t->lsizenode = 0;
+  t->lsizenode_d2 = 0;
   t->node = cast(Node *, dummynode);
   setarrayvector(L, t, narray);
   resizenodevector(L, t, 0, nhash);

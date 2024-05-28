@@ -343,6 +343,7 @@ typedef struct Table {
   CommonHeader;
   lu_byte flags;  /* 1<<p means tagmethod(p) is not present */ 
   lu_byte lsizenode;  /* log2 of size of `node' array */
+  lu_byte lsizenode_d2;
   struct Table *metatable;
   TValue *array;  /* array part */
   Node *node;
