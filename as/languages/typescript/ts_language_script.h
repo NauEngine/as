@@ -7,9 +7,10 @@
 
 namespace as {
 
-class TsLanguageScript: public ILanguageScript {
+class TypeScriptLanguageScript: public ILanguageScript {
 public:
-    ~TsLanguageScript() override = default;
+    explicit TypeScriptLanguageScript(mlir::MLIRContext& context);
+    ~TypeScriptLanguageScript() override = default;
 
     void load(const std::string& filename) override;
 
@@ -22,7 +23,7 @@ public:
             llvm::Module* module) override;
 
 private:
-
+    mlir::MLIRContext& m_context;
 };
 
 } // as
