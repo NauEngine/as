@@ -37,6 +37,9 @@ private:
     std::unique_ptr<script::Module> m_module;
     std::string m_filename;
 
+    llvm::GlobalVariable* m_runtime_var;
+    llvm::Function* m_runtime_enter;
+
     llvm::Function* buildFunction(const std::string& name,
         llvm::FunctionType* signature,
         llvm::Module& module,

@@ -57,7 +57,7 @@ extern "C" void __asRegisterModule(const char* name, void* ptr)
     getVtables()[name] = ptr;
 }
 
-extern "C" void* __asRequireRuntime(const char* name)
+extern "C" const void* __asRequireRuntime(const char* name)
 {
     const auto& runtimes = getRuntimes();
     const auto runtime = runtimes.find(name);
@@ -67,8 +67,10 @@ extern "C" void* __asRequireRuntime(const char* name)
         return nullptr;
     }
 
-    std::cout << "__asRequireRuntime(" << name << ") -> found" << std::endl;
-    return runtime->second.get();
+    const auto result = runtime->second.get()->ptr();
+    std::cout << "__asRequireRuntime(" << name << ") -> " << result << std::endl;
+
+    return result;
 }
 
 namespace as

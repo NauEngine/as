@@ -8,13 +8,23 @@
 
 extern "C" void __isRuntimeOnEnter(const char* data, const char* value)
 {
-    std::cout << ">>> " << data << " :: " << value << std::endl;
-}
+    if (!data)
+    {
+        std::cout << "[is] No runtime specified. Value = \"" << value << "\"" << std::endl;
+        return;
+    }
 
-extern "C" void __isRuntimeOnExit(const char* data, const char* value)
-{
-    std::cout << "<<< " << data << " :: " << value << std::endl;
+    std::cout << "[is] Runtime = \"" << data << "\". Value = \"" << value << "\"" << std::endl;
 }
 
 namespace as {
+const char* IvnScriptLanguageRuntime::name()
+{
+    return "is_runtime";
+}
+
+const void* IvnScriptLanguageRuntime::ptr()
+{
+    return m_data.c_str();
+}
 } // as

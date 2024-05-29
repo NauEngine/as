@@ -39,7 +39,7 @@ void ScriptModuleCompile::materialize(std::shared_ptr<llvm::orc::LLJIT>& jit,
     auto& context = *ts_context.getContext();
     m_language_script->materialize(jit, *m_module, context);
 
-    // llvm::errs() << "\nINTERFACE MODULE: \n" << *m_module << "\n";
+    llvm::errs() << "\nINTERFACE MODULE: \n" << *m_module << "\n";
     llvm::cantFail(jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(m_module), ts_context)));
 
     const auto init_func_addr = llvm::cantFail(jit->lookup("init_" + m_export_name));

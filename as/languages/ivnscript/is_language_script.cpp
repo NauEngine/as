@@ -46,8 +46,18 @@ llvm::Function* IvnScriptLanguageScript::buildModule(const std::string& init_nam
     const ScriptInterface& interface,
     llvm::Module& module)
 {
+    auto& context = module.getContext();
+    const auto void_ptr_t = llvm::Type::getInt8PtrTy(context);
+    m_runtime_var = new llvm::GlobalVariable(module, void_ptr_t, false, llvm::GlobalValue::PrivateLinkage,
+        llvm::ConstantPointerNull::get(void_ptr_t), ".runtime");
+
+    const auto void_t = llvm::Type::getVoidTy(context);
+    const auto char_ptr_t = llvm::Type::getInt8PtrTy(context);
+
+    m_runtime_enter = ir::сreateFunctionDecl(&module, void_t, { void_ptr_t, char_ptr_t }, "__isRuntimeOnEnter");
+
     const auto vtable = ir::buildVTable(module_name, interface, module, &IvnScriptLanguageScript::buildFunction, this);
-    return ir::createInitFunc(module, init_name, module_name, vtable, nullptr, "");
+    return ir::createInitFunc(module, init_name, module_name, vtable, m_runtime_var, "is_runtime");
 }
 
 llvm::Function* IvnScriptLanguageScript::buildFunction(
@@ -68,7 +78,7 @@ llvm::Function* IvnScriptLanguageScript::buildFunction(
     }
 
     std::vector<script::Error> errors;
-    auto result = script::build(context, module, bare_name, *f, signature, errors);
+    auto result = script::build(context, module, bare_name, *f, signature, m_runtime_var, m_runtime_enter, errors);
     for (const auto &error: errors) {
       std::cerr << m_filename << ":" << error.line << ":" << error.column << ": error: " << error.message << "\n";
     }

@@ -87,6 +87,10 @@ public:
 //     globals["__executor"] = module->getOrInsertGlobal("__executor", pointerType);
   }
 
+  llvm::LLVMContext& getContext() {
+    return context;
+  }
+
   llvm::IRBuilder<>* getBuilder() override {
     return builder.get();
   }
@@ -198,13 +202,33 @@ private:
   llvm::StructType* structType;
 };
 
-llvm::Function* build(llvm::LLVMContext& context, llvm::Module& module, const std::string& funcName, const ModuleFunction& func, llvm::FunctionType* signature, std::vector<Error>& errors)
+void callRuntimeFunction(ModuleContext& c,
+    llvm::Function* runtimeOnEnter,
+    llvm::GlobalVariable* runtime,
+    const std::string& value)
+{
+    auto voidPtrType = llvm::PointerType::get(llvm::Type::getInt8Ty(c.getContext()), 0);
+    auto loadedRuntime = c.getBuilder()->CreateLoad(voidPtrType, runtime);
+    c.getBuilder()->CreateCall(runtimeOnEnter, { loadedRuntime, c.getBuilder()->CreateGlobalStringPtr(value) });
+}
+
+llvm::Function* build(llvm::LLVMContext& context,
+    llvm::Module& module,
+    const std::string& funcName,
+    const ModuleFunction& func,
+    llvm::FunctionType* signature,
+    llvm::GlobalVariable* runtime,
+    llvm::Function* runtimeOnEnter,
+    std::vector<Error>& errors)
 {
   ModuleContext c(context, module);
   c.declareFunction(funcName, signature, func.args);
   c.startFunction(funcName);
   auto f = c.getFunction(funcName);
   bool hasError = false;
+
+  callRuntimeFunction(c, runtimeOnEnter, runtime, funcName);
+
   for (const auto& expr: func.body)
   {
     if (!expr->codegen(c, errors)) {

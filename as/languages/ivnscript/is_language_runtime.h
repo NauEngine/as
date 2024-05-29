@@ -18,15 +18,8 @@ public:
 
     ~IvnScriptLanguageRuntime() override = default;
 
-    const char* name() override
-    {
-        return "is_runtime";
-    }
-
-    const void* ptr() override
-    {
-        return m_data.c_str();
-    }
+    const char* name() override;
+    const void* ptr() override;
 
 private:
     std::string m_data;
