@@ -33,10 +33,10 @@ struct ILanguageScript
 
     virtual std::unique_ptr<llvm::Module> createModule(const std::string& export_name, llvm::LLVMContext& context) = 0;
 
-    virtual llvm::GlobalVariable* buildVTable(const std::string& export_name,
+    virtual llvm::Function* buildModule(const std::string& init_name,
+        const std::string& module_name,
         const ScriptInterface& interface,
-        llvm::Module& module,
-        llvm::LLVMContext& context) = 0;
+        llvm::Module& module) = 0;
 
     virtual void materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
         llvm::Module& module,

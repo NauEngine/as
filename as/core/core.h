@@ -20,7 +20,8 @@ namespace llvm::orc
 
 namespace as
 {
-struct ILanguage;
+    struct ILanguageRuntime;
+    struct ILanguage;
 struct ScriptInterface;
 
 class Core
@@ -55,6 +56,8 @@ public:
     {
         m_compile.registerInstance(instance, instance_name, getInterface<Interface>());
     }
+
+    void registerRuntime(std::shared_ptr<ILanguageRuntime> runtime);
 
 private:
     CoreCompile m_compile;

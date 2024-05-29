@@ -34,10 +34,10 @@ public:
 
     std::unique_ptr<llvm::Module> createModule(const std::string& export_name, llvm::LLVMContext& context) override;
 
-    llvm::GlobalVariable* buildVTable(const std::string& export_name,
+    llvm::Function* buildModule(const std::string& init_name,
+        const std::string& module_name,
         const ScriptInterface& interface,
-        llvm::Module& module,
-        llvm::LLVMContext& context) override;
+        llvm::Module& module) override;
 
     void materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
         llvm::Module& module,

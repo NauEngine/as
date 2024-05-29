@@ -72,13 +72,14 @@ namespace as::ir
     static llvm::GlobalVariable* buildVTable(const std::string& variable_name,
         const ScriptInterface& interface,
         llvm::Module& module,
-        llvm::LLVMContext& context,
         llvm::Function*(T::*buildFunction)(const std::string&,
             llvm::FunctionType*,
             llvm::Module&,
             llvm::LLVMContext&),
         T* self)
     {
+        auto& context = module.getContext();
+
         const auto num_methods = interface.methodNames.size();
         std::vector<llvm::Constant*> methods(num_methods);
 
@@ -136,8 +137,7 @@ namespace as::ir
         const std::string& module_name,
         llvm::GlobalVariable* vtable,
         llvm::GlobalVariable* runtime,
-        const std::string& runtime_name,
-        bool add_init);
+        const std::string& runtime_name);
 
 } // namespace as
 

@@ -16,6 +16,7 @@
 #include "script_module.h"
 #include "cpp_interface_parser.h"
 #include "ir.h"
+#include "language_runtime.h"
 #include "language_script.h"
 #include "script_module_compile.h"
 
@@ -38,9 +39,9 @@ std::unordered_map<std::string, void*>& getVtables()
     return vtables;
 }
 
-std::unordered_map<std::string, void*>& getRuntimes()
+std::unordered_map<std::string, std::shared_ptr<as::ILanguageRuntime>>& getRuntimes()
 {
-    static std::unordered_map<std::string, void*> runtimes;
+    static std::unordered_map<std::string, std::shared_ptr<as::ILanguageRuntime>> runtimes;
     return runtimes;
 }
 
@@ -67,7 +68,7 @@ extern "C" void* __asRequireRuntime(const char* name)
     }
 
     std::cout << "__asRequireRuntime(" << name << ") -> found" << std::endl;
-    return runtime->second;
+    return runtime->second.get();
 }
 
 namespace as
@@ -80,6 +81,11 @@ Core::Core(const std::string& base_path):
 
 Core::~Core()
 {
+}
+
+void Core::registerRuntime(std::shared_ptr<ILanguageRuntime> runtime)
+{
+    getRuntimes()[runtime->name()] = std::move(runtime);
 }
 
 std::shared_ptr<ScriptModuleRuntime> Core::getCachedModule(const std::string& filename) const

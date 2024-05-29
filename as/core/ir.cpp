@@ -118,25 +118,24 @@ void buildGlobalCtor(llvm::Module& module, llvm::Function* ctor, const unsigned 
 }
 
 llvm::Function* createInitFunc(llvm::Module& module,
-    const std::string& export_name,
+    const std::string& init_name,
     const std::string& module_name,
     llvm::GlobalVariable* vtable,
     llvm::GlobalVariable* runtime,
-    const std::string& runtime_name,
-    bool add_init)
+    const std::string& runtime_name)
 {
     llvm::LLVMContext& context = module.getContext();
     llvm::IRBuilder<> builder(context);
 
     const auto regsiter_module_func = vtable ? createRegisterModuleDecl(module) : nullptr;
     const auto require_runtime_func = runtime && !runtime_name.empty() ? createRequireRuntimeDecl(module) : nullptr;
-    const auto register_init_func = add_init ? createRegisterInitDecl(module) : nullptr;
-    const auto module_name_var = vtable || add_init ? builder.CreateGlobalStringPtr(module_name, ".module_name", 0, &module) : nullptr;
+    const auto register_init_func = init_name.empty() ? createRegisterInitDecl(module) : nullptr;
+    const auto module_name_var = vtable || init_name.empty() ? builder.CreateGlobalStringPtr(module_name, ".module_name", 0, &module) : nullptr;
 
     const auto void_t = llvm::Type::getVoidTy(context);
     llvm::FunctionType* init_func_t = llvm::FunctionType::get(void_t, {}, false);
-    const auto linkage = export_name.empty() ? llvm::Function::InternalLinkage : llvm::Function::ExternalLinkage;
-    const auto name = export_name.empty() ? ".init_" + module_name : export_name;
+    const auto linkage = init_name.empty() ? llvm::Function::InternalLinkage : llvm::Function::ExternalLinkage;
+    const auto name = init_name.empty() ? ".init_" + module_name : init_name;
     llvm::Function* init_func = llvm::Function::Create(init_func_t, linkage, name, module);
     builder.SetInsertPoint(llvm::BasicBlock::Create(context, "entry", init_func));
 
@@ -154,7 +153,7 @@ llvm::Function* createInitFunc(llvm::Module& module,
 
     builder.CreateRetVoid();
 
-    if (add_init)
+    if (init_name.empty())
     {
         llvm::FunctionType* ctor_func_t = llvm::FunctionType::get(void_t, {}, false);
         llvm::Function* ctor_func = llvm::Function::Create(ctor_func_t, llvm::Function::InternalLinkage, ".ctor_" + module_name, module);

@@ -1,6 +1,7 @@
 #include <cassert>
 #include <iostream>
 
+#include "is_language_runtime.h"
 #include "as/core/core.h"
 #include "as/core/script_module.h"
 #include "as/core/cpp_interface.h"
@@ -18,8 +19,8 @@ int main()
 {
     auto core = std::make_shared<as::Core>("../../sandbox");
 
-    auto ivnscript_language = std::make_shared<as::IvnScriptLanguage>();
-    core->registerLanguage("is", std::move(ivnscript_language));
+    core->registerLanguage("is", std::make_shared<as::IvnScriptLanguage>());
+    core->registerRuntime(std::make_shared<as::IvnScriptLanguageRuntime>("CompileDemo"));
 
     const auto module = core->newScriptModule<TestScript>("scripts/test_script.is");
     const auto instance(module->newInstance());

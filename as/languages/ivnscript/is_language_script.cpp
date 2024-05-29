@@ -41,10 +41,13 @@ std::unique_ptr<llvm::Module> IvnScriptLanguageScript::createModule(const std::s
     return std::make_unique<llvm::Module>(export_name, context);
 }
 
-llvm::GlobalVariable* IvnScriptLanguageScript::buildVTable(const std::string& export_name,
-        const ScriptInterface& interface, llvm::Module& module, llvm::LLVMContext& context)
+llvm::Function* IvnScriptLanguageScript::buildModule(const std::string& init_name,
+    const std::string& module_name,
+    const ScriptInterface& interface,
+    llvm::Module& module)
 {
-    return ir::buildVTable(export_name, interface, module, context, &IvnScriptLanguageScript::buildFunction, this);
+    const auto vtable = ir::buildVTable(module_name, interface, module, &IvnScriptLanguageScript::buildFunction, this);
+    return ir::createInitFunc(module, init_name, module_name, vtable, nullptr, "");
 }
 
 llvm::Function* IvnScriptLanguageScript::buildFunction(

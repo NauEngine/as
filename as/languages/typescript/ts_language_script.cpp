@@ -86,10 +86,10 @@ std::unique_ptr<llvm::Module> TypeScriptLanguageScript::createModule(const std::
     return std::make_unique<llvm::Module>(export_name, context);
 }
 
-llvm::GlobalVariable* TypeScriptLanguageScript::buildVTable(const std::string& export_name,
+llvm::Function* TypeScriptLanguageScript::buildModule(const std::string& init_name,
+    const std::string& module_name,
     const ScriptInterface& interface,
-    llvm::Module& module,
-    llvm::LLVMContext& context)
+    llvm::Module& module)
 {
     return nullptr;
 }

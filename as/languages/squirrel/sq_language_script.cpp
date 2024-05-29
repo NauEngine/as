@@ -85,12 +85,13 @@ std::unique_ptr<llvm::Module> SquirrelLanguageScript::createModule(const std::st
     return module;
 }
 
-llvm::GlobalVariable* SquirrelLanguageScript::buildVTable(const std::string& export_name,
+llvm::Function* SquirrelLanguageScript::buildModule(const std::string& init_name,
+    const std::string& module_name,
     const ScriptInterface& interface,
-    llvm::Module& module,
-    llvm::LLVMContext& context)
+    llvm::Module& module)
 {
-    return ir::buildVTable(export_name, interface, module, context, &SquirrelLanguageScript::buildFunction, this);
+    const auto vtable = ir::buildVTable(module_name, interface, module, &SquirrelLanguageScript::buildFunction, this);
+    return ir::createInitFunc(module, init_name, module_name, vtable, nullptr, "");
 }
 
 llvm::Function* SquirrelLanguageScript::buildFunction(

@@ -52,10 +52,8 @@ void ScriptModuleCompile::compile(const ScriptInterface& interface,
     bool add_init)
 {
     m_module = std::move(m_language_script->createModule("", context));
-    auto vtable = m_language_script->buildVTable(".vtable", interface, *m_module, context);
-    ir::createInitFunc(*m_module, "init_" + m_export_name, m_export_name, vtable, nullptr, "", add_init);
-
-    // llvm::verifyModule(*m_module, &llvm::errs());
+    const auto init_name = add_init ? "" : "init_" + m_export_name;
+    m_language_script->buildModule(init_name, m_export_name, interface, *m_module);
 }
 
 } // as
