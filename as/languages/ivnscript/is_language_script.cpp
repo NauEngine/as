@@ -35,10 +35,10 @@ void IvnScriptLanguageScript::load(const std::string& filename)
     }
 }
 
-std::unique_ptr<llvm::Module> IvnScriptLanguageScript::createModule(const std::string& export_name,
+std::unique_ptr<llvm::Module> IvnScriptLanguageScript::createModule(
         llvm::LLVMContext& context)
 {
-    return std::make_unique<llvm::Module>(export_name, context);
+    return std::make_unique<llvm::Module>("is_module", context);
 }
 
 llvm::Function* IvnScriptLanguageScript::buildModule(const std::string& init_name,

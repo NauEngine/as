@@ -65,10 +65,10 @@ SquirrelLanguageScript::~SquirrelLanguageScript()
     m_funcs.clear();
 }
 
-std::unique_ptr<llvm::Module> SquirrelLanguageScript::createModule(const std::string& export_name,
+std::unique_ptr<llvm::Module> SquirrelLanguageScript::createModule(
         llvm::LLVMContext& context)
 {
-    auto module = std::make_unique<llvm::Module>(export_name, context);
+    auto module = std::make_unique<llvm::Module>("sq_module", context);
 
     m_sq_vm_extern = new llvm::GlobalVariable(*module, m_sq_ir->sq_vm_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
                                               nullptr,

@@ -22,7 +22,7 @@ public:
 
     void load(const std::string& filename) override;
 
-    std::unique_ptr<llvm::Module> createModule(const std::string& export_name, llvm::LLVMContext& context) override;
+    std::unique_ptr<llvm::Module> createModule(llvm::LLVMContext& context) override;
 
     llvm::Function* buildModule(const std::string& init_name,
         const std::string& module_name,

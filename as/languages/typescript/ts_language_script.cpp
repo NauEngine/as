@@ -80,10 +80,10 @@ void TypeScriptLanguageScript::load(const std::string& filename)
     m_module = typescript::mlirGenFromSource(m_context, filename, source_mgr, compile_options);
 }
 
-std::unique_ptr<llvm::Module> TypeScriptLanguageScript::createModule(const std::string& export_name,
+std::unique_ptr<llvm::Module> TypeScriptLanguageScript::createModule(
         llvm::LLVMContext& context)
 {
-    return std::make_unique<llvm::Module>(export_name, context);
+    return std::make_unique<llvm::Module>("ts_module", context);
 }
 
 llvm::Function* TypeScriptLanguageScript::buildModule(const std::string& init_name,

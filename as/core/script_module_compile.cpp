@@ -51,7 +51,7 @@ void ScriptModuleCompile::compile(const ScriptInterface& interface,
     llvm::LLVMContext& context,
     bool add_init)
 {
-    m_module = std::move(m_language_script->createModule("", context));
+    m_module = std::move(m_language_script->createModule(context));
     const auto init_name = add_init ? "" : "init_" + m_export_name;
     m_language_script->buildModule(init_name, m_export_name, interface, *m_module);
 }

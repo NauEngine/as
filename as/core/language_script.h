@@ -31,7 +31,7 @@ struct ILanguageScript
 
     virtual void load(const std::string& filename) = 0;
 
-    virtual std::unique_ptr<llvm::Module> createModule(const std::string& export_name, llvm::LLVMContext& context) = 0;
+    virtual std::unique_ptr<llvm::Module> createModule(llvm::LLVMContext& context) = 0;
 
     virtual llvm::Function* buildModule(const std::string& init_name,
         const std::string& module_name,

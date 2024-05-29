@@ -75,10 +75,10 @@ void LuaLanguageScript::load(const std::string& filename)
     m_registry_index = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
 }
 
-std::unique_ptr<llvm::Module> LuaLanguageScript::createModule(const std::string& export_name,
+std::unique_ptr<llvm::Module> LuaLanguageScript::createModule(
         llvm::LLVMContext& context)
 {
-    auto module = std::make_unique<llvm::Module>(export_name, context);
+    auto module = std::make_unique<llvm::Module>("lua_module", context);
 
     m_lua_state_extern = new llvm::GlobalVariable(*module, m_lua_ir->lua_State_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
                                                       nullptr,
