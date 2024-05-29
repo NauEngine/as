@@ -46,7 +46,7 @@ public:
         if (linked_module)
             return std::make_shared<ScriptModule<Interface>>(linked_module);
 
-        const auto compiled_module = getCompiledModule(getInterface<Interface>(), filename, language_name);
+        const auto compiled_module =  getCompiledModule(getInterface<Interface>(), filename, language_name);
         return std::make_shared<ScriptModule<Interface>>(compiled_module);
     }
 
@@ -59,6 +59,9 @@ public:
 private:
     CoreCompile m_compile;
     std::unordered_map<std::string, std::shared_ptr<ScriptModuleRuntime>> m_modules;
+
+    // TODO [Ivn] Hack to hold somewhere instance of ILanguageScript. Actually it shoud be runtime part of each module
+    std::vector<std::shared_ptr<ILanguageScript>> m_scripts;
 
     template<typename Interface>
     const ScriptInterface& getInterface() const

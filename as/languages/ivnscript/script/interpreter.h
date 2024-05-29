@@ -56,6 +56,6 @@ public:
 //   std::vector<std::pair<std::string, int>> funcs;
 // };
 
-llvm::Function* build(llvm::LLVMContext& context, llvm::Module* module, const std::string& funcName, const ModuleFunction& func, llvm::FunctionType* signature, std::vector<Error>& errors);
+llvm::Function* build(llvm::LLVMContext& context, llvm::Module& module, const std::string& funcName, const ModuleFunction& func, llvm::FunctionType* signature, std::vector<Error>& errors);
 
 }

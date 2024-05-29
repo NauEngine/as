@@ -10,6 +10,7 @@
 #include "squirrel/include/sqstdio.h"
 
 #include "sq_ir.h"
+#include "as/core/ir.h"
 
 static std::string getSafeName(const std::string& filename)
 {
@@ -64,8 +65,11 @@ SquirrelLanguageScript::~SquirrelLanguageScript()
     m_funcs.clear();
 }
 
-void SquirrelLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Module* module)
+std::unique_ptr<llvm::Module> SquirrelLanguageScript::createModule(const std::string& export_name,
+        llvm::LLVMContext& context)
 {
+    auto module = std::make_unique<llvm::Module>(export_name, context);
+
     m_sq_vm_extern = new llvm::GlobalVariable(*module, m_sq_ir->sq_vm_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
                                               nullptr,
                                               SquirrelIR::SQUIRREL_VM_GLOBAL_VAR);
@@ -77,13 +81,23 @@ void SquirrelLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Mod
 
     sq_call(m_sq_vm, 1, SQFalse, SQTrue);
     sq_settop(m_sq_vm, top);
+
+    return module;
+}
+
+llvm::GlobalVariable* SquirrelLanguageScript::buildVTable(const std::string& export_name,
+    const ScriptInterface& interface,
+    llvm::Module& module,
+    llvm::LLVMContext& context)
+{
+    return ir::buildVTable(export_name, interface, module, context, &SquirrelLanguageScript::buildFunction, this);
 }
 
 llvm::Function* SquirrelLanguageScript::buildFunction(
-    const std::string& bare_name,
-    llvm::FunctionType* signature,
-    llvm::LLVMContext& context,
-    llvm::Module* module)
+        const std::string& bare_name,
+        llvm::FunctionType* signature,
+        llvm::Module& module,
+        llvm::LLVMContext& context)
 {
     llvm::IRBuilder<> builder(context);
     llvm::Function* func = llvm::Function::Create(signature, llvm::Function::InternalLinkage, bare_name, module);
@@ -143,7 +157,7 @@ llvm::Function* SquirrelLanguageScript::buildFunction(
     return func;
 }
 
-void SquirrelLanguageScript::executeModule(const std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::LLVMContext& context, llvm::Module* module)
+void SquirrelLanguageScript::materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::Module& module, llvm::LLVMContext& context)
 {
     for (const auto& [name, func] : m_funcs)
     {
@@ -164,7 +178,7 @@ void SquirrelLanguageScript::executeModule(const std::shared_ptr<llvm::orc::LLJI
 llvm::Value* SquirrelLanguageScript::buildGlobalVarForSQClosure(
     const std::string& bare_name,
     llvm::LLVMContext& context,
-    llvm::Module* module)
+    llvm::Module& module)
 {
     const SQInteger top = sq_gettop(m_sq_vm);
 
@@ -184,7 +198,7 @@ llvm::Value* SquirrelLanguageScript::buildGlobalVarForSQClosure(
     auto sq_decorated_name = std::format("{}_{}_sqobj", safeModuleName, bare_name);
     m_funcs.emplace_back(sq_decorated_name, std::move(sq_closure));
 
-    return new llvm::GlobalVariable(*module, m_sq_ir->sq_object_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
+    return new llvm::GlobalVariable(module, m_sq_ir->sq_object_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
                                               nullptr,
                                               sq_decorated_name);
 }

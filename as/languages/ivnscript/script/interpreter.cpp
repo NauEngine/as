@@ -43,7 +43,7 @@ namespace script {
 
 class ModuleContext: public InterpreterContext {
 public:
-  explicit ModuleContext(llvm::LLVMContext& llvmContext, llvm::Module* llvmModule): context(&llvmContext), module(llvmModule)
+  explicit ModuleContext(llvm::LLVMContext& llvmContext, llvm::Module& llvmModule): context(llvmContext), module(llvmModule)
   {
     builder = std::make_unique<llvm::IRBuilder<>>(llvmContext);
 
@@ -92,18 +92,18 @@ public:
   }
 
   [[nodiscard]] bool hasFunction(const std::string& name) const override {
-    return module->getFunction(name) != nullptr;
+    return module.getFunction(name) != nullptr;
   }
 
   llvm::Function* getFunction(const std::string& name) override {
-    return module->getFunction(name);
+    return module.getFunction(name);
   }
 
   llvm::Value* addVariable(const std::string& name, llvm::Value* value) override {
     if (hasVariable(name))
       return nullptr;
 
-    auto var = getBuilder()->CreateAlloca(llvm::Type::getInt32Ty(*context), nullptr, name);
+    auto var = getBuilder()->CreateAlloca(llvm::Type::getInt32Ty(context), nullptr, name);
     getBuilder()->CreateStore(value, var);
 
     locals[name] = var;
@@ -125,7 +125,7 @@ public:
     }
     if (locals.contains(name)) {
       auto var = locals[name];
-      auto load = getBuilder()->CreateLoad(llvm::Type::getInt32Ty(*context), var, "l_" + name);
+      auto load = getBuilder()->CreateLoad(llvm::Type::getInt32Ty(context), var, "l_" + name);
       variables[name] = load;
       return load;
     }
@@ -138,18 +138,18 @@ public:
       return nullptr;
 
     std::vector<llvm::Type*> members;
-    members.push_back(llvm::Type::getInt32Ty(*context));
-    members.push_back(llvm::Type::getInt32Ty(*context));
+    members.push_back(llvm::Type::getInt32Ty(context));
+    members.push_back(llvm::Type::getInt32Ty(context));
 
     llvm::Value* globalPtr = getVariable(self);
     llvm::Value* varPtr = builder->CreateStructGEP(structType, globalPtr, index, "p_" + name);
-    llvm::Value* value = builder->CreateLoad(llvm::Type::getInt32Ty(*context), varPtr, name);
+    llvm::Value* value = builder->CreateLoad(llvm::Type::getInt32Ty(context), varPtr, name);
 
     return value;
   }
 
   llvm::Value* getConstant(int value) override {
-    return llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), value);
+    return llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), value);
   }
 
   void declareFunction(const std::string& name, llvm::FunctionType* signature, const std::vector<std::string>& args) {
@@ -178,7 +178,7 @@ public:
     if (!func)
       return;
 
-    auto block = llvm::BasicBlock::Create(*context, "entry", func);
+    auto block = llvm::BasicBlock::Create(context, "entry", func);
     builder->SetInsertPoint(block);
 
     variables.clear();
@@ -187,8 +187,8 @@ public:
   }
 
 private:
-  llvm::LLVMContext* context;
-  llvm::Module* module;
+  llvm::LLVMContext& context;
+  llvm::Module& module;
 
   std::unique_ptr<llvm::IRBuilder<>> builder;
 
@@ -198,7 +198,7 @@ private:
   llvm::StructType* structType;
 };
 
-llvm::Function* build(llvm::LLVMContext& context, llvm::Module* module, const std::string& funcName, const ModuleFunction& func, llvm::FunctionType* signature, std::vector<Error>& errors)
+llvm::Function* build(llvm::LLVMContext& context, llvm::Module& module, const std::string& funcName, const ModuleFunction& func, llvm::FunctionType* signature, std::vector<Error>& errors)
 {
   ModuleContext c(context, module);
   c.declareFunction(funcName, signature, func.args);

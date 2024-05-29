@@ -12,6 +12,7 @@
 #include "lua_llvm_compiler.h"
 #include "lua_ir.h"
 #include "lua_utils.h"
+#include "as/core/ir.h"
 
 extern "C"
 {
@@ -74,24 +75,37 @@ void LuaLanguageScript::load(const std::string& filename)
     m_registry_index = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
 }
 
-void LuaLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Module* module)
+std::unique_ptr<llvm::Module> LuaLanguageScript::createModule(const std::string& export_name,
+        llvm::LLVMContext& context)
 {
+    auto module = std::make_unique<llvm::Module>(export_name, context);
+
     m_lua_state_extern = new llvm::GlobalVariable(*module, m_lua_ir->lua_State_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
                                                       nullptr,
                                                       LuaIR::LUA_STATE_GLOBAL_VAR);
     // TODO [AZ] check if registry_index exists
     lua_rawgeti(m_lua_state, LUA_REGISTRYINDEX, m_registry_index);
     lua_call(m_lua_state, 0, LUA_MULTRET);
+
+    return module;
+}
+
+llvm::GlobalVariable* LuaLanguageScript::buildVTable(const std::string& export_name,
+    const ScriptInterface& interface,
+    llvm::Module& module,
+    llvm::LLVMContext& context)
+{
+    return ir::buildVTable(export_name, interface, module, context, &LuaLanguageScript::buildFunction, this);
 }
 
 llvm::Function* LuaLanguageScript::buildFunction(
     const std::string& bare_name,
     llvm::FunctionType* signature,
-    llvm::LLVMContext& context,
-    llvm::Module* module)
+    llvm::Module& module,
+    llvm::LLVMContext& context)
 {
     LuaStackGuard stack_guard(m_lua_state);
-    const LLVMOptimizer optimizer(module);
+    const LLVMOptimizer optimizer(&module);
 
     lua_getglobal(m_lua_state, bare_name.c_str());
     int func_ref = LUA_NOREF;

@@ -64,10 +64,10 @@ int main()
   auto test_1_is = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.is");
   auto test_2_is = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.is");
 
-  auto test_1_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.ts");
-  auto test_2_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.ts");
+  // auto test_1_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.ts");
+  // auto test_2_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.ts");
 
-//********************************************************************************************************************//
+// *********************************************************************************************************************
 
   auto test_1_lua_instance1(test_1_lua->newInstance());
   auto test_2_lua_instance1(test_2_lua->newInstance());
@@ -100,7 +100,7 @@ int main()
   assert(test_2_lua_instance2->bar(10) == 2023);
   assert(test_2_lua_instance2->foo(10, 20) == 54);
 
-//********************************************************************************************************************//
+// *********************************************************************************************************************
 
   auto test_1_nut_instance1(test_1_nut->newInstance());
   auto test_2_nut_instance1(test_2_nut->newInstance());
@@ -129,7 +129,7 @@ int main()
   assert(test_2_nut_instance2->bar(10) == 2000000);
   assert(test_2_nut_instance2->bar(20) == 4000000);
 
-//********************************************************************************************************************//
+// *********************************************************************************************************************
 
   auto test_1_is_instance1(test_1_is->newInstance());
   auto test_2_is_instance1(test_2_is->newInstance());

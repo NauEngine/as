@@ -10,6 +10,7 @@
 
 #include "./is_language_script.h"
 
+#include "as/core/ir.h"
 #include "script/interpreter.h"
 
 namespace as
@@ -34,11 +35,23 @@ void IvnScriptLanguageScript::load(const std::string& filename)
     }
 }
 
+std::unique_ptr<llvm::Module> IvnScriptLanguageScript::createModule(const std::string& export_name,
+        llvm::LLVMContext& context)
+{
+    return std::make_unique<llvm::Module>(export_name, context);
+}
+
+llvm::GlobalVariable* IvnScriptLanguageScript::buildVTable(const std::string& export_name,
+        const ScriptInterface& interface, llvm::Module& module, llvm::LLVMContext& context)
+{
+    return ir::buildVTable(export_name, interface, module, context, &IvnScriptLanguageScript::buildFunction, this);
+}
+
 llvm::Function* IvnScriptLanguageScript::buildFunction(
-    const std::string& bare_name,
-    llvm::FunctionType* signature,
-    llvm::LLVMContext& context,
-    llvm::Module* module)
+        const std::string& bare_name,
+        llvm::FunctionType* signature,
+        llvm::Module& module,
+        llvm::LLVMContext& context)
 {
     auto const &funcs = m_module->getFunctions();
     auto f = std::find_if(funcs.begin(), funcs.end(), [bare_name](auto const &it)

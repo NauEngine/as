@@ -7,7 +7,10 @@
 
 #include <format>
 
+#include <llvm/IR/IRBuilder.h>
+
 #include "as.h"
+#include "cpp_interface_parser.h"
 
 namespace llvm
 {
@@ -65,6 +68,42 @@ namespace as::ir
         return result + '_' + std::to_string(hasher(filename));
     }
 
+    template<typename T>
+    static llvm::GlobalVariable* buildVTable(const std::string& variable_name,
+        const ScriptInterface& interface,
+        llvm::Module& module,
+        llvm::LLVMContext& context,
+        llvm::Function*(T::*buildFunction)(const std::string&,
+            llvm::FunctionType*,
+            llvm::Module&,
+            llvm::LLVMContext&),
+        T* self)
+    {
+        const auto num_methods = interface.methodNames.size();
+        std::vector<llvm::Constant*> methods(num_methods);
+
+        llvm::PointerType* opaque_ptr_t = llvm::PointerType::get(context, 0);
+        llvm::Constant* opaque_null_ptr = llvm::ConstantPointerNull::get(opaque_ptr_t);
+
+        for (int i = 0; i < num_methods; ++i)
+        {
+            if (auto funt_type = interface.methodTypes[i])
+            {
+                auto func_name = interface.methodNames[i];
+                llvm::Function* method = (self->*buildFunction)(func_name, funt_type, module, context);
+                methods[i] = method ? method : opaque_null_ptr;
+            }
+            else
+            {
+                methods[i] = opaque_null_ptr;
+            }
+        }
+
+        return new llvm::GlobalVariable(module, interface.vtable_t, true, llvm::GlobalValue::InternalLinkage,
+            llvm::ConstantStruct::get(interface.vtable_t, methods),
+            variable_name);
+    }
+
     // converts c++ interface signature into inner method type by adding 'this' pointer as first arg
     llvm::FunctionType* buildInterfaceMethodType(llvm::FunctionType* method_t, llvm::PointerType* interface_ptr_t);
     llvm::GlobalVariable* buildGlobalString(llvm::LLVMContext& context, llvm::Module* module, const std::string& name, const std::string& value);
@@ -73,6 +112,32 @@ namespace as::ir
             llvm::Type *result,
             llvm::ArrayRef<llvm::Type*> params,
             const char* name);
+
+    llvm::Function* createRegisterModuleDecl(llvm::Module& module);
+
+    llvm::Function* createRequireRuntimeDecl(llvm::Module& module);
+
+    // void buildRequireRuntimeCall(llvm::Module& module,
+    //     llvm::Function* requireRuntime,
+    //     const std::string& runtime_name,
+    //     llvm::GlobalVariable* runtime);
+
+    llvm::Function* createRegisterInitDecl(llvm::Module& module);
+
+    void buildRegisterModuleCall(llvm::Module& module,
+        llvm::Function* registerModule,
+        const std::string& module_name,
+        llvm::GlobalVariable* vtable);
+
+    void buildGlobalCtor(llvm::Module& module, llvm::Function* ctor, const unsigned priority);
+
+    llvm::Function* createInitFunc(llvm::Module& module,
+        const std::string& export_name,
+        const std::string& module_name,
+        llvm::GlobalVariable* vtable,
+        llvm::GlobalVariable* runtime,
+        const std::string& runtime_name,
+        bool add_init);
 
 } // namespace as
 
