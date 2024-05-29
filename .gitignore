@@ -2,6 +2,7 @@
 *.DS_Store
 cmake-build-debug
 cmake-build-debug_withdebugllvm
+cmake-build-release
 /as/languages/lua/bc/
 /as/languages/squirrel/bc/
 *.sublime-*

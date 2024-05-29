@@ -7,4 +7,5 @@ namespace as::benchmark
     double test_Cycle();
     double test_Array();
     double test_NQueen();
+    double test_Life();
 }

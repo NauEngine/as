@@ -33,7 +33,7 @@ extern "C" {
 
 const vm_func_info vm_op_functions[] = {
   { OP_MOVE, HINT_NONE, VAR_T_VOID, "vm_OP_MOVE",
-    {VAR_T_BASE, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
+    {VAR_T_R_A, VAR_T_R_B, VAR_T_VOID},
   },
   { OP_LOADK, HINT_NONE, VAR_T_VOID, "vm_OP_LOADK",
     {VAR_T_R_A, VAR_T_CONST_Bx, VAR_T_VOID},

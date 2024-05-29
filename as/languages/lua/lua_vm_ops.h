@@ -78,7 +78,7 @@ typedef struct
 
 extern const vm_func_info vm_op_functions[];
 
-extern void vm_OP_MOVE(TValue *base, int a, int b);
+extern void vm_OP_MOVE(TValue *ra, TValue *rb);
 
 extern void vm_OP_LOADK(TValue *var, TValue *value);
 

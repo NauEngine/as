@@ -30,8 +30,10 @@ extern "C" {
 
 #define setobj_VM(obj1,obj2) *(obj1) = *(obj2)
 
-void vm_OP_MOVE(TValue *base, int a, int b) {
-  setobj_VM(base + a, base + b);
+//	A B	R(A) := R(B)
+void vm_OP_MOVE(TValue *ra, TValue *rb)
+{
+  setobj_VM(ra, rb);
 }
 
 void vm_OP_LOADK(TValue *var, TValue *value) {
@@ -146,6 +148,7 @@ void vm_OP_SETUPVAL(lua_State *L, LClosure *cl, int a, int b) {
   luaC_barrier(L, uv, ra);
 }
 
+/*	A B C k	R[A] := {}					*/
 void vm_OP_NEWTABLE(lua_State *L, int a, int b_fb2int, int c_fb2int) {
   Table *h;
   h = luaH_new(L, b_fb2int, c_fb2int);

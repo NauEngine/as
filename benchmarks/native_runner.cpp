@@ -15,6 +15,7 @@ std::unordered_map<std::string, as::benchmark::TestFunc> testFunctions =
     {"../../benchmarks/lua/scripts/test_cycle.lua", test_Cycle},
     {"../../benchmarks/lua/scripts/test_array.lua", test_Array},
     {"../../benchmarks/lua/scripts/test_nqueen.lua", test_NQueen},
+    {"../../benchmarks/lua/scripts/test_life.lua", test_Life},
 };
 
 

@@ -20,13 +20,13 @@ int main()
         {"cycle", "../../benchmarks/lua/scripts/test_cycle.lua"},
         {"array", "../../benchmarks/lua/scripts/test_array.lua"},
         {"n queen", "../../benchmarks/lua/scripts/test_nqueen.lua"},
+        {"life", "../../benchmarks/lua/scripts/test_life.lua"},
     };
 
     std::string title = std::format("| {:<10}|", "title");
 
     std::unique_ptr<as::benchmark::IBenchmarkRunner> runners[] = {
-        std::move(std::make_unique<as::benchmark::NativeBenchmarkRunnner>()),
-        std::move(as::benchmark::getRunnerLuaAs()),
+        std::move(std::make_unique<as::benchmark::NativeBenchmarkRunnner>()),std::move(as::benchmark::getRunnerLuaAs()),
         std::move(as::benchmark::getRunnerLuaClassic()),
         std::move(as::benchmark::getRunnerLuaJit()),
     };
