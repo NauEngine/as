@@ -82,15 +82,13 @@ std::unique_ptr<clang::ASTConsumer> CollectInterfaceAction::CreateASTConsumer(cl
 
 const std::shared_ptr<ScriptInterface>& CPPParser::getInterface(const std::string& name, const std::string& source_code)
 {
-    if (!m_parsedInterfaces.contains(name))
-    {
-        parse(source_code);
-    }
+    if (name.empty() || !m_parsedInterfaces.contains(name))
+        return parse(source_code);
 
     return m_parsedInterfaces[name];
 }
 
-    void CPPParser::parse(const std::string& code)
+const std::shared_ptr<ScriptInterface>& CPPParser::parse(const std::string& code)
 {
     clang::CompilerInstance compiler;
 
@@ -123,11 +121,11 @@ const std::shared_ptr<ScriptInterface>& CPPParser::getInterface(const std::strin
     if (!compiler.ExecuteAction(action))
     {
         llvm::errs() << "Failed to parse!\n";
+        return m_null_ptr;
     }
-    else
-    {
-        m_parsedInterfaces.insert(newInterfaces.begin(), newInterfaces.end());
-    }
+
+    m_parsedInterfaces.insert(newInterfaces.begin(), newInterfaces.end());
+    return m_parsedInterfaces[newInterfaces.begin()->first];
 }
 
 void CPPParser::dump(llvm::raw_fd_ostream& stream)

@@ -75,7 +75,7 @@ int main(int argc, char **argv)
     std::ifstream ifs(headerFilename);
     const std::string headerContent{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
 
-    const auto interface = script_core->getInterface("TestScript", headerContent);
+    const auto interface = script_core->getInterface("", headerContent);
 
     if (interface)
     {

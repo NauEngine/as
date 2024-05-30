@@ -66,8 +66,9 @@ public:
 private:
   llvm::LLVMContext& m_context;
   ScriptInterfaces m_parsedInterfaces;
+  std::shared_ptr<ScriptInterface> m_null_ptr;
 
-  void parse(const std::string& code);
+  const std::shared_ptr<ScriptInterface>& parse(const std::string& code);
 };
 
 class CollectInterfaceASTVisitor : public clang::RecursiveASTVisitor<CollectInterfaceASTVisitor>
