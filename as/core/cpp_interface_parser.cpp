@@ -80,44 +80,54 @@ std::unique_ptr<clang::ASTConsumer> CollectInterfaceAction::CreateASTConsumer(cl
   return std::make_unique<CollectInterfaceASTConsumer>(m_context, &compiler.getASTContext(), m_interfaces, cgm);
 }
 
-std::shared_ptr<ScriptInterface> CPPParser::getInterface(const std::string& name, const std::string& source_code)
+const std::shared_ptr<ScriptInterface>& CPPParser::getInterface(const std::string& name, const std::string& source_code)
 {
-  if (!m_parsedInterfaces.contains(name)) {
-    parse(source_code);
-  }
+    if (!m_parsedInterfaces.contains(name))
+    {
+        parse(source_code);
+    }
 
-  return m_parsedInterfaces[name];
+    return m_parsedInterfaces[name];
 }
 
-void CPPParser::parse(const std::string& code)
+    void CPPParser::parse(const std::string& code)
 {
-  clang::CompilerInstance compiler;
+    clang::CompilerInstance compiler;
 
-  auto invocation = std::make_shared<clang::CompilerInvocation>();
-  auto mem_buffer = llvm::MemoryBuffer::getMemBuffer(code);
+    auto invocation = std::make_shared<clang::CompilerInvocation>();
+    auto mem_buffer = llvm::MemoryBuffer::getMemBuffer(code);
 
-  invocation->getLangOpts()->CPlusPlus = true;
-  invocation->getLangOpts()->CPlusPlus17 = true;
+    invocation->getLangOpts()->CPlusPlus = true;
+    invocation->getLangOpts()->CPlusPlus17 = true;
 
-  invocation->getFrontendOpts().Inputs.push_back(clang::FrontendInputFile(*mem_buffer, clang::Language::CXX));
-  invocation->getFrontendOpts().ProgramAction = clang::frontend::EmitLLVMOnly;
-  invocation->getFrontendOpts().DashX = clang::InputKind(clang::Language::CXX);
-  invocation->getCodeGenOpts().CodeModel = "default";
-  invocation->getTargetOpts().Triple = llvm::sys::getDefaultTargetTriple();
+    // [TODO] AZ Make adjustable path to include
+    auto &headerSearchOpts = invocation->getHeaderSearchOpts();
+    headerSearchOpts.AddPath("../", clang::frontend::Quoted, false, false);
 
-  compiler.setInvocation(std::move(invocation));
+    invocation->getFrontendOpts().Inputs.push_back(clang::FrontendInputFile(*mem_buffer, clang::Language::CXX));
+    invocation->getFrontendOpts().ProgramAction = clang::frontend::EmitLLVMOnly;
+    invocation->getFrontendOpts().DashX = clang::InputKind(clang::Language::CXX);
+    invocation->getCodeGenOpts().CodeModel = "default";
+    invocation->getTargetOpts().Triple = llvm::sys::getDefaultTargetTriple();
 
-  compiler.createDiagnostics();
-  compiler.setTarget(clang::TargetInfo::CreateTargetInfo(compiler.getDiagnostics(), compiler.getInvocation().TargetOpts));
-  compiler.createFileManager();
-  compiler.createSourceManager(compiler.getFileManager());
-  compiler.createPreprocessor(clang::TU_Complete);
+    compiler.setInvocation(std::move(invocation));
 
-  CollectInterfaceAction action(m_parsedInterfaces, m_context);
-  if (!compiler.ExecuteAction(action))
-  {
-    llvm::errs() << "Failed to parse!\n";
-  }
+    compiler.createDiagnostics();
+    compiler.setTarget(clang::TargetInfo::CreateTargetInfo(compiler.getDiagnostics(), compiler.getInvocation().TargetOpts));
+    compiler.createFileManager();
+    compiler.createSourceManager(compiler.getFileManager());
+    compiler.createPreprocessor(clang::TU_Complete);
+
+    ScriptInterfaces newInterfaces;
+    CollectInterfaceAction action(newInterfaces, m_context);
+    if (!compiler.ExecuteAction(action))
+    {
+        llvm::errs() << "Failed to parse!\n";
+    }
+    else
+    {
+        m_parsedInterfaces.insert(newInterfaces.begin(), newInterfaces.end());
+    }
 }
 
 void CPPParser::dump(llvm::raw_fd_ostream& stream)

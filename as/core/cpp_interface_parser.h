@@ -60,7 +60,7 @@ class CPPParser
 public:
   explicit CPPParser(llvm::LLVMContext& context) : m_context(context) {}
 
-  std::shared_ptr<ScriptInterface> getInterface(const std::string& name, const std::string& source_code);
+  const std::shared_ptr<ScriptInterface>& getInterface(const std::string& name, const std::string& source_code);
   void dump(llvm::raw_fd_ostream& stream);
 
 private:
@@ -91,12 +91,13 @@ private:
 class CollectInterfaceASTConsumer : public clang::ASTConsumer
 {
 public:
-  explicit CollectInterfaceASTConsumer(llvm::LLVMContext& llvmContext, clang::ASTContext *context, ScriptInterfaces& interfaces, clang::CodeGen::CodeGenModule& cgm)
-      : m_visitor(llvmContext, context, interfaces, cgm) {}
+    explicit CollectInterfaceASTConsumer(llvm::LLVMContext& llvmContext, clang::ASTContext *context, ScriptInterfaces& interfaces, clang::CodeGen::CodeGenModule& cgm)
+        : m_visitor(llvmContext, context, interfaces, cgm) {}
 
-  void HandleTranslationUnit(clang::ASTContext &Context) override {
-    m_visitor.TraverseDecl(Context.getTranslationUnitDecl());
-  }
+    void HandleTranslationUnit(clang::ASTContext &Context) override {
+        m_visitor.TraverseDecl(Context.getTranslationUnitDecl());
+    }
+
 
 private:
   CollectInterfaceASTVisitor m_visitor;
@@ -113,6 +114,7 @@ class CollectInterfaceAction : public clang::ASTFrontendAction {
     ScriptInterfaces& m_interfaces;
     std::unique_ptr<clang::CodeGenerator> m_code_gen;
     llvm::LLVMContext& m_context;
+    bool m_doNotParse;
   };
 
 

@@ -4,16 +4,9 @@
 #include "is_language_runtime.h"
 #include "as/core/core.h"
 #include "as/core/script_module.h"
-#include "as/core/cpp_interface.h"
 #include "as/languages/ivnscript/is_language.h"
 
-DEFINE_SCRIPT_INTERFACE(TestScript,
-struct TestScript
-{
-    virtual int foo(int a, int b) = 0;
-    virtual int bar(int a) = 0;
-};
-)
+#include "scripts/test_script.h"
 
 int main()
 {

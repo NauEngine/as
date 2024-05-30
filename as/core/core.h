@@ -20,8 +20,8 @@ namespace llvm::orc
 
 namespace as
 {
-    struct ILanguageRuntime;
-    struct ILanguage;
+struct ILanguageRuntime;
+struct ILanguage;
 struct ScriptInterface;
 
 class Core
@@ -47,7 +47,9 @@ public:
         if (linked_module)
             return std::make_shared<ScriptModule<Interface>>(linked_module);
 
-        const auto compiled_module =  getCompiledModule(getInterface<Interface>(), filename, language_name);
+        // TODO [AZ] временно вставил разыменование
+        assert(getInterface<Interface>());
+        const auto compiled_module =  getCompiledModule(*getInterface<Interface>(), filename, language_name);
         return std::make_shared<ScriptModule<Interface>>(compiled_module);
     }
 
@@ -67,7 +69,7 @@ private:
     std::vector<std::shared_ptr<ILanguageScript>> m_scripts;
 
     template<typename Interface>
-    const ScriptInterface& getInterface() const
+    const std::shared_ptr<ScriptInterface>& getInterface() const
     {
         const char* source_code = getSourceCode<Interface>();
         const char* type_name = getTypeName<Interface>();

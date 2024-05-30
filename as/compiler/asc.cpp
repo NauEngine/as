@@ -76,9 +76,16 @@ int main(int argc, char **argv)
     const std::string headerContent{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
 
     const auto interface = script_core->getInterface("TestScript", headerContent);
-    const auto module = script_core->newScriptModule(interface, inputFilename);
 
-    dumpFile(module.get(), outputFilename.getValue());
+    if (interface)
+    {
+        const auto module = script_core->newScriptModule(*interface, inputFilename);
+        dumpFile(module.get(), outputFilename.getValue());
+    }
+    else
+    {
+        llvm::errs() << "Script compilation failed\n";
+    }
 
     return 0;
 }
