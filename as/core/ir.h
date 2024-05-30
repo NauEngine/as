@@ -149,6 +149,7 @@ namespace as::ir
                                    llvm::GlobalVariable* runtime,
                                    const std::string& runtime_name);
 
+    void addMissingDeclarations(llvm::Module& module);
 } // namespace as
 
 #endif //AS_PROTO_IR_BUILD_HELPERS_H

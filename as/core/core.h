@@ -56,7 +56,7 @@ public:
     template<typename Interface>
     void registerInstance(Interface* instance, const std::string& instance_name)
     {
-        m_compile.registerInstance(instance, instance_name, getInterface<Interface>());
+        m_compile.registerInstance(instance, instance_name, *getInterface<Interface>());
     }
 
     void registerRuntime(std::shared_ptr<ILanguageRuntime> runtime);

@@ -96,6 +96,7 @@ llvm::Function* LuaLanguageScript::buildModule(const std::string& init_name,
     llvm::Module& module)
 {
     const auto vtable = ir::buildVTable(module_name, interface, module, &LuaLanguageScript::buildFunction, this);
+    ir::addMissingDeclarations(module);
     return ir::createInitFunc(module, init_name, module_name, vtable, nullptr, "");
 }
 
@@ -118,6 +119,7 @@ llvm::Function* LuaLanguageScript::buildFunction(
     else
     {
         // TODO [AZ] handle error
+        assert(false);
         return nullptr;
     }
 

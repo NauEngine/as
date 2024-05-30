@@ -2,6 +2,7 @@
 // Created by Alex Zelenshikov on 07.05.2024.
 //
 
+#include <set>
 #include "llvm/IR/IRBuilder.h"
 
 namespace as::ir
@@ -167,5 +168,40 @@ llvm::Function* createInitFunc(llvm::Module& module,
 
     return init_func;
 }
+
+void addMissingDeclarations(llvm::Module& module)
+{
+    std::set<std::string> declaredFunctions;
+
+    for (llvm::Function& func : module)
+    {
+        declaredFunctions.insert(func.getName().str());
+    }
+
+    for (llvm::Function& func : module)
+    {
+        for (llvm::BasicBlock& block : func)
+        {
+            for (llvm::Instruction &instruction : block)
+            {
+                if (llvm::CallInst* callInst = dyn_cast<llvm::CallInst>(&instruction))
+                {
+                    if (llvm::Function* calledFunc = callInst->getCalledFunction())
+                    {
+                        std::string funcName = calledFunc->getName().str();
+
+                        if (declaredFunctions.find(funcName) == declaredFunctions.end())
+                        {
+                            llvm::FunctionType* funcType = calledFunc->getFunctionType();
+                            module.getOrInsertFunction(funcName, funcType);
+                            declaredFunctions.insert(funcName);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 } // namespace as::ir

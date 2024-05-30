@@ -6,21 +6,7 @@
 
 #include "as/languages/lua/lua_language.h"
 
-extern "C"
-{
-#include "as/languages/lua/lua/lapi.h"
-#include "as/languages/lua/lua/lstate.h"
-#include "as/languages/lua/lua/lauxlib.h"
-}
-
-
-DEFINE_SCRIPT_INTERFACE(TestScript,
-struct TestScript
-{
-    virtual int foo(int a, int b) = 0;
-    virtual int bar(int a) = 0;
-};
-)
+#include "scripts/test_script.h"
 
 int main()
 {
