@@ -11,6 +11,7 @@
 #include "ts_language_script.h"
 
 #include <TypeScript/MLIRGen.h>
+#include <llvm/IR/Module.h>
 #include <llvm/TargetParser/Host.h>
 #include <llvm/TargetParser/Triple.h>
 
@@ -63,34 +64,39 @@ CompileOptions prepareOptions()
 }
 
 namespace as {
-    TypeScriptLanguageScript::TypeScriptLanguageScript(mlir::MLIRContext& context):
-        m_context(context)
-    {
-    }
+TypeScriptLanguageScript::TypeScriptLanguageScript(mlir::MLIRContext& context):
+    m_context(context)
+{
+}
 
-    void TypeScriptLanguageScript::load(const std::string& filename)
-    {
-        llvm::SourceMgr source_mgr;
-        auto compile_options = prepareOptions();
-        auto file_err = llvm::MemoryBuffer::getFileOrSTDIN(filename);
+void TypeScriptLanguageScript::load(const std::string& filename)
+{
+    llvm::SourceMgr source_mgr;
+    auto compile_options = prepareOptions();
+    auto file_err = llvm::MemoryBuffer::getFileOrSTDIN(filename);
 
-        source_mgr.AddNewSourceBuffer(std::move(*file_err), llvm::SMLoc());
+    source_mgr.AddNewSourceBuffer(std::move(*file_err), llvm::SMLoc());
 
-        m_module = typescript::mlirGenFromSource(m_context, filename, source_mgr, compile_options);
-    }
+    m_module = typescript::mlirGenFromSource(m_context, filename, source_mgr, compile_options);
+}
 
-    void TypeScriptLanguageScript::prepareModule(llvm::LLVMContext& context, llvm::Module* module)
-    {
-    }
+std::unique_ptr<llvm::Module> TypeScriptLanguageScript::createModule(
+        llvm::LLVMContext& context)
+{
+    return std::make_unique<llvm::Module>("ts_module", context);
+}
 
-    llvm::Function* TypeScriptLanguageScript::buildFunction(const std::string& bare_name, llvm::FunctionType* signature,
-            llvm::LLVMContext& context, llvm::Module* module)
-    {
-        return nullptr;
-    }
+llvm::Function* TypeScriptLanguageScript::buildModule(const std::string& init_name,
+    const std::string& module_name,
+    const ScriptInterface& interface,
+    llvm::Module& module)
+{
+    return nullptr;
+}
 
-    void TypeScriptLanguageScript::executeModule(const std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::LLVMContext& context,
-            llvm::Module* module)
-    {
-    }
+void TypeScriptLanguageScript::materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
+    llvm::Module& module,
+    llvm::LLVMContext& context)
+{
+}
 } // as

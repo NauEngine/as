@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "is_language_runtime.h"
 #include "ts_language.h"
 #include "as/core/core.h"
 #include "as/core/script_module.h"
@@ -8,13 +9,14 @@
 #include "as/languages/lua/lua_language.h"
 #include "as/languages/squirrel/sq_language.h"
 #include "as/languages/ivnscript/is_language.h"
+#include "script/module.h"
 
 DEFINE_SCRIPT_INTERFACE(TestScript,
-struct TestScript
-{
-  virtual double foo(int a, double b) = 0;
-  virtual int bar(int a) = 0;
-};
+    struct TestScript
+    {
+    virtual double foo(int a, double b) = 0;
+    virtual int bar(int a) = 0;
+    };
 )
 
 DEFINE_SCRIPT_INTERFACE(Logger,
@@ -42,6 +44,7 @@ struct LoggerImpl : Logger
 int main()
 {
   auto script_core = std::make_shared<as::Core>();
+  auto ivnscript_runtime = std::make_shared<as::IvnScriptLanguageRuntime>("Tests");
   auto lua_language = std::make_shared<as::LuaLanguage>();
   auto squirrel_language = std::make_shared<as::SquirrelLanguage>();
   auto ivnscript_language = std::make_shared<as::IvnScriptLanguage>();
@@ -51,6 +54,7 @@ int main()
   script_core->registerLanguage("nut", std::move(squirrel_language));
   script_core->registerLanguage("is", std::move(ivnscript_language));
   script_core->registerLanguage("ts", std::move(typescript_language));
+  script_core->registerRuntime(std::move(ivnscript_runtime));
 
   LoggerImpl logger;
   script_core->registerInstance<Logger>(&logger, "logger");
@@ -64,10 +68,10 @@ int main()
   auto test_1_is = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.is");
   auto test_2_is = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.is");
 
-  auto test_1_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.ts");
-  auto test_2_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.ts");
+  // auto test_1_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.ts");
+  // auto test_2_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.ts");
 
-//********************************************************************************************************************//
+// *********************************************************************************************************************
 
   auto test_1_lua_instance1(test_1_lua->newInstance());
   auto test_2_lua_instance1(test_2_lua->newInstance());
@@ -100,7 +104,7 @@ int main()
   assert(test_2_lua_instance2->bar(10) == 2023);
   assert(test_2_lua_instance2->foo(10, 20) == 54);
 
-//********************************************************************************************************************//
+// *********************************************************************************************************************
 
   auto test_1_nut_instance1(test_1_nut->newInstance());
   auto test_2_nut_instance1(test_2_nut->newInstance());
@@ -129,7 +133,7 @@ int main()
   assert(test_2_nut_instance2->bar(10) == 2000000);
   assert(test_2_nut_instance2->bar(20) == 4000000);
 
-//********************************************************************************************************************//
+// *********************************************************************************************************************
 
   auto test_1_is_instance1(test_1_is->newInstance());
   auto test_2_is_instance1(test_2_is->newInstance());

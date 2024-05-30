@@ -24,7 +24,14 @@ public:
         bool add_init);
 
     void dump(llvm::raw_fd_ostream& stream) const;
-    std::shared_ptr<ScriptModuleRuntime> materialize(std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::orc::ThreadSafeContext ts_context);
+
+    void materialize(std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::orc::ThreadSafeContext ts_context);
+
+    // TODO [Ivn] Hack to hold somewhere instance of ILanguageScript. Actually it shoud be runtime part of each module
+    std::shared_ptr<ILanguageScript> getLanguageScript()
+    {
+        return std::move(m_language_script);
+    }
 
 private:
     std::string m_export_name;
@@ -32,7 +39,7 @@ private:
     std::shared_ptr<ILanguageScript> m_language_script;
 
     void compile(const ScriptInterface& interface, llvm::LLVMContext& context, bool add_init);
-    std::vector<llvm::Constant*> compileFunctions(const ScriptInterface& interface, llvm::LLVMContext& context) const;
+    // std::vector<llvm::Constant*> compileFunctions(const ScriptInterface& interface, llvm::LLVMContext& context) const;
 };
 
 } // as

@@ -22,22 +22,28 @@ public:
 
     void load(const std::string& filename) override;
 
-    void prepareModule(llvm::LLVMContext& context, llvm::Module* module) override {}
+    std::unique_ptr<llvm::Module> createModule(llvm::LLVMContext& context) override;
 
-    llvm::Function* buildFunction(
-        const std::string& bare_name,
-        llvm::FunctionType* signature,
-        llvm::LLVMContext& context,
-        llvm::Module* module) override;
+    llvm::Function* buildModule(const std::string& init_name,
+        const std::string& module_name,
+        const ScriptInterface& interface,
+        llvm::Module& module) override;
 
-    void executeModule(
-        const std::shared_ptr<llvm::orc::LLJIT>& jit,
-        llvm::LLVMContext& context,
-        llvm::Module* module) override {}
+    void materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
+        llvm::Module& module,
+        llvm::LLVMContext& context) override {}
 
 private:
     std::unique_ptr<script::Module> m_module;
     std::string m_filename;
+
+    llvm::GlobalVariable* m_runtime_var;
+    llvm::Function* m_runtime_enter;
+
+    llvm::Function* buildFunction(const std::string& name,
+        llvm::FunctionType* signature,
+        llvm::Module& module,
+        llvm::LLVMContext& context);
 };
 
 } // namespace as
