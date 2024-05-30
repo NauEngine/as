@@ -46,14 +46,7 @@ void collectString(Token& token) {
   }
 }
 
-bool moveToken(Token& token) {
-  // move to the end of current token
-  const int length = token.type == TOK_STRING ? token.length + 1 : token.length;
-  token.text += length;
-  token.column += length;
-  token.length = 0;
-
-  // find first non-space symbol
+void skipSpaces(Token& token) {
   while (isspace(*token.text)) {
     if (*token.text == '\n') {
       token.line++;
@@ -64,6 +57,41 @@ bool moveToken(Token& token) {
 
     token.text++;
   }
+}
+
+bool skipComments(Token& token) {
+  const auto c = *token.text;
+  if (c != '/')
+    return false;
+  const auto c1 = token.text[1];
+  if (c1 != '/')
+    return false;
+
+  token.text += 2;
+  token.column += 2;
+  while (*token.text != '\n') {
+    token.column++;
+    token.text++;
+  }
+
+  return true;
+}
+
+void skipSpacesAndComments(Token& token) {
+  do {
+    skipSpaces(token);
+  } while (skipComments(token));
+}
+
+bool moveToken(Token& token) {
+  // move to the end of current token
+  const int length = token.type == TOK_STRING ? token.length + 1 : token.length;
+  token.text += length;
+  token.column += length;
+  token.length = 0;
+
+  // find first non-space symbol and non-comments symbols
+  skipSpacesAndComments(token);
 
   const auto c = *token.text;
   if (!c) {

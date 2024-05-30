@@ -149,6 +149,8 @@ namespace as::ir
                                    llvm::GlobalVariable* runtime,
                                    const std::string& runtime_name);
 
+    std::string getImplements(const std::string& filepath, const std::string& pattern);
+
 } // namespace as
 
 #endif //AS_PROTO_IR_BUILD_HELPERS_H
