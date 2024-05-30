@@ -132,12 +132,22 @@ namespace as::ir
 
     void buildGlobalCtor(llvm::Module& module, llvm::Function* ctor, const unsigned priority);
 
+    /**
+     *
+     * @param module - Модуль, куда все добавлять
+     * @param init_name - Имя для init функции, если она должна быть публичной. Пустая строка, если нужен конструктор для регистрации init функции
+     * @param module_name - Имя модуля, под которым этот модуль будет регистрироваться (ir::safe_name)
+     * @param vtable - Переменная, в которой хранится vtable, может быть null, тогда vtable не будет регистрироваться
+     * @param runtime - Переменная, куда класть runtime, может быть null, тогда runtime не нужен
+     * @param runtime_name - Имя рантайма, может быть пустой строкой, тогда runtime не нужен
+     * @return - init функция для данного модуля
+     */
     llvm::Function* createInitFunc(llvm::Module& module,
-        const std::string& export_name,
-        const std::string& module_name,
-        llvm::GlobalVariable* vtable,
-        llvm::GlobalVariable* runtime,
-        const std::string& runtime_name);
+                                   const std::string& export_name,
+                                   const std::string& module_name,
+                                   llvm::GlobalVariable* vtable,
+                                   llvm::GlobalVariable* runtime,
+                                   const std::string& runtime_name);
 
 } // namespace as
 
