@@ -51,6 +51,9 @@ public:
     llvm::Type* int64_t = nullptr;
     llvm::Type* void_t = nullptr;
     llvm::Type* double_t = nullptr;
+    llvm::Type* float_t = nullptr;
+    llvm::Type* bool_t = nullptr;
+    llvm::Type* char_ptr_t = nullptr;
 
     llvm::Type* lua_State_t = nullptr;
     llvm::Type* TValue_t = nullptr;
@@ -72,6 +75,10 @@ public:
     llvm::Function* lua_tointeger_f = nullptr;
     llvm::Function* lua_tonumber_f = nullptr;
     llvm::Function* lua_settop_f = nullptr;
+    llvm::Function* lua_pushboolean_f = nullptr;
+    llvm::Function* lua_pushstring_f = nullptr;
+    llvm::Function* lua_toboolean_f = nullptr;
+    llvm::Function* lua_tolstring_f = nullptr;
 
     // lauxlib functions
     llvm::Function* luaL_checkudata_f = nullptr;

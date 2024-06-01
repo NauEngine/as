@@ -36,6 +36,9 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     int64_t = llvm::Type::getInt64Ty(context);
     void_t = llvm::Type::getVoidTy(context);
     double_t = llvm::Type::getDoubleTy(context);
+    float_t = llvm::Type::getFloatTy(context);
+    bool_t = llvm::Type::getInt1Ty(context);
+    char_ptr_t = llvm::Type::getInt8PtrTy(context);
 
     lua_State_t = llvm::StructType::getTypeByName(context, "struct.lua_State");
     TValue_t = llvm::StructType::getTypeByName(context, "struct.lua_TValue");
@@ -61,6 +64,11 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     lua_tointeger_f = m_lapiModule->getFunction("lua_tointeger");
     lua_tonumber_f = m_lapiModule->getFunction("lua_tonumber");
     lua_settop_f = m_lapiModule->getFunction("lua_settop");
+    lua_pushboolean_f = m_lapiModule->getFunction("lua_pushboolean");
+    lua_pushstring_f = m_lapiModule->getFunction("lua_pushstring");
+    lua_toboolean_f = m_lapiModule->getFunction("lua_toboolean");
+    lua_tolstring_f = m_lapiModule->getFunction("lua_tolstring");
+
 
     // lauxlib functions
     luaL_checkudata_f = m_lauxlibModule->getFunction("luaL_checkudata");
@@ -207,9 +215,37 @@ llvm::Value* LuaIR::buildPopValue(llvm::IRBuilder<>& builder, llvm::Value* lua_s
         llvm::Value* result = builder.CreateCall(lua_tointeger_f, {lua_state_ir, stackPos_ir});
         ret = builder.CreateTrunc(result, int32_t);
     }
+    else if (type == int64_t)
+    {
+        ret = builder.CreateCall(lua_tointeger_f, {lua_state_ir, stackPos_ir});
+    }
+    else if (type == float_t)
+    {
+        llvm::Value* result = builder.CreateCall(lua_tonumber_f, {lua_state_ir, stackPos_ir});
+        ret = builder.CreateFPTrunc(result, float_t);
+    }
     else if (type == double_t)
     {
         ret = builder.CreateCall(lua_tonumber_f, {lua_state_ir, stackPos_ir});
+    }
+    else if (type == bool_t)
+    {
+        llvm::Value* result = builder.CreateCall(lua_toboolean_f, {lua_state_ir, stackPos_ir});
+        ret = builder.CreateTrunc(result, bool_t);
+    }
+    else if (type == char_ptr_t)
+    {
+        llvm::LLVMContext &context = builder.getContext();
+        llvm::Value* nullPtr_ir = llvm::Constant::getNullValue(llvm::PointerType::getUnqual(llvm::Type::getInt8Ty(context)));
+        ret = builder.CreateCall(lua_tolstring_f, {lua_state_ir, stackPos_ir, nullPtr_ir});
+    }
+    else if (type == void_t)
+    {
+        
+    }
+    else
+    {
+        llvm::errs() << "LuaIR::buildPopValue: Unsupported type\n";
     }
 
     return ret;
@@ -222,9 +258,34 @@ void LuaIR::buildPushValue(llvm::IRBuilder<>& builder, llvm::Value* lua_state_ir
         llvm::Value* arg64 = builder.CreateSExt(value, int64_t);
         builder.CreateCall(lua_pushinteger_f, {lua_state_ir, arg64});
     }
+    else if (type == int64_t)
+    {
+        builder.CreateCall(lua_pushinteger_f, {lua_state_ir, value});
+    }
+    else if (type == float_t)
+    {
+        llvm::Value* extendedValue = builder.CreateFPExt(value, double_t);
+        builder.CreateCall(lua_pushnumber_f, {lua_state_ir, extendedValue});
+    }
     else if (type == double_t)
     {
         builder.CreateCall(lua_pushnumber_f, {lua_state_ir, value});
+    }
+    else if (type == bool_t)
+    {
+        builder.CreateCall(lua_pushboolean_f, {lua_state_ir, value});
+    }
+    else if (type == char_ptr_t)
+    {
+        builder.CreateCall(lua_pushstring_f, {lua_state_ir, value});
+    }
+    else if (type == void_t)
+    {
+        
+    }
+    else
+    {
+        llvm::errs() << "LuaIR::buildPushValue: Unsupported type\n";
     }
 }
 

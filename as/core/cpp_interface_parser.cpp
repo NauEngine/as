@@ -92,11 +92,14 @@ const std::shared_ptr<ScriptInterface>& CPPParser::parse(const std::string& code
 {
     clang::CompilerInstance compiler;
 
+    std::string code_with_hack = "typedef long long int64_t;\ntypedef int int32_t;\n" + code;
+
     auto invocation = std::make_shared<clang::CompilerInvocation>();
-    auto mem_buffer = llvm::MemoryBuffer::getMemBuffer(code);
+    auto mem_buffer = llvm::MemoryBuffer::getMemBuffer(code_with_hack);
 
     invocation->getLangOpts()->CPlusPlus = true;
     invocation->getLangOpts()->CPlusPlus17 = true;
+    invocation->getLangOpts()->Bool = true;
 
     // [TODO] AZ Make adjustable path to include
     auto &headerSearchOpts = invocation->getHeaderSearchOpts();

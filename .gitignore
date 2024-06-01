@@ -6,3 +6,5 @@ cmake-build-release
 /as/languages/lua/bc/
 /as/languages/squirrel/bc/
 *.sublime-*
+/build/
+/.vscode/
