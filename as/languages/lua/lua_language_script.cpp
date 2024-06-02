@@ -155,9 +155,9 @@ llvm::Function* LuaLanguageScript::buildFunction(
     builder.CreateRet(ret);
 
     optimizer.inlineByName(func, "lua_call_compiled");
-    // optimizer.inlineByName(func, "lua_call");
-    // optimizer.inlineByName(func, "luaD_call");
-    // optimizer.inlineByName(func, "luaD_precall");
+    optimizer.inlineByName(func, "lua_call");
+    optimizer.inlineByName(func, "luaD_call");
+//    optimizer.inlineByName(func, "luaD_precall");
     optimizer.runOptimizationPasses(func);
 
     return func;

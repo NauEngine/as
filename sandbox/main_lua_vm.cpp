@@ -6,7 +6,7 @@
 
 #include "as/languages/lua/lua_language.h"
 
-#include "scripts/test_script.h"
+#include "scripts/test_vm.h"
 
 int main()
 {

@@ -53,7 +53,7 @@ extern "C" void __asRegisterInit(const char* name, FunctionPtr ptr)
 
 extern "C" void __asRegisterModule(const char* name, void* ptr)
 {
-    std::cout << "__asRegisterModule(" << name << ", ...)" << std::endl;
+    //std::cout << "__asRegisterModule(" << name << ", ...)" << std::endl;
     getVtables()[name] = ptr;
 }
 

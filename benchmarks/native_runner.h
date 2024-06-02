@@ -19,6 +19,10 @@ struct NativeBenchmarkRunnner final : IBenchmarkRunner
     void prepare(const std::string& filename) override;
     double run() override;
     void shutdown() override;
+
+    void prepare_calls(const std::string& filename) override {}
+    double run_add(double a, double b) override { return 0; }
+    bool run_not(bool a) override { return true; }
 private:
     TestFunc m_testFunction = nullptr;
 };
