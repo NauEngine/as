@@ -3,6 +3,7 @@
 //
 
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/Linker/Linker.h"
 
 #include "as/core/core_utils.h"
 #include "as/core/ir.h"
@@ -26,8 +27,12 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     llvm::LLVMContext& context = *ts_context.getContext();
     // init lapi bc
     m_lapiModule = utils::loadEmbeddedBitcode(context, "lapi_bc", lapi_bc, sizeof(lapi_bc));
-    m_lauxlibModule = utils::loadEmbeddedBitcode(context, "lauxlib_bc", lauxlib_bc, sizeof(lauxlib_bc));
-    m_luaVMModule = utils::loadEmbeddedBitcode(context, "lua_vm_ops_bc", lua_vm_ops_bc, sizeof(lua_vm_ops_bc));
+    auto lauxlibModule = utils::loadEmbeddedBitcode(context, "lauxlib_bc", lauxlib_bc, sizeof(lauxlib_bc));
+    auto luaVMModule = utils::loadEmbeddedBitcode(context, "lua_vm_ops_bc", lua_vm_ops_bc, sizeof(lua_vm_ops_bc));
+
+    llvm::Linker linker(*m_lapiModule);
+    linker.linkInModule(std::move(lauxlibModule));
+    linker.linkInModule(std::move(luaVMModule));
 
     // parse types & functions
     int8_t = llvm::Type::getInt8Ty(context);
@@ -71,25 +76,25 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
 
 
     // lauxlib functions
-    luaL_checkudata_f = m_lauxlibModule->getFunction("luaL_checkudata");
+    luaL_checkudata_f = m_lapiModule->getFunction("luaL_checkudata");
 
     // lua vm functions
-    vm_mini_vm_f = ir::сreateFunctionDecl(m_luaVMModule.get(), void_t,
+    vm_mini_vm_f = ir::сreateFunctionDecl(m_lapiModule.get(), void_t,
         {lua_State_ptr_t, LClosure_ptr_t, int32_t, int32_t}, "vm_mini_vm");
-    vm_get_current_closure_f = m_luaVMModule->getFunction("vm_get_current_closure");
-    vm_get_current_base_f = m_luaVMModule->getFunction("vm_get_current_base");
-    vm_get_current_constants_f = m_luaVMModule->getFunction("vm_get_current_constants");
-    vm_get_type_f = m_luaVMModule->getFunction("vm_get_type");
-    vm_get_number_f = m_luaVMModule->getFunction("vm_get_number");
-    vm_set_number_f = m_luaVMModule->getFunction("vm_set_number");
-    vm_arith_f = m_luaVMModule->getFunction("vm_arith");
+    vm_get_current_closure_f = m_lapiModule->getFunction("vm_get_current_closure");
+    vm_get_current_base_f = m_lapiModule->getFunction("vm_get_current_base");
+    vm_get_current_constants_f = m_lapiModule->getFunction("vm_get_current_constants");
+    vm_get_type_f = m_lapiModule->getFunction("vm_get_type");
+    vm_get_number_f = m_lapiModule->getFunction("vm_get_number");
+    vm_set_number_f = m_lapiModule->getFunction("vm_set_number");
+    vm_arith_f = m_lapiModule->getFunction("vm_arith");
 
-    vm_num_f[OP_ADD] = m_luaVMModule->getFunction("vm_NUM_ADD");
-    vm_num_f[OP_SUB] = m_luaVMModule->getFunction("vm_NUM_SUB");
-    vm_num_f[OP_MUL] = m_luaVMModule->getFunction("vm_NUM_MUL");
-    vm_num_f[OP_DIV] = m_luaVMModule->getFunction("vm_NUM_DIV");
-    vm_num_f[OP_MOD] = m_luaVMModule->getFunction("vm_NUM_MOD");
-    vm_num_f[OP_POW] = m_luaVMModule->getFunction("vm_NUM_POW");
+    vm_num_f[OP_ADD] = m_lapiModule->getFunction("vm_NUM_ADD");
+    vm_num_f[OP_SUB] = m_lapiModule->getFunction("vm_NUM_SUB");
+    vm_num_f[OP_MUL] = m_lapiModule->getFunction("vm_NUM_MUL");
+    vm_num_f[OP_DIV] = m_lapiModule->getFunction("vm_NUM_DIV");
+    vm_num_f[OP_MOD] = m_lapiModule->getFunction("vm_NUM_MOD");
+    vm_num_f[OP_POW] = m_lapiModule->getFunction("vm_NUM_POW");
 
     vm_arith_tms_map[OP_ADD] = TM_ADD;
     vm_arith_tms_map[OP_SUB] = TM_SUB;
@@ -129,7 +134,7 @@ void LuaIR::prepareVMOpcodes(llvm::LLVMContext& context)
 
         auto op_function = std::make_unique<OPFunctionVariant>(func_info);
 
-        op_function->func = m_luaVMModule->getFunction(func_info->name);
+        op_function->func = m_lapiModule->getFunction(func_info->name);
 
         if (!op_function->func)
         {
@@ -143,7 +148,7 @@ void LuaIR::prepareVMOpcodes(llvm::LLVMContext& context)
             const auto func_type = llvm::FunctionType::get(
                 getVarType(context, func_info->ret_type, func_info->hint), func_args, false);
             op_function->func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage,
-                                          func_info->name, m_luaVMModule.get());
+                                          func_info->name, m_lapiModule.get());
         }
 
         op_functions[opcode].variants[func_info->hint] = std::move(op_function);

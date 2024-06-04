@@ -105,8 +105,8 @@ public:
 
 private:
     std::unique_ptr<llvm::Module> m_lapiModule;
-    std::unique_ptr<llvm::Module> m_lauxlibModule;
-    std::unique_ptr<llvm::Module> m_luaVMModule;
+    // std::unique_ptr<llvm::Module> m_lauxlibModule;
+    // std::unique_ptr<llvm::Module> m_luaVMModule;
 
     // lua vm opcode functions
     OPFunction op_functions[NUM_OPCODES];
