@@ -50,3 +50,10 @@ add_executable(SandboxV main_v.cpp)
 target_link_libraries(SandboxV LuaIntegration SquirrelIntegration)
 target_compile_options(SandboxV PRIVATE -g)
 target_link_options(SandboxV PRIVATE -g)
+
+add_executable(SandboxCpp
+    main_cpp.cpp)
+target_link_libraries(SandboxCpp
+    CppScriptIntegration
+)
+
