@@ -27,6 +27,12 @@ public:
 
 private:
     std::string m_content;
+    std::unordered_map<std::string, std::string> m_func_names;
+
+    llvm::Function* buildFunction(const std::string& name,
+        llvm::FunctionType* signature,
+        llvm::Module& module,
+        llvm::LLVMContext& context);
 };
 
 } // as

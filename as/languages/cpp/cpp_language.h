@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 
 #include "as/core/language.h"

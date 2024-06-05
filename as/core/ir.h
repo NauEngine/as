@@ -146,8 +146,8 @@ namespace as::ir
                                    const std::string& export_name,
                                    const std::string& module_name,
                                    llvm::GlobalVariable* vtable,
-                                   llvm::GlobalVariable* runtime,
-                                   const std::string& runtime_name);
+                                   llvm::GlobalVariable* runtime = nullptr,
+                                   const std::string& runtime_name = "");
 
     void addMissingDeclarations(llvm::Module& module);
 } // namespace as
