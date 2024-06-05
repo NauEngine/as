@@ -27,6 +27,7 @@ public:
 
 private:
     std::string m_content;
+    std::string m_base_path;
     std::unordered_map<std::string, std::string> m_func_names;
 
     llvm::Function* buildFunction(const std::string& name,

@@ -110,6 +110,7 @@ namespace as {
 void CppLanguageScript::load(const std::string& filename)
 {
     std::ifstream ifs(filename);
+    m_base_path = std::filesystem::path(filename).parent_path();
     m_content = { std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
 }
 
@@ -127,7 +128,8 @@ std::unique_ptr<llvm::Module> CppLanguageScript::createModule(llvm::LLVMContext&
 
     // [TODO] AZ Make adjustable path to include
     auto &headerSearchOpts = invocation->getHeaderSearchOpts();
-    headerSearchOpts.AddPath("../", clang::frontend::Quoted, false, false);
+    headerSearchOpts.AddPath("../../", clang::frontend::Quoted, false, false);
+    headerSearchOpts.AddPath(m_base_path, clang::frontend::Quoted, false, false);
 
     auto mem_buffer = llvm::MemoryBuffer::getMemBuffer(m_content);
     invocation->getFrontendOpts().Inputs.push_back(clang::FrontendInputFile(*mem_buffer, clang::Language::CXX));

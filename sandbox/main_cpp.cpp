@@ -3,14 +3,7 @@
 
 #include "cpp_language.h"
 #include "as/core/core.h"
-
-DEFINE_SCRIPT_INTERFACE(TestScript,
-struct TestScript
-{
-    virtual double foo(int a, double b) = 0;
-    virtual int bar(int a) = 0;
-};
-)
+#include "scripts/test_script.h"
 
 int main() {
     auto script_core = std::make_shared<as::Core>();

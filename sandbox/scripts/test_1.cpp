@@ -1,8 +1,4 @@
-struct TestScript
-{
-    virtual double foo(int a, double b) = 0;
-    virtual int bar(int a) = 0;
-};
+#include "test_script.h"
 
 class Test: public TestScript
 {
