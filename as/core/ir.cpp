@@ -2,6 +2,10 @@
 // Created by Alex Zelenshikov on 07.05.2024.
 //
 
+#include <fstream>
+#include <regex>
+#include <sstream>
+
 #include <set>
 #include "llvm/IR/IRBuilder.h"
 
@@ -167,6 +171,39 @@ llvm::Function* createInitFunc(llvm::Module& module,
     }
 
     return init_func;
+}
+
+std::string getImplements(const std::string& filepath, const std::string& pattern)
+{
+    std::ifstream file(filepath);
+    if (!file.is_open())
+    {
+        return "";
+    }
+
+    char buffer[1025];  // Buffer to store up to 1024 characters + null terminator
+    file.read(buffer, 1024);  // Read the first 1024 characters from the file
+    buffer[file.gcount()] = '\0';  // Ensure null termination
+
+    std::string content(buffer);  // Convert buffer to std::string for easier processing
+    std::istringstream iss(content);  // Use istringstream to read line by line
+    std::string line;
+
+    std::regex implements("implements\\s+\"([^\"]+)\"");
+
+    while (std::getline(iss, line))
+    {
+        if (line.rfind(pattern, 0) != 0)
+            continue;
+
+        std::smatch matches;
+        if (!std::regex_search(line, matches, implements) || matches.size() != 2)
+            continue;
+
+        return matches[1].str();
+    }
+
+    return "";
 }
 
 void addMissingDeclarations(llvm::Module& module)

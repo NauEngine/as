@@ -49,7 +49,7 @@ macro(target_link_scripts target)
         add_custom_command(OUTPUT ${bc_target_header}
             OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            COMMAND asc ${source} -h ${CMAKE_CURRENT_SOURCE_DIR}/${source_file_path}/${source_file_name}.h -o ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll
+            COMMAND asc ${source} -o ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll
             DEPENDS asc ${CMAKE_CURRENT_SOURCE_DIR}/${source}
             VERBATIM
         )

@@ -107,11 +107,17 @@ std::unique_ptr<clang::ASTConsumer> CollectNamesAction::CreateASTConsumer(clang:
 }
 
 namespace as {
+
 void CppLanguageScript::load(const std::string& filename)
 {
     std::ifstream ifs(filename);
     m_base_path = std::filesystem::path(filename).parent_path();
     m_content = { std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
+}
+
+std::string CppLanguageScript::findHeader(const std::string& filename)
+{
+    return "";
 }
 
 std::unique_ptr<llvm::Module> CppLanguageScript::createModule(llvm::LLVMContext& context)

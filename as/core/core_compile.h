@@ -29,6 +29,9 @@ public:
 
     void registerInstance(void* instance, const std::string& instance_name, const ScriptInterface& interface);
 
+    std::shared_ptr<ScriptModuleCompile> newScriptModule(const std::string& filename,
+        const std::string& language_name = "");
+
     std::shared_ptr<ScriptModuleCompile> newScriptModule(const ScriptInterface& interface, const std::string& filename,
         const std::string& language_name = "");
 

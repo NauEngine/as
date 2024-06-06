@@ -22,6 +22,8 @@ IvnScriptLanguageScript::IvnScriptLanguageScript()
 
 void IvnScriptLanguageScript::load(const std::string& filename)
 {
+    std::cout << filename << " -> " << ir::getImplements(filename, "//") << std::endl;
+
     m_filename = filename;
 
     std::ifstream ifs(m_filename);
@@ -33,6 +35,11 @@ void IvnScriptLanguageScript::load(const std::string& filename)
     for (const auto &error: errors) {
       std::cerr << m_filename << ":" << error.line << ":" << error.column << ": error: " << error.message << "\n";
     }
+}
+
+std::string IvnScriptLanguageScript::findHeader(const std::string& filename)
+{
+    return ir::getImplements(filename, "//");
 }
 
 std::unique_ptr<llvm::Module> IvnScriptLanguageScript::createModule(

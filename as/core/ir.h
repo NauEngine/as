@@ -149,6 +149,8 @@ namespace as::ir
                                    llvm::GlobalVariable* runtime = nullptr,
                                    const std::string& runtime_name = "");
 
+    std::string getImplements(const std::string& filepath, const std::string& pattern);
+
     void addMissingDeclarations(llvm::Module& module);
 } // namespace as
 

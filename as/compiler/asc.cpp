@@ -24,7 +24,7 @@
 llvm::cl::OptionCategory CompilerOptions("Compiler Options");
 
 llvm::cl::opt<std::string> inputFilename(llvm::cl::Positional, llvm::cl::desc("<input_filename>"), llvm::cl::Required, llvm::cl::value_desc("filename"), llvm::cl::cat(CompilerOptions));
-llvm::cl::opt<std::string> headerFilename("h", llvm::cl::desc("Header filename"), llvm::cl::value_desc("filename"), llvm::cl::cat(CompilerOptions));
+// llvm::cl::opt<std::string> headerFilename("h", llvm::cl::desc("Header filename"), llvm::cl::value_desc("filename"), llvm::cl::cat(CompilerOptions));
 llvm::cl::opt<std::string> outputFilename("o", llvm::cl::desc("Output filename"), llvm::cl::value_desc("filename"), llvm::cl::cat(CompilerOptions));
 
 static void printVersion(llvm::raw_ostream &out) {
@@ -75,20 +75,13 @@ int main(int argc, char **argv)
     // llvm::outs() << "Header file: " << headerFilename << "\n";
     // llvm::outs() << "Output file: " << outputFilename << "\n";
 
-    std::ifstream ifs(headerFilename);
-    const std::string headerContent{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
+    // std::ifstream ifs(headerFilename);
+    // const std::string headerContent{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
+    //
+    // const auto interface = script_core->getInterface("TestScript", headerContent);
+    const auto module = script_core->newScriptModule(inputFilename);
 
-    const auto interface = script_core->getInterface("", headerContent);
-
-    if (interface)
-    {
-        const auto module = script_core->newScriptModule(*interface, inputFilename);
-        dumpFile(module.get(), outputFilename.getValue());
-    }
-    else
-    {
-        llvm::errs() << "Script compilation failed\n";
-    }
+    dumpFile(module.get(), outputFilename.getValue());
 
     return 0;
 }

@@ -13,6 +13,7 @@
 
 #include "core_compile.h"
 
+#include <fstream>
 #include <llvm/Support/TargetSelect.h>
 
 namespace
@@ -69,6 +70,29 @@ void CoreCompile::registerInstance(void* instance, const std::string& instance_n
     {
         language->registerInstance(instance, instance_name, i);
     }
+}
+
+std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(
+        const std::string& filename,
+        const std::string& language_name)
+{
+    auto language = getLanguage(resolveLanguageName(filename, language_name));
+    auto language_script = language->newScript();
+    auto header = language_script->findHeader(filename);
+
+    if (header.empty())
+        return nullptr;
+
+    std::filesystem::path file_path(std::filesystem::path(filename).parent_path());
+    std::filesystem::path header_path = file_path / header;
+
+    std::ifstream ifs(header_path);
+    const std::string header_content{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
+
+    const auto interface = getInterface("TestScript", header_content);
+
+    language_script->load(m_base_path / filename);
+    return std::make_shared<ScriptModuleCompile>(ir::safe_name(filename), *interface, language_script, *m_ts_context.getContext(), m_add_init);
 }
 
 std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(

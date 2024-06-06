@@ -34,6 +34,11 @@ public:
 
     void load(const std::string& filename) override;
 
+    std::string findHeader(const std::string& filename) override
+    {
+        return "";
+    }
+
     std::unique_ptr<llvm::Module> createModule(llvm::LLVMContext& context) override;
 
     llvm::Function* buildModule(const std::string& init_name,

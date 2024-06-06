@@ -42,7 +42,7 @@ add_executable(SandboxCompiler
     main_compiler.cpp)
 
 target_link_scripts(SandboxCompiler
-    scripts/test_script.is
+    scripts/test_1.is
     scripts/test_script.cpp)
 target_link_libraries(SandboxCompiler
     IvnScriptIntegration
