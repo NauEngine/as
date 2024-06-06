@@ -20,9 +20,9 @@ public:
     explicit IvnScriptLanguageScript();
     ~IvnScriptLanguageScript() override = default;
 
-    void load(const std::string& filename) override;
+    void load(const std::string& filename, llvm::LLVMContext& context) override;
 
-    std::string findHeader(const std::string& filename) override;
+    std::shared_ptr<ScriptInterface> getInterface(const std::string& filename, CPPParser& cpp_paser) override;
 
     std::unique_ptr<llvm::Module> createModule(llvm::LLVMContext& context) override;
 

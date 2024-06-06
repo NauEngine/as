@@ -7,6 +7,9 @@
 #include <sstream>
 
 #include <set>
+
+#include "cpp_interface_parser.h"
+#include "script_interface.h"
 #include "llvm/IR/IRBuilder.h"
 
 namespace as::ir
@@ -204,6 +207,27 @@ std::string getImplements(const std::string& filepath, const std::string& patter
     }
 
     return "";
+}
+
+std::string getRelativeFileName(const std::string& base_filename, const std::string& filename)
+{
+    if (filename.empty())
+        return nullptr;
+
+    std::filesystem::path base_file_path(std::filesystem::path(base_filename).parent_path());
+    std::filesystem::path file_path = base_file_path / filename;
+
+    return file_path;
+}
+
+std::shared_ptr<ScriptInterface> getInterface(const std::string& filename,
+    const std::string& interface_filename,
+    CPPParser& cpp_parser)
+{
+    std::ifstream ifs(getRelativeFileName(filename, interface_filename));
+    const std::string interface_content{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
+
+    return cpp_parser.getInterface("Foo", interface_content);
 }
 
 void addMissingDeclarations(llvm::Module& module)

@@ -1,7 +1,6 @@
 #include <fstream>
 #include "clang/CodeGen/CodeGenAction.h"
 #include "clang/CodeGen/BackendUtil.h"
-#include "clang/Frontend/CompilerInstance.h"
 #include "clang/AST/Mangle.h"
 #include "llvm/TargetParser/Host.h"
 #include "llvm/IR/LLVMContext.h"
@@ -10,6 +9,7 @@
 #include "cpp_language_script.h"
 
 #include "as/core/ir.h"
+#include "as/core/script_interface.h"
 
 bool isImplementation(clang::RecordDecl* record_decl)
 {
@@ -28,10 +28,21 @@ bool isImplementation(clang::RecordDecl* record_decl)
 
 class CollectNamesAction : public clang::ASTFrontendAction {
 public:
-    explicit CollectNamesAction(std::unordered_map<std::string, std::string>& func_names): m_func_names(func_names) {}
+    explicit CollectNamesAction(llvm::LLVMContext& context,
+        std::shared_ptr<as::ScriptInterface>& script_interface,
+        std::unordered_map<std::string, std::string>& func_names):
+        m_context(context),
+        m_script_interface(script_interface),
+        m_func_names(func_names) {}
 
     std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(clang::CompilerInstance &compiler,
         llvm::StringRef file) override;
+
+    void setScriptInterface(clang::RecordDecl* record_decl)
+    {
+
+        m_script_interface = as::ScriptInterface::fromRecordDecl(record_decl, m_context, m_code_gen->CGM());
+    }
 
     void addFuncName(const std::string& name, const std::string mangled_name)
     {
@@ -39,6 +50,9 @@ public:
     }
 
 private:
+    llvm::LLVMContext& m_context;
+    std::unique_ptr<clang::CodeGenerator> m_code_gen;
+    std::shared_ptr<as::ScriptInterface>& m_script_interface;
     std::unordered_map<std::string, std::string>& m_func_names;
 };
 
@@ -103,27 +117,30 @@ private:
 std::unique_ptr<clang::ASTConsumer> CollectNamesAction::CreateASTConsumer(clang::CompilerInstance &compiler,
     llvm::StringRef file)
 {
+    m_code_gen.reset(clang::CreateLLVMCodeGen(
+        compiler.getDiagnostics(), "types-converter",
+        &compiler.getVirtualFileSystem(), compiler.getHeaderSearchOpts(),
+        compiler.getPreprocessorOpts(), compiler.getCodeGenOpts(), m_context));
+
+    m_code_gen->Initialize(compiler.getASTContext());
+
     return std::make_unique<CollectNamesASTConsumer>(*this, compiler.getASTContext());
 }
 
 namespace as {
 
-void CppLanguageScript::load(const std::string& filename)
+void CppLanguageScript::load(const std::string& filename, llvm::LLVMContext& context)
 {
     std::ifstream ifs(filename);
-    m_base_path = std::filesystem::path(filename).parent_path();
     m_content = { std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
+    createCompiler(std::filesystem::path(filename).parent_path());
+
+    auto action2 = std::make_unique<CollectNamesAction>(context, m_script_interface, m_func_names);
+    m_compiler->ExecuteAction(*action2);
 }
 
-std::string CppLanguageScript::findHeader(const std::string& filename)
+void CppLanguageScript::createCompiler(const std::string& base_path)
 {
-    return "";
-}
-
-std::unique_ptr<llvm::Module> CppLanguageScript::createModule(llvm::LLVMContext& context)
-{
-    clang::CompilerInstance compiler;
-
     auto invocation = std::make_shared<clang::CompilerInvocation>();
 
     invocation->getLangOpts()->CPlusPlus = true;
@@ -132,10 +149,10 @@ std::unique_ptr<llvm::Module> CppLanguageScript::createModule(llvm::LLVMContext&
     invocation->getLangOpts()->Bool = true;
     invocation->getLangOpts()->EmitAllDecls = true;
 
-    // [TODO] AZ Make adjustable path to include
     auto &headerSearchOpts = invocation->getHeaderSearchOpts();
+    // TODO: [Ivn] Do not include strange paths
     headerSearchOpts.AddPath("../../", clang::frontend::Quoted, false, false);
-    headerSearchOpts.AddPath(m_base_path, clang::frontend::Quoted, false, false);
+    headerSearchOpts.AddPath(base_path, clang::frontend::Quoted, false, false);
 
     auto mem_buffer = llvm::MemoryBuffer::getMemBuffer(m_content);
     invocation->getFrontendOpts().Inputs.push_back(clang::FrontendInputFile(*mem_buffer, clang::Language::CXX));
@@ -146,27 +163,31 @@ std::unique_ptr<llvm::Module> CppLanguageScript::createModule(llvm::LLVMContext&
 
     invocation->getTargetOpts().Triple = llvm::sys::getDefaultTargetTriple();
 
-    compiler.setInvocation(std::move(invocation));
+    m_compiler = std::make_unique<clang::CompilerInstance>();
+    m_compiler->setInvocation(std::move(invocation));
 
-    compiler.createDiagnostics();
-    if (!compiler.hasDiagnostics())
+    m_compiler->createDiagnostics();
+    if (!m_compiler->hasDiagnostics())
     {
-        return nullptr;
+        m_compiler.reset();
+        return;
     }
 
-    compiler.setTarget(clang::TargetInfo::CreateTargetInfo(compiler.getDiagnostics(), compiler.getInvocation().TargetOpts));
-    compiler.createFileManager();
-    compiler.createSourceManager(compiler.getFileManager());
-    compiler.createPreprocessor(clang::TU_Complete);
+    m_compiler->setTarget(clang::TargetInfo::CreateTargetInfo(m_compiler->getDiagnostics(), m_compiler->getInvocation().TargetOpts));
+    m_compiler->createFileManager();
+    m_compiler->createSourceManager(m_compiler->getFileManager());
+    m_compiler->createPreprocessor(clang::TU_Complete);
+}
 
+std::shared_ptr<ScriptInterface> CppLanguageScript::getInterface(const std::string& filename, CPPParser& cpp_paser)
+{
+    return m_script_interface;
+}
+
+std::unique_ptr<llvm::Module> CppLanguageScript::createModule(llvm::LLVMContext& context)
+{
     auto action = std::make_unique<clang::EmitLLVMOnlyAction>(&context);
-    if (!compiler.ExecuteAction(*action))
-    {
-        return nullptr;
-    }
-
-    auto action2 = std::make_unique<CollectNamesAction>(m_func_names);
-    if (!compiler.ExecuteAction(*action2))
+    if (!m_compiler->ExecuteAction(*action))
     {
         return nullptr;
     }
@@ -184,9 +205,9 @@ llvm::Function* CppLanguageScript::buildModule(const std::string& init_name,
 }
 
 llvm::Function* CppLanguageScript::buildFunction(const std::string& name,
-    llvm::FunctionType* signature,
-    llvm::Module& module,
-    llvm::LLVMContext& context)
+                                                 llvm::FunctionType* signature,
+                                                 llvm::Module& module,
+                                                 llvm::LLVMContext& context)
 {
     return module.getFunction(m_func_names[name]);
 }

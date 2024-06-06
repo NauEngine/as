@@ -151,6 +151,12 @@ namespace as::ir
 
     std::string getImplements(const std::string& filepath, const std::string& pattern);
 
+    std::string getRelativeFileName(const std::string& base_filename, const std::string& filename);
+
+    std::shared_ptr<ScriptInterface> getInterface(const std::string& filename,
+        const std::string& interface_filename,
+        CPPParser& cpp_parser);
+
     void addMissingDeclarations(llvm::Module& module);
 } // namespace as
 
