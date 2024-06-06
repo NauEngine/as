@@ -54,10 +54,10 @@ macro(target_link_scripts target)
             VERBATIM
         )
 
-        set(OUT ${CMAKE_CURRENT_BINARY_DIR}/${source_file_name}.o)
+        set(OUT ${CMAKE_CURRENT_BINARY_DIR}/${source}.o)
         add_custom_command(
             OUTPUT ${OUT}
-            COMMAND ${LLVM_CC} -c ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll -o ${CMAKE_CURRENT_BINARY_DIR}/${source_file_name}.o
+            COMMAND ${LLVM_CC} -c ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll -o ${OUT}
             DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll
             VERBATIM
         )

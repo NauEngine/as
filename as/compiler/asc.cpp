@@ -16,6 +16,7 @@
 #include "as/languages/lua/lua_language.h"
 #include "as/languages/squirrel/sq_language.h"
 #include "as/languages/ivnscript/is_language.h"
+#include "as/languages/cpp/cpp_language.h"
 
 #define PROGRAM_NAME "AScript Compiler"
 #define PROGRAM_VERSION "0.0.1"
@@ -60,10 +61,12 @@ int main(int argc, char **argv)
     auto lua_language = std::make_shared<as::LuaLanguage>();
     auto squirrel_language = std::make_shared<as::SquirrelLanguage>();
     auto ivnscript_language = std::make_shared<as::IvnScriptLanguage>();
+    auto cpp_language = std::make_shared<as::CppLanguage>();
 
     script_core->registerLanguage("lua", std::move(lua_language));
     script_core->registerLanguage("nut", std::move(squirrel_language));
     script_core->registerLanguage("is", std::move(ivnscript_language));
+    script_core->registerLanguage("cpp", std::move(cpp_language));
 
     llvm::cl::ParseCommandLineOptions(argc, argv, PROGRAM_NAME"\n");
 
