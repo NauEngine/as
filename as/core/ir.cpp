@@ -227,7 +227,7 @@ std::shared_ptr<ScriptInterface> getInterface(const std::string& filename,
     std::ifstream ifs(getRelativeFileName(filename, interface_filename));
     const std::string interface_content{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
 
-    return cpp_parser.getInterface("Foo", interface_content);
+    return cpp_parser.getInterface(interface_content);
 }
 
 void addMissingDeclarations(llvm::Module& module)

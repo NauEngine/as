@@ -27,7 +27,7 @@ public:
 
     void registerLanguage(const std::string& language_name, std::shared_ptr<ILanguage> language);
 
-    void registerInstance(void* instance, const std::string& instance_name, const ScriptInterface& interface);
+    void registerInstance(void* instance, const std::string& instance_name, const std::shared_ptr<ScriptInterface>& interface);
 
     std::shared_ptr<ScriptModuleCompile> newScriptModule(const std::string& filename,
         const std::string& language_name = "");
@@ -35,7 +35,7 @@ public:
     std::shared_ptr<ScriptModuleCompile> newScriptModule(const ScriptInterface& interface, const std::string& filename,
         const std::string& language_name = "");
 
-    const std::shared_ptr<ScriptInterface>& getInterface(const std::string& name, const std::string& source_code) const;
+    const std::shared_ptr<ScriptInterface>& getInterface(const std::string& source_code) const;
 
     const std::unordered_map<std::string, std::shared_ptr<ILanguage>>& getLanguages() const;
 

@@ -1,5 +1,3 @@
-#include "as/core/cpp_interface.h"
-
 DEFINE_SCRIPT_INTERFACE(TestScript,
 struct TestScript
 {

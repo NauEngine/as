@@ -44,7 +44,7 @@ class CPPParser
 public:
   explicit CPPParser(llvm::LLVMContext& context) : m_context(context) {}
 
-  const std::shared_ptr<ScriptInterface>& getInterface(const std::string& name, const std::string& source_code);
+  const std::shared_ptr<ScriptInterface>& getInterface(const std::string& source_code);
   void dump(llvm::raw_fd_ostream& stream);
 
 private:

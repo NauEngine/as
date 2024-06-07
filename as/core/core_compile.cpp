@@ -62,13 +62,11 @@ void CoreCompile::registerLanguage(const std::string& language_name, std::shared
     m_languages[language_name] = std::move(language);
 }
 
-void CoreCompile::registerInstance(void* instance, const std::string& instance_name, const ScriptInterface& interface)
+void CoreCompile::registerInstance(void* instance, const std::string& instance_name, const std::shared_ptr<ScriptInterface>& interface)
 {
-    // TODO [inv]: Use const ScriptInterface& for ILanguage
-    const auto i = m_cpp_parser->getInterface(interface.name, "");
     for (auto& [name, language]: m_languages)
     {
-        language->registerInstance(instance, instance_name, i);
+        language->registerInstance(instance, instance_name, interface);
     }
 }
 
@@ -104,9 +102,9 @@ std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(
     return std::make_shared<ScriptModuleCompile>(ir::safe_name(filename), interface, language_script, *m_ts_context.getContext(), m_add_init);
 }
 
-const std::shared_ptr<ScriptInterface>& CoreCompile::getInterface(const std::string& name, const std::string& source_code) const
+const std::shared_ptr<ScriptInterface>& CoreCompile::getInterface(const std::string& source_code) const
 {
-    return m_cpp_parser->getInterface(name, source_code);
+    return m_cpp_parser->getInterface(source_code);
 }
 
 ILanguage* CoreCompile::getLanguage(const std::string& language_name) const

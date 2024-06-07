@@ -38,12 +38,9 @@ std::unique_ptr<clang::ASTConsumer> CollectInterfaceAction::CreateASTConsumer(cl
   return std::make_unique<CollectInterfaceASTConsumer>(m_context, &compiler.getASTContext(), m_interfaces, cgm);
 }
 
-const std::shared_ptr<ScriptInterface>& CPPParser::getInterface(const std::string& name, const std::string& source_code)
+const std::shared_ptr<ScriptInterface>& CPPParser::getInterface(const std::string& source_code)
 {
-    if (name.empty() || !m_parsedInterfaces.contains(name))
-        return parse(source_code);
-
-    return m_parsedInterfaces[name];
+    return parse(source_code);
 }
 
 const std::shared_ptr<ScriptInterface>& CPPParser::parse(const std::string& code)
