@@ -28,11 +28,16 @@ public:
     llvm::Type* float_t = nullptr;
     llvm::Type* double_t = nullptr;
     llvm::Type* void_t = nullptr;
+    llvm::Type* bool_t = nullptr;
+    llvm::Type* char_ptr_t = nullptr;
 
     llvm::Type* sq_vm_t = nullptr;
     llvm::Type* sq_vm_ptr_t = nullptr;
     llvm::Type* sq_object_t = nullptr;
     llvm::Type* sq_object_ptr_t = nullptr;
+
+    llvm::FunctionType* sq_func_t = nullptr;
+    llvm::Type* sq_func_ptr_t = nullptr;
 
     llvm::Function* sq_pushobject_f = nullptr;
     llvm::Function* sq_pushroottable_f = nullptr;
@@ -41,6 +46,11 @@ public:
     llvm::Function* sq_call_f = nullptr;
     llvm::Function* sq_getinteger_f = nullptr;
     llvm::Function* sq_getfloat_f = nullptr;
+    llvm::Function* sq_pushbool_f = nullptr;
+    llvm::Function* sq_getbool_f = nullptr;
+    llvm::Function* sq_pushstring_f = nullptr;
+    llvm::Function* sq_getstring_f = nullptr;
+    llvm::Function* sq_getinstanceup_f = nullptr;
 
     llvm::Function* sq_pushobject_apapter_f = nullptr;
 

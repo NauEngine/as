@@ -11,10 +11,12 @@
 DEFINE_SCRIPT_INTERFACE(TestScript,
 struct TestScript
 {
-  virtual const char* a(bool a, const char* b, const char* c) = 0;
-  virtual int32_t b(int64_t a) = 0;
-  virtual float c(double a) = 0;
-  virtual void d() = 0;
+  //virtual const char* a(bool a, const char* b, const char* c) = 0;
+  //virtual int32_t b(int64_t a) = 0;
+  //virtual float c(double a) = 0;
+  //virtual void d() = 0;
+  //virtual void e(int32_t a) = 0;
+  virtual void f(const char* a) = 0;
 };
 )
 
@@ -22,7 +24,8 @@ DEFINE_SCRIPT_INTERFACE(TestInterface,
 struct TestInterface
 {
   virtual void a(const char* a) = 0;
-  virtual const char* b(float a) = 0;
+  //virtual const char* b(float a) = 0;
+  //virtual void c(int32_t a) = 0;
 };
 )
 
@@ -33,6 +36,7 @@ struct TestInterfaceImpl : TestInterface
     std::cout << "TestInterface.a: " << a << std::endl;
   }
 
+  /*
   const char* b(float a) override
   {
     std::cout << "TestInterface.b: " << a << std::endl;
@@ -40,6 +44,12 @@ struct TestInterfaceImpl : TestInterface
     str = std::to_string(a);
     return str.c_str();
   }
+
+  void c(int32_t a) override
+  {
+    std::cout << "TestInterface.c: " << a << std::endl;
+  }
+  */
 };
 
 void check_lua(const std::shared_ptr<as::Core>& script_core) {
@@ -55,15 +65,15 @@ void check_lua(const std::shared_ptr<as::Core>& script_core) {
   TestScript* instance;
   instance = script_module->newInstance();
   
-  std::cout << "a: " << instance->a(true, "true", "false") << std::endl;
-  std::cout << "b: " << instance->b(10) << std::endl;
-  std::cout << "b: " << instance->b(-10000000000) << std::endl;
-  std::cout << "b: " << instance->b(9223372036854775807) << std::endl;
-  std::cout << "c: " << instance->c(10.0) << std::endl;
-  std::cout << "c: " << instance->c(-123456789.123456789) << std::endl;
-  std::cout << "c: " << instance->c(3.4028235e40) << std::endl;
+  //std::cout << "a: " << instance->a(true, "true", "false") << std::endl;
+  //std::cout << "b: " << instance->b(10) << std::endl;
+  //std::cout << "b: " << instance->b(-10000000000) << std::endl;
+  //std::cout << "b: " << instance->b(9223372036854775807) << std::endl;
+  //std::cout << "c: " << instance->c(10.0) << std::endl;
+  //std::cout << "c: " << instance->c(-123456789.123456789) << std::endl;
+  //std::cout << "c: " << instance->c(3.4028235e40) << std::endl;
 
-  instance->d();
+  //instance->d();
 
   instance = nullptr;
   script_module = nullptr;
@@ -71,13 +81,30 @@ void check_lua(const std::shared_ptr<as::Core>& script_core) {
 }
 
 void check_squirrel(const std::shared_ptr<as::Core>& script_core) {
-    auto squirrel_language = std::make_shared<as::SquirrelLanguage>();
-    script_core->registerLanguage("sq", std::move(squirrel_language));
+  auto squirrel_language = std::make_shared<as::SquirrelLanguage>();
+  script_core->registerLanguage("sq", std::move(squirrel_language));
 
-    std::shared_ptr<as::ScriptModule<TestScript>> script_module;
-    script_module = script_core->newScriptModule<TestScript>("./sandbox/scripts/test_v.nut", "sq");
+  TestInterfaceImpl iface;
+  script_core->registerInstance<TestInterface>(&iface, "iface");
 
-    squirrel_language = nullptr;
+  std::shared_ptr<as::ScriptModule<TestScript>> script_module;
+  script_module = script_core->newScriptModule<TestScript>("./sandbox/scripts/test_v.nut", "sq");
+
+  TestScript* instance;
+  instance = script_module->newInstance();
+
+  //std::cout << "a: " << instance->a(false, "true", "false") << std::endl;
+  //std::cout << "b: " << instance->b(10) << std::endl;
+  //std::cout << "b: " << instance->b(-10000000000) << std::endl;
+  //std::cout << "b: " << instance->b(9223372036854775807) << std::endl;
+  //std::cout << "c: " << instance->c(10.0) << std::endl;
+  //std::cout << "c: " << instance->c(-123456789.123456789) << std::endl;
+  //std::cout << "c: " << instance->c(3.4028235e40) << std::endl;
+
+  //instance->e(-1);
+  instance->f("Test");
+
+  squirrel_language = nullptr;
 }
 
 int main() {
@@ -85,8 +112,8 @@ int main() {
   
   auto script_core = std::make_shared<as::Core>();
   
-  check_lua(script_core);
-  //check_squirrel(script_core);
+  //check_lua(script_core);
+  check_squirrel(script_core);
   
   script_core = nullptr;
 

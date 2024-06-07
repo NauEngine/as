@@ -33,9 +33,14 @@ void SquirrelIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSa
     float_t = llvm::Type::getFloatTy(context);
     double_t = llvm::Type::getDoubleTy(context);
     void_t  = llvm::Type::getVoidTy(context);
+    bool_t = llvm::Type::getInt1Ty(context);
+    char_ptr_t = llvm::Type::getInt8PtrTy(context);
 
     sq_vm_t = llvm::StructType::getTypeByName(context, "struct.SQVM");
     sq_vm_ptr_t = llvm::PointerType::getUnqual(sq_vm_t);
+    
+    sq_func_t = llvm::FunctionType::get(int32_t, {sq_vm_ptr_t}, false);
+    sq_func_ptr_t = llvm::PointerType::get(sq_func_t, 0);
 
     sq_object_t = llvm::StructType::getTypeByName(context, "struct.tagSQObject");
     sq_object_ptr_t = llvm::PointerType::getUnqual(sq_object_t);
@@ -47,6 +52,11 @@ void SquirrelIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSa
     sq_call_f = m_api_module->getFunction("sq_call");
     sq_getinteger_f = m_api_module->getFunction("sq_getinteger");
     sq_getfloat_f = m_api_module->getFunction("sq_getfloat");
+    sq_pushbool_f = m_api_module->getFunction("sq_pushbool");
+    sq_getbool_f = m_api_module->getFunction("sq_getbool");
+    sq_pushstring_f = m_api_module->getFunction("sq_pushstring");
+    sq_getstring_f = m_api_module->getFunction("sq_getstring");
+    sq_getinstanceup_f = m_api_module->getFunction("sq_getinstanceup");
 
     llvm::IRBuilder<> builder(context);
     llvm::FunctionType* sq_pushobject_apapter_t = llvm::FunctionType::get(void_t, {sq_vm_ptr_t, sq_object_ptr_t}, false);

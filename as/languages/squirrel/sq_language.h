@@ -32,11 +32,27 @@ public:
     void registerInstance(
       void* instance,
       const std::string& instanceName,
-      const std::shared_ptr<ScriptInterface>& scriptInterface) override {}
+      const std::shared_ptr<ScriptInterface>& scriptInterface) override;
 
 private:
     SQVM* m_sq_vm = nullptr;
     std::shared_ptr<SquirrelIR> m_sq_ir;
+
+    //std::shared_ptr<LuaLLVMCompiler> m_llvmCompiler;
+    std::set<std::string> m_createdMetatables;
+
+    std::shared_ptr<llvm::orc::LLJIT> m_jit;
+    llvm::orc::ThreadSafeContext m_ts_context;
+
+  void buildSqCFunction(
+    llvm::LLVMContext& context,
+    llvm::Module* module,
+    llvm::FunctionType* methodType,
+    int methodPosition,
+    const std::string& methodName,
+    llvm::Value* type_name_var) const;
+
+  void createInterfaceMetatable(const std::shared_ptr<ScriptInterface>& interface);
 };
 
 }

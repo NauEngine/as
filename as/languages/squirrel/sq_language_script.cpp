@@ -122,10 +122,37 @@ llvm::Function* SquirrelLanguageScript::buildFunction(
             llvm::Value* arg64 = builder.CreateSExt(arg, m_sq_ir->int64_t);
             builder.CreateCall(m_sq_ir->sq_pushinteger_f, {m_sq_vm_extern, arg64});
         }
+        else if (arg_type == m_sq_ir->int64_t)
+        {
+            builder.CreateCall(m_sq_ir->sq_pushinteger_f, {m_sq_vm_extern, arg});
+        }
+        else if (arg_type == m_sq_ir->float_t)
+        {
+            builder.CreateCall(m_sq_ir->sq_pushfloat_f, {m_sq_vm_extern, arg});
+        }
         else if (arg_type == m_sq_ir->double_t)
         {
             llvm::Value* argFloat = builder.CreateFPTrunc(arg, m_sq_ir->float_t);
             builder.CreateCall(m_sq_ir->sq_pushfloat_f, {m_sq_vm_extern, argFloat});
+        }
+        else if (arg_type == m_sq_ir->bool_t)
+        {
+            builder.CreateCall(m_sq_ir->sq_pushbool_f, {m_sq_vm_extern, arg});
+        } 
+        else if (arg_type == m_sq_ir->char_ptr_t)
+        {
+            llvm::Value* length = llvm::ConstantInt::get(llvm::Type::getIntNTy(context, sizeof(SQInteger) * 8), -1);
+            builder.CreateCall(m_sq_ir->sq_pushstring_f, {m_sq_vm_extern, arg, length});
+        }
+        else if (arg_type == m_sq_ir->void_t)
+        {
+            
+        }
+        else
+        {
+            llvm::errs() << "SquirrelLanguageScript::buildFunction: Unsupported argument type: ";
+            arg_type->print(llvm::errs());
+            llvm::errs() << "\n";
         }
     }
 
@@ -145,12 +172,46 @@ llvm::Function* SquirrelLanguageScript::buildFunction(
         llvm::Value* result64 = builder.CreateLoad(m_sq_ir->int64_t, result);
         ret = builder.CreateTrunc(result64, m_sq_ir->int32_t);
     }
+    else if (ret_type == m_sq_ir->int64_t)
+    {
+        llvm::Value* result = builder.CreateAlloca(m_sq_ir->int64_t, 0U);
+        builder.CreateCall(m_sq_ir->sq_getinteger_f, {m_sq_vm_extern, stack_top, result});
+        ret = builder.CreateLoad(m_sq_ir->int64_t, result);
+    }
+    else if (ret_type == m_sq_ir->float_t)
+    {
+        llvm::Value* result = builder.CreateAlloca(m_sq_ir->float_t, 0U);
+        builder.CreateCall(m_sq_ir->sq_getfloat_f, {m_sq_vm_extern, stack_top, result});
+        ret = builder.CreateLoad(m_sq_ir->float_t, result);
+    }
     else if (ret_type == m_sq_ir->double_t)
     {
         llvm::Value* result = builder.CreateAlloca(m_sq_ir->float_t, 0U);
         builder.CreateCall(m_sq_ir->sq_getfloat_f, {m_sq_vm_extern, stack_top, result});
         llvm::Value* resultFloat = builder.CreateLoad(m_sq_ir->float_t, result);
         ret = builder.CreateFPExt(resultFloat, m_sq_ir->double_t);
+    }
+    else if (ret_type == m_sq_ir->bool_t)
+    {
+        llvm::Value* result = builder.CreateAlloca(m_sq_ir->bool_t, 0U);
+        builder.CreateCall(m_sq_ir->sq_getbool_f, {m_sq_vm_extern, stack_top, result});
+        ret = builder.CreateLoad(m_sq_ir->bool_t, result);
+    }
+    else if (ret_type == m_sq_ir->char_ptr_t)
+    {
+        llvm::Value* result = builder.CreateAlloca(m_sq_ir->char_ptr_t, 0U);
+        builder.CreateCall(m_sq_ir->sq_getstring_f, {m_sq_vm_extern, stack_top, result});
+        ret = builder.CreateLoad(m_sq_ir->char_ptr_t, result);
+    }
+    else if (ret_type == m_sq_ir->void_t)
+    {
+
+    }
+    else
+    {
+        llvm::errs() << "SquirrelLanguageScript::buildFunction: Unsupported return type: ";
+        ret_type->print(llvm::errs());
+        llvm::errs() << "\n";
     }
 
     builder.CreateRet(ret);
