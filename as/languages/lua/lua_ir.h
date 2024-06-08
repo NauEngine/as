@@ -25,10 +25,10 @@ namespace as
 
 struct OPFunctionVariant
 {
-  const vm_func_info* info;
+  const VmFuncInfo* info;
   llvm::Function* func = nullptr;
 
-  explicit OPFunctionVariant(const vm_func_info* info) :
+  explicit OPFunctionVariant(const VmFuncInfo* info) :
       info(info)
   {}
 };
@@ -58,10 +58,12 @@ public:
     llvm::Type* lua_State_t = nullptr;
     llvm::Type* TValue_t = nullptr;
     llvm::Type* LClosure_t = nullptr;
+    llvm::Type* FunctionTree_t = nullptr;
 
     llvm::Type* lua_State_ptr_t = nullptr;
     llvm::Type* TValue_ptr_t = nullptr;
     llvm::Type* LClosure_ptr_t = nullptr;
+    llvm::Type* FunctionTree_ptr_t = nullptr;
 
     llvm::FunctionType* lua_func_t = nullptr;
     llvm::Type* lua_func_ptr_t = nullptr;

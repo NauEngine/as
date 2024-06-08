@@ -65,6 +65,8 @@ typedef enum {
 	VAR_T_RK_B,
 	VAR_T_RK_C,
 	VAR_T_CONST_Bx,
+
+	VAR_T_FUNCITON_TREE
 } val_t;
 
 typedef struct
@@ -74,9 +76,15 @@ typedef struct
 	val_t ret_type; /* return type */
 	const char *name; /* function name */
 	val_t params[10]; /* an 'VOID' type ends the parameter list */
-} vm_func_info;
+} VmFuncInfo;
 
-extern const vm_func_info vm_op_functions[];
+typedef struct FunctionTree
+{
+	lua_CFunction* func;
+	struct FunctionTree** children;  /* functions defined inside the function */
+} FunctionTree;
+
+extern const VmFuncInfo vm_op_functions[];
 
 extern void vm_OP_MOVE(TValue *ra, TValue *rb);
 
@@ -143,7 +151,7 @@ extern void vm_OP_SETLIST(lua_State *L, int a, int b, int c);
 
 extern void vm_OP_CLOSE(lua_State *L, int a);
 
-extern void vm_OP_CLOSURE(lua_State *L, LClosure *cl, int a, int bx, int pseudo_ops_offset);
+extern void vm_OP_CLOSURE(lua_State *L, LClosure *cl, FunctionTree* ftree, int a, int bx);
 
 extern void vm_OP_VARARG(lua_State *L, LClosure *cl, int a, int b);
 

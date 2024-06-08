@@ -27,11 +27,6 @@ int llvm_precall_jit (lua_State *L, StkId func, int nresults) {
   for (st = L->top; st < ci->top; st++)
     setnilvalue(st);
   L->top = ci->top;
-  if (L->hookmask & LUA_MASKCALL) {
-    L->savedpc++;  /* hooks assume 'pc' is already incremented */
-    luaD_callhook(L, LUA_HOOKCALL, -1);
-    L->savedpc--;  /* correct 'pc' */
-  }
   return (p->jit_func)(L); /* do the actual call */
 }
 
@@ -61,11 +56,6 @@ int llvm_precall_jit_vararg (lua_State *L, StkId func, int nresults) {
   for (st = L->top; st < ci->top; st++)
     setnilvalue(st);
   L->top = ci->top;
-  if (L->hookmask & LUA_MASKCALL) {
-    L->savedpc++;  /* hooks assume 'pc' is already incremented */
-    luaD_callhook(L, LUA_HOOKCALL, -1);
-    L->savedpc--;  /* correct 'pc' */
-  }
   return (p->jit_func)(L); /* do the actual call */
 }
 

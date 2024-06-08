@@ -31,7 +31,7 @@ extern "C" {
 
 //#include "llvm_compiler.h"
 
-const vm_func_info vm_op_functions[] = {
+const VmFuncInfo vm_op_functions[] = {
   { OP_MOVE, HINT_NONE, VAR_T_VOID, "vm_OP_MOVE",
     {VAR_T_R_A, VAR_T_R_B, VAR_T_VOID},
   },
@@ -138,39 +138,13 @@ const vm_func_info vm_op_functions[] = {
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_VOID},
   },
   { OP_CLOSURE, HINT_NONE, VAR_T_VOID, "vm_OP_CLOSURE",
-    {VAR_T_LUA_STATE_PTR, VAR_T_CL, VAR_T_ARG_A, VAR_T_ARG_Bx, VAR_T_PC_OFFSET, VAR_T_VOID},
+    {VAR_T_LUA_STATE_PTR, VAR_T_CL, VAR_T_FUNCITON_TREE, VAR_T_ARG_A, VAR_T_ARG_Bx, VAR_T_VOID},
   },
   { OP_VARARG, HINT_NONE, VAR_T_VOID, "vm_OP_VARARG",
     {VAR_T_LUA_STATE_PTR, VAR_T_CL, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
   },
   { -1, HINT_NONE, VAR_T_VOID, NULL, {VAR_T_VOID} }
 };
-
-int vm_OP_CALL(lua_State *L, int a, int b, int c) {
-  TValue *base = L->base;
-  TValue *ra=base + a;
-  int nresults = c - 1;
-  int ret;
-  if (b != 0) L->top = ra+b;  /* else previous instruction set top */
-  ret = luaD_precall(L, ra, nresults);
-  switch (ret) {
-    case PCRLUA: {
-      luaV_execute(L, 1);
-      if (nresults >= 0) L->top = L->ci->top;
-      break;
-    }
-    case PCRC: {
-      /* it was a C function (`precall' called it); adjust results */
-      if (nresults >= 0) L->top = L->ci->top;
-      break;
-    }
-    default: {
-      /* TODO: fix yielding from C funtions, right now we can't resume a JIT with using COCO. */
-      return PCRYIELD;
-    }
-  }
-  return 0;
-}
 
 int vm_OP_RETURN(lua_State *L, int a, int b) {
   TValue *base = L->base;
@@ -294,16 +268,15 @@ void vm_OP_SETLIST(lua_State *L, int a, int b, int c) {
   unfixedstack(L);
 }
 
-void vm_OP_CLOSURE(lua_State *L, LClosure *cl, int a, int bx, int pseudo_ops_offset) {
+/*	A Bx	R(A) := closure(KPROTO[Bx], R(A), ... ,R(A+n))	*/
+void vm_OP_CLOSURE(lua_State *L, LClosure *cl, FunctionTree* ftree, int a, int bx) {
   TValue *base = L->base;
-  const Instruction *pc;
   TValue *ra = base + a;
-  Proto *p;
   Closure *ncl;
   int nup, j;
 
-  p = cl->p->p[bx];
-  pc=cl->p->code + pseudo_ops_offset;
+  Proto* p = cl->p->p[bx];
+  const Instruction* pc = cl->p->code;
   nup = p->nups;
   fixedstack(L);
   ncl = luaF_newLclosure(L, nup, cl->env);

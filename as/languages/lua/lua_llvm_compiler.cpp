@@ -346,7 +346,7 @@ void LuaLLVMCompiler::preCreateBasicBlocks(llvm::LLVMContext& context, llvm::Fun
 }
 
 // i - code instruction id
-std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& context, const vm_func_info* func_info, BuildContext& bcontext, const int i)
+std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& context, const VmFuncInfo* func_info, BuildContext& bcontext, const int i)
 {
 	std::vector<llvm::Value*> args;
 
@@ -356,6 +356,11 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 	for (int x = 0; func_info->params[x] != VAR_T_VOID ; ++x)
 	{
 		llvm::Value* val = nullptr;
+
+	    if (func_info->params[x] == VAR_T_FUNCITON_TREE)
+	    {
+	        int y = 9;
+	    }
 
 		switch(func_info->params[x])
 		{
@@ -383,6 +388,9 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 		    case VAR_T_CONST_Bx:
 		        val = bcontext.constants[INDEXK(GETARG_Bx(instruction))];
     		    break;
+		    case VAR_T_FUNCITON_TREE:
+		        val = llvm::Constant::getNullValue(llvm::PointerType::get(context, 0));
+		        break;
 			case VAR_T_ARG_A:
 				val = llvm::ConstantInt::get(context, llvm::APInt(32, GETARG_A(instruction)));
 				break;
@@ -406,7 +414,6 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 					if ((i+1) < bcontext.code_len)
 					{
 						c = bcontext.code[i + 1];
-						if(m_stripCode) bcontext.strip_ops++;
 					}
 				}
 				val = llvm::ConstantInt::get(context, llvm::APInt(32,c));
@@ -425,7 +432,7 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 				val = llvm::ConstantInt::get(context, llvm::APInt(32, GETARG_sBx(instruction)));
 				break;
 			case VAR_T_PC_OFFSET:
-				val = llvm::ConstantInt::get(context, llvm::APInt(32,i + 1 - bcontext.strip_ops));
+				val = llvm::ConstantInt::get(context, llvm::APInt(32, i + 1));
 				break;
 			case VAR_T_INSTRUCTION:
 				val = llvm::ConstantInt::get(context, llvm::APInt(32,instruction));
@@ -454,11 +461,11 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 			case VAR_T_OP_VALUE_2:
 				if(op_values[i]) val = op_values[i]->get(2);
 				break;
-			default:
+		    case VAR_T_VOID:
+		        fprintf(stderr, "Error: invalid value type!\n");
+		        exit(1);
+		    default:
 				fprintf(stderr, "Error: not implemented!\n");
-				exit(1);
-			case VAR_T_VOID:
-				fprintf(stderr, "Error: invalid value type!\n");
 				exit(1);
 		}
 
@@ -717,7 +724,6 @@ void LuaLLVMCompiler::сompileSingleProto(
 		// skip dead unreachable code.
 		if (current_block == nullptr)
 		{
-			if (m_stripCode) bcontext.strip_ops++;
 			continue;
 		}
 
@@ -829,14 +835,6 @@ void LuaLLVMCompiler::сompileSingleProto(
 				false_block=op_blocks[branch+1];
 				/* inlined JMP op. */
 				branch = ++i + 1;
-				if(m_stripCode) {
-					bcontext.strip_ops++;
-					if (bcontext.strip_ops > 0 && bcontext.strip_ops < (i+1))
-					{
-						// move opcodes we want to keep to new position.
-						bcontext.code[(i+1) - bcontext.strip_ops] = bcontext.code[i];
-					}
-				}
 				instruction = bcontext.code[i];
 				branch += GETARG_sBx(instruction);
 				true_block = op_blocks[branch];
@@ -865,15 +863,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 			case OP_CLOSURE: {
 				Proto *p2 = p->p[GETARG_Bx(instruction)];
 				int nups = p2->nups;
-				if(m_stripCode && bcontext.strip_ops > 0) {
-					while(nups > 0) {
-						i++;
-						bcontext.code[i - bcontext.strip_ops] = bcontext.code[i];
-						nups--;
-					}
-				} else {
-					i += nups;
-				}
+				i += nups;
 				branch = BRANCH_NONE;
 				break;
 			}

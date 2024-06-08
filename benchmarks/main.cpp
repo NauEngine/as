@@ -15,8 +15,8 @@
 std::tuple<std::string, std::string> script_tests[] = {
     {"cycle", "../../benchmarks/lua/scripts/test_cycle.lua"},
     {"array", "../../benchmarks/lua/scripts/test_array.lua"},
-    // {"n queen", "../../benchmarks/lua/scripts/test_nqueen.lua"},
-    // {"life", "../../benchmarks/lua/scripts/test_life.lua"},
+    {"n queen", "../../benchmarks/lua/scripts/test_nqueen.lua"},
+    {"life", "../../benchmarks/lua/scripts/test_life.lua"},
 };
 
 std::string title = std::format("| {:<10}|", "title");
@@ -150,7 +150,7 @@ void run_calls()
 
 int main()
 {
-    //run_benchmarks();
-    run_calls();
+    run_benchmarks();
+    //run_calls();
     return 0;
 }

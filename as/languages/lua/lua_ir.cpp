@@ -52,10 +52,12 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
         TValue_t = llvm::StructType::getTypeByName(context, "struct.TValue");
     }
     LClosure_t = llvm::StructType::getTypeByName(context, "struct.LClosure");
+//    FunctionTree_t = llvm::StructType::getTypeByName(context, "struct.FunctionTree");
 
     lua_State_ptr_t = llvm::PointerType::getUnqual(lua_State_t);
     TValue_ptr_t = llvm::PointerType::getUnqual(TValue_t);
     LClosure_ptr_t = llvm::PointerType::getUnqual(LClosure_t);
+//    FunctionTree_ptr_t = llvm::PointerType::getUnqual(FunctionTree_t);
 
     lua_func_t = llvm::FunctionType::get(int32_t, {lua_State_ptr_t}, false);
     lua_func_ptr_t = llvm::PointerType::get(lua_func_t, 0);
@@ -125,7 +127,7 @@ void LuaIR::prepareVMOpcodes(llvm::LLVMContext& context)
 {
     for (int i = 0; true; ++i)
     {
-        const vm_func_info* func_info = &vm_op_functions[i];
+        const VmFuncInfo* func_info = &vm_op_functions[i];
         const auto opcode = func_info->opcode;
         if (opcode < 0)
         {
@@ -188,6 +190,8 @@ llvm::Type* LuaIR::getVarType(llvm::LLVMContext& context, val_t type, hint_t hin
         case VAR_T_OP_VALUE_1:
         case VAR_T_OP_VALUE_2:
             return double_t;
+        case VAR_T_FUNCITON_TREE:
+            return TValue_ptr_t;
         default:
             fprintf(stderr, "Error: missing var_type=%d\n", type);
         exit(1);

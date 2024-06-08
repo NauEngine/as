@@ -39,8 +39,6 @@ public:
 
 	~LuaLLVMCompiler();
 
-	void setStripCode(bool strip) { m_stripCode = strip; }
-
     void setDumpCompiled(bool dump) { m_dumpCompiled = dump; }
     bool getDumpCompiled() const { return m_dumpCompiled; }
 
@@ -81,7 +79,6 @@ private:
 		Instruction* code = nullptr;
 		TValue* k = nullptr;
 		int code_len = 0;
-		int strip_ops = 0;
 
 		llvm::Value* func_L = nullptr;
 	    llvm::Value* base = nullptr;
@@ -92,7 +89,6 @@ private:
 	    std::vector<llvm::Value*> constants;
 	};
 
-	bool m_stripCode = false;
 	bool m_dumpCompiled = false;
 
 	// opcode hints/values/blocks/need_block arrays used in compile() method.
@@ -136,7 +132,7 @@ private:
 
     std::vector<llvm::Value*> getOpCallArgs(
         llvm::LLVMContext& context,
-        const vm_func_info* func_info,
+        const VmFuncInfo* func_info,
         BuildContext& bcontext,
         int i);
 
