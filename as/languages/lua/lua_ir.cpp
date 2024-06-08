@@ -52,7 +52,7 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
         TValue_t = llvm::StructType::getTypeByName(context, "struct.TValue");
     }
     LClosure_t = llvm::StructType::getTypeByName(context, "struct.LClosure");
-//    FunctionTree_t = llvm::StructType::getTypeByName(context, "struct.FunctionTree");
+    FunctionTree_t = llvm::StructType::getTypeByName(context, "struct.FunctionTree");
 
     lua_State_ptr_t = llvm::PointerType::getUnqual(lua_State_t);
     TValue_ptr_t = llvm::PointerType::getUnqual(TValue_t);
