@@ -132,64 +132,13 @@ std::unique_ptr<clang::ASTConsumer> CollectNamesAction::CreateASTConsumer(clang:
     return std::make_unique<CollectNamesASTConsumer>(*this, compiler.getASTContext());
 }
 
-void addMacroFromDefinition(clang::Preprocessor &PP, const std::string &macroDef) {
-    // Create a memory buffer with the macro definition
-    auto Buffer = llvm::MemoryBuffer::getMemBufferCopy(macroDef, "<macro>");
-    clang::SourceManager &SM = PP.getSourceManager();
-    clang::FileID FID = SM.createFileID(std::move(Buffer));
-
-    // Create a lexer to tokenize the macro definition
-    clang::Lexer L(FID, SM.getBufferOrFake(FID), SM, PP.getLangOpts());
-
-    // Tokenize the macro definition
-    clang::Token Tok;
-
-    L.LexFromRawLexer(Tok);
-    L.LexFromRawLexer(Tok);
-    L.LexFromRawLexer(Tok);
-
-    // Extract the macro name
-    clang::IdentifierInfo *MacroName = PP.getIdentifierInfo(Tok.getRawIdentifier());
-
-    // Create a MacroInfo object
-    clang::MacroInfo *MI = PP.AllocateMacroInfo(Tok.getLocation());
-    MI->setIsFunctionLike();
-    MI->setIsUsed(true);
-
-    std::vector<clang::IdentifierInfo*> params;
-    std::vector<clang::Token> body;
-
-    // Tokenize the arguments and body
-    while (true) {
-        L.LexFromRawLexer(Tok);
-        if (Tok.is(clang::tok::eof)) break;
-        if (Tok.is(clang::tok::l_paren)) {
-            // Parse arguments
-            do {
-                L.LexFromRawLexer(Tok);
-                if (Tok.is(clang::tok::raw_identifier)) {
-                    clang::IdentifierInfo *Arg = PP.getIdentifierInfo(Tok.getRawIdentifier());
-                    params.push_back(Arg);
-                }
-            } while (Tok.isNot(clang::tok::r_paren));
-        } else {
-            // Parse body
-            body.push_back(Tok);
-        }
-    }
-
-    MI->setParameterList(params, PP.getPreprocessorAllocator());
-    MI->setTokens(body, PP.getPreprocessorAllocator());
-    // Add the macro to the preprocessor
-    PP.appendDefMacroDirective(MacroName, MI);
-}
-
 namespace as {
 
 void CppLanguageScript::load(const std::string& filename, llvm::LLVMContext& context)
 {
     std::ifstream ifs(filename);
     m_content = { std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
+    m_content = "#define DEFINE_SCRIPT_INTERFACE(Type, I) I\n" + m_content;
     createCompiler(std::filesystem::path(filename).parent_path());
 
     auto action2 = std::make_unique<CollectNamesAction>(context, m_script_interface, m_func_names);
@@ -232,29 +181,6 @@ void CppLanguageScript::createCompiler(const std::string& base_path)
     m_compiler->createFileManager();
     m_compiler->createSourceManager(m_compiler->getFileManager());
     m_compiler->createPreprocessor(clang::TU_Complete);
-
-    // addMacroFromDefinition(m_compiler->getPreprocessor(), "#define DEFINE_SCRIPT_INTERFACE(Type, I) I");
-
-
-    auto& preprocessor = m_compiler->getPreprocessor();
-
-    auto macro = preprocessor.AllocateMacroInfo(clang::SourceLocation());
-    macro->setIsFunctionLike();
-    macro->setIsUsed(true);
-
-    auto arg_type = preprocessor.getIdentifierInfo("Type");
-    auto arg_code = preprocessor.getIdentifierInfo("I");
-
-    macro->setParameterList({ arg_type, arg_code }, preprocessor.getPreprocessorAllocator());
-
-    clang::Token tok;
-    tok.startToken();
-    tok.setKind(clang::tok::identifier);
-    tok.setIdentifierInfo(arg_code);
-    macro->setTokens({ tok }, preprocessor.getPreprocessorAllocator());
-
-    auto macro_id = preprocessor.getIdentifierInfo("DEFINE_SCRIPT_INTERFACE");
-    preprocessor.appendDefMacroDirective(macro_id, macro);
 }
 
 std::shared_ptr<ScriptInterface> CppLanguageScript::getInterface(const std::string& filename, CPPParser& cpp_paser)

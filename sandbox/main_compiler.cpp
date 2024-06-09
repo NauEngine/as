@@ -5,7 +5,6 @@
 #include "as/core/core.h"
 #include "as/core/script_module.h"
 #include "as/languages/ivnscript/is_language.h"
-
 #include "scripts/test_script.h"
 
 int main()
