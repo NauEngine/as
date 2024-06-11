@@ -20,6 +20,11 @@ public:
     explicit IvnScriptLanguageScript();
     ~IvnScriptLanguageScript() override = default;
 
+    bool isSupportReload() const override
+    {
+        return true;
+    }
+
     void load(const std::string& filename, llvm::LLVMContext& context) override;
 
     std::shared_ptr<ScriptInterface> getInterface(const std::string& filename, CPPParser& cpp_paser) override;

@@ -13,6 +13,11 @@ class CppLanguageScript: public ILanguageScript
 public:
     ~CppLanguageScript() override = default;
 
+    bool isSupportReload() const override
+    {
+        return false;
+    }
+
     void load(const std::string& filename, llvm::LLVMContext& context) override;
 
     std::shared_ptr<ScriptInterface> getInterface(const std::string& filename, CPPParser& cpp_paser) override;

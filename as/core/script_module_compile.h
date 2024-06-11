@@ -29,18 +29,13 @@ public:
 
     InitFunction materialize(std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::orc::ThreadSafeContext ts_context);
 
-    // TODO [Ivn] Hack to hold somewhere instance of ILanguageScript. Actually it shoud be runtime part of each module
-    std::shared_ptr<ILanguageScript> getLanguageScript()
-    {
-        return std::move(m_language_script);
-    }
-
 private:
     std::string m_export_name;
     std::unique_ptr<llvm::Module> m_module;
     std::shared_ptr<ILanguageScript> m_language_script;
 
     void compile(const ScriptInterface& interface, llvm::LLVMContext& context, bool add_init);
+    llvm::orc::JITDylib* getModuleLib(std::shared_ptr<llvm::orc::LLJIT>& jit);
 };
 
 } // as

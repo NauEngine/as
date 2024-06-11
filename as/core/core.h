@@ -69,12 +69,9 @@ public:
 
 private:
     CoreCompile m_compile;
-    std::unordered_map<std::string, std::shared_ptr<ScriptModuleRuntime>> m_modules;
     std::unordered_map<std::string, void*> m_vtables;
     std::unordered_map<std::string, std::shared_ptr<ILanguageRuntime>> m_runtimes;
-
-    // TODO [Ivn] Hack to hold somewhere instance of ILanguageScript.Actually it shoud be runtime part of each module
-    std::vector<std::shared_ptr<ILanguageScript>> m_scripts;
+    std::unordered_map<std::string, std::shared_ptr<ScriptModuleRuntime>> m_modules;
 
     template<typename Interface>
     const std::shared_ptr<ScriptInterface>& getInterface() const
