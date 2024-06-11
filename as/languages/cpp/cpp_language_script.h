@@ -15,7 +15,7 @@ public:
 
     bool isSupportReload() const override
     {
-        return false;
+        return true;
     }
 
     void load(const std::string& filename, llvm::LLVMContext& context) override;
