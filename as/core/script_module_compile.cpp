@@ -33,7 +33,7 @@ void ScriptModuleCompile::dump(llvm::raw_fd_ostream& stream) const
     stream << *m_module;
 }
 
-void ScriptModuleCompile::materialize(std::shared_ptr<llvm::orc::LLJIT>& jit,
+InitFunction ScriptModuleCompile::materialize(std::shared_ptr<llvm::orc::LLJIT>& jit,
     llvm::orc::ThreadSafeContext ts_context)
 {
     auto& context = *ts_context.getContext();
@@ -43,8 +43,7 @@ void ScriptModuleCompile::materialize(std::shared_ptr<llvm::orc::LLJIT>& jit,
     llvm::cantFail(jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(m_module), ts_context)));
 
     const auto init_func_addr = llvm::cantFail(jit->lookup("init_" + m_export_name));
-    const auto init_func = init_func_addr.toPtr<void*()>();
-    init_func();
+    return init_func_addr.toPtr<void(void*)>();
 }
 
 void ScriptModuleCompile::compile(const ScriptInterface& interface,

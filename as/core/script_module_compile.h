@@ -15,6 +15,8 @@ struct ILanguageScript;
 
 struct ScriptInterface;
 
+typedef void (*InitFunction)(void*);
+
 class ScriptModuleCompile {
 public:
     explicit ScriptModuleCompile(const std::string& export_name,
@@ -25,7 +27,7 @@ public:
 
     void dump(llvm::raw_fd_ostream& stream) const;
 
-    void materialize(std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::orc::ThreadSafeContext ts_context);
+    InitFunction materialize(std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::orc::ThreadSafeContext ts_context);
 
     // TODO [Ivn] Hack to hold somewhere instance of ILanguageScript. Actually it shoud be runtime part of each module
     std::shared_ptr<ILanguageScript> getLanguageScript()
