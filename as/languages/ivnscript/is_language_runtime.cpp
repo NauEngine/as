@@ -14,6 +14,9 @@ extern "C" void __isRuntimeOnEnter(const char* data, const char* value)
         return;
     }
 
+    if (*data == 0)
+        return;
+
     std::cout << "[is] Runtime = \"" << data << "\". Value = \"" << value << "\"" << std::endl;
 }
 
