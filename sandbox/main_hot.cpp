@@ -30,10 +30,12 @@ int main()
     signal(SIGTERM, signalHandler);
 
     auto module1 = script_core->newScriptModule<TestScript>("scripts/test_1.is");
+    auto module2 = script_core->newScriptModule<TestScript>("scripts/test_2.is");
     file_watcher->watch("scripts/test_1.is");
+    file_watcher->watch("scripts/test_2.is");
 
     auto instance1 = module1->newInstance();
-    auto instance2 = module1->newInstance();
+    auto instance2 = module2->newInstance();
 
     std::cout << "Hit CTRL+C to exit..." << std::endl;
 

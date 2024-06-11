@@ -61,14 +61,17 @@ public:
 
     void registerRuntime(std::shared_ptr<ILanguageRuntime> runtime);
 
-    void reload(const std::string& filename)
-    {
-        std::cout << filename << std::endl;
-    }
+    void reload(const std::string& filename);
+
+    void registerVTable(const char* name, void* vtable);
+
+    const void* requireRuntime(const char* name);
 
 private:
     CoreCompile m_compile;
     std::unordered_map<std::string, std::shared_ptr<ScriptModuleRuntime>> m_modules;
+    std::unordered_map<std::string, void*> m_vtables;
+    std::unordered_map<std::string, std::shared_ptr<ILanguageRuntime>> m_runtimes;
 
     // TODO [Ivn] Hack to hold somewhere instance of ILanguageScript.Actually it shoud be runtime part of each module
     std::vector<std::shared_ptr<ILanguageScript>> m_scripts;

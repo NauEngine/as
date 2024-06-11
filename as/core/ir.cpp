@@ -141,21 +141,23 @@ llvm::Function* createInitFunc(llvm::Module& module,
     const auto module_name_var = vtable || init_name.empty() ? builder.CreateGlobalStringPtr(module_name, ".module_name", 0, &module) : nullptr;
 
     const auto void_t = llvm::Type::getVoidTy(context);
-    llvm::FunctionType* init_func_t = llvm::FunctionType::get(void_t, {}, false);
+    const auto void_ptr_t = llvm::Type::getInt8PtrTy(context);
+    llvm::FunctionType* init_func_t = llvm::FunctionType::get(void_t, { void_ptr_t }, false);
     const auto linkage = init_name.empty() ? llvm::Function::InternalLinkage : llvm::Function::ExternalLinkage;
     const auto name = init_name.empty() ? ".init_" + module_name : init_name;
     llvm::Function* init_func = llvm::Function::Create(init_func_t, linkage, name, module);
     builder.SetInsertPoint(llvm::BasicBlock::Create(context, "entry", init_func));
+    const auto core_arg = init_func->arg_begin();
 
     if (vtable)
     {
-        builder.CreateCall(regsiter_module_func, { module_name_var, vtable });
+        builder.CreateCall(regsiter_module_func, { core_arg, module_name_var, vtable });
     }
 
     if (runtime && !runtime_name.empty())
     {
         const auto runtime_name_var = builder.CreateGlobalStringPtr(runtime_name, ".runtime_name");
-        const auto runtime_value = builder.CreateCall(require_runtime_func, { runtime_name_var });
+        const auto runtime_value = builder.CreateCall(require_runtime_func, { core_arg, runtime_name_var });
         builder.CreateStore(runtime_value, runtime);
     }
 
