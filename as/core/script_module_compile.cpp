@@ -33,29 +33,58 @@ void ScriptModuleCompile::dump(llvm::raw_fd_ostream& stream) const
     stream << *m_module;
 }
 
+llvm::orc::JITDylib* ScriptModuleCompile::getModuleLib(std::shared_ptr<llvm::orc::LLJIT>& jit)
+{
+    if (!m_language_script->isSupportReload())
+    {
+        return &(jit->getMainJITDylib());
+    }
+
+    auto jd = jit->getJITDylibByName(m_export_name);
+    if (!jd)
+    {
+        auto error_jd = jit->createJITDylib(m_export_name);
+        if (!error_jd)
+        {
+            llvm::errs() << "Cannor create new library. " << error_jd.takeError() << "\n";
+            return nullptr;
+        }
+
+        return &(error_jd.get());
+    }
+
+    auto error_jd_clear = jd->clear();
+    if (error_jd_clear)
+    {
+        llvm::errs() << "Cannor clear existing library. " << error_jd_clear << "\n";
+        return nullptr;
+    }
+
+    return jd;
+}
+
 InitFunction ScriptModuleCompile::materialize(std::shared_ptr<llvm::orc::LLJIT>& jit,
     llvm::orc::ThreadSafeContext ts_context)
 {
     auto& context = *ts_context.getContext();
     m_language_script->materialize(jit, *m_module, context);
 
-    const auto init_name = "init_" + m_export_name;
-
-    auto init_func_addr_prev = jit->lookup(init_name);
-    if (init_func_addr_prev)
+    auto lib = getModuleLib(jit);
+    if (!lib)
     {
-        llvm::outs() << "Init function (" << init_name << ") already register. Remove it and register new one\n";
-        
+        return nullptr;
     }
 
-    auto error_add = jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(m_module), ts_context));
+    const auto init_name = "init_" + m_export_name;
+
+    auto error_add = jit->addIRModule(*lib, llvm::orc::ThreadSafeModule(std::move(m_module), ts_context));
     if (error_add)
     {
         llvm::errs() << "Cannot add module. " << error_add << "\n";
         return nullptr;
     }
 
-    auto init_func_addr = jit->lookup(init_name);
+    auto init_func_addr = jit->lookup(*lib, init_name);
     if (!init_func_addr)
     {
         llvm::errs() << "Cannot get init function (" << init_name << "). " << init_func_addr.takeError() << "\n";

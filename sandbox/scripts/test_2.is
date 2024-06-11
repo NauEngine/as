@@ -1,3 +1,5 @@
+// implements "test_script.h"
+
 function foo(a, b)
 {
     var c = a + b;

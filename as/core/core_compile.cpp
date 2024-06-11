@@ -52,6 +52,7 @@ CoreCompile::CoreCompile(const std::string& base_path, bool add_init):
 
 CoreCompile::~CoreCompile()
 {
+    m_modules.clear();
     m_languages.clear();
     llvm::llvm_shutdown();
 }
@@ -76,7 +77,6 @@ std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(
 {
     auto language = getLanguage(resolveLanguageName(filename, language_name));
     auto language_script = language->newScript();
-
     language_script->load(m_base_path / filename, *m_ts_context.getContext());
 
     const auto interface = language_script->getInterface(m_base_path / filename, *m_cpp_parser);
@@ -86,7 +86,7 @@ std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(
         return nullptr;
     }
 
-    return std::make_shared<ScriptModuleCompile>(ir::safe_name(filename), *interface, language_script, *m_ts_context.getContext(), m_add_init);
+    return createScriptModule(filename, *interface, std::move(language_script));
 }
 
 std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(
@@ -95,11 +95,21 @@ std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(
         const std::string& language_name)
 {
     auto language = getLanguage(resolveLanguageName(filename, language_name));
-
     auto language_script = language->newScript();
     language_script->load(m_base_path / filename, *m_ts_context.getContext());
 
-    return std::make_shared<ScriptModuleCompile>(ir::safe_name(filename), interface, language_script, *m_ts_context.getContext(), m_add_init);
+    return createScriptModule(filename, interface, std::move(language_script));
+}
+
+std::shared_ptr<ScriptModuleCompile> CoreCompile::createScriptModule(const std::string& filename,
+    const ScriptInterface& interface,
+    std::shared_ptr<ILanguageScript> language_script)
+{
+    const auto safe_name = ir::safe_name(filename);
+    const auto context = m_ts_context.getContext();
+    auto result = std::make_shared<ScriptModuleCompile>(safe_name, interface, std::move(language_script), *context, m_add_init);
+    m_modules[filename] = result;
+    return result;
 }
 
 const std::shared_ptr<ScriptInterface>& CoreCompile::getInterface(const std::string& source_code) const

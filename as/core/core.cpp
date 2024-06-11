@@ -71,6 +71,12 @@ void Core::registerVTable(const char* name, void* vtable, int vtable_size)
     else
     {
         std::cout << "Replace vtable for " << name << std::endl;
+        void** vtable_dest = static_cast<void**>(vtabe_it->second);
+        void** vtable_src = static_cast<void**>(vtable);
+        for (int i = 0; i < vtable_size; ++i)
+        {
+            *(vtable_dest++) = *(vtable_src++);
+        }
     }
 }
 
@@ -119,8 +125,6 @@ std::shared_ptr<ScriptModuleRuntime> Core::getCompiledModule(const ScriptInterfa
     auto module_compile = m_compile.newScriptModule(interface, filename, language_name);
     auto init_func = module_compile->materialize(m_compile.getJit(), m_compile.getContext());
     init_func(this);
-    auto script = module_compile->getLanguageScript();
-    m_scripts.emplace_back(script);
 
     const auto vtable = m_vtables.find(ir::safe_name(filename));
     if (vtable == m_vtables.end())
@@ -141,8 +145,6 @@ void Core::reload(const std::string& filename)
         return;
     }
     init_func(this);
-    auto script = module_compile->getLanguageScript();
-    m_scripts.emplace_back(script);
 }
 
 } // as

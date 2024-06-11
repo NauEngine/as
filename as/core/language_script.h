@@ -29,6 +29,8 @@ struct ILanguageScript
 {
     virtual ~ILanguageScript() = default;
 
+    virtual bool isSupportReload() const = 0;
+
     virtual void load(const std::string& filename, llvm::LLVMContext& context) = 0;
 
     virtual std::shared_ptr<ScriptInterface> getInterface(const std::string& filename, CPPParser& cpp_paser) = 0;
