@@ -47,15 +47,16 @@ llvm::Function* сreateFunctionDecl(
     return llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, name, module);
 }
 
-llvm::Function* createRegisterModuleDecl(llvm::Module& module)
+llvm::Function* createRegisterVTableDecl(llvm::Module& module)
 {
     llvm::LLVMContext& context = module.getContext();
 
     const auto void_t = llvm::Type::getVoidTy(context);
     const auto char_ptr_t = llvm::Type::getInt8PtrTy(context);
     const auto void_ptr_t = llvm::Type::getInt8PtrTy(context);
-    const auto func_t = llvm::FunctionType::get(void_t, { char_ptr_t, void_ptr_t }, false);
-    return llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, "__asRegisterModule", module);
+    const auto int_t = llvm::Type::getInt32Ty(context);
+    const auto func_t = llvm::FunctionType::get(void_t, { char_ptr_t, void_ptr_t, int_t }, false);
+    return llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, "__asRegisterVTable", module);
 }
 
 llvm::Function* createRequireRuntimeDecl(llvm::Module& module)
@@ -135,7 +136,7 @@ llvm::Function* createInitFunc(llvm::Module& module,
     llvm::LLVMContext& context = module.getContext();
     llvm::IRBuilder<> builder(context);
 
-    const auto regsiter_module_func = vtable ? createRegisterModuleDecl(module) : nullptr;
+    const auto regsiter_vtable_func = vtable ? createRegisterVTableDecl(module) : nullptr;
     const auto require_runtime_func = runtime && !runtime_name.empty() ? createRequireRuntimeDecl(module) : nullptr;
     const auto register_init_func = init_name.empty() ? createRegisterInitDecl(module) : nullptr;
     const auto module_name_var = vtable || init_name.empty() ? builder.CreateGlobalStringPtr(module_name, ".module_name", 0, &module) : nullptr;
@@ -151,7 +152,15 @@ llvm::Function* createInitFunc(llvm::Module& module,
 
     if (vtable)
     {
-        builder.CreateCall(regsiter_module_func, { core_arg, module_name_var, vtable });
+        int vtable_size = -1;
+        if (vtable->getValueType()->isStructTy())
+        {
+            const auto vtable_type = static_cast<llvm::StructType*>(vtable->getValueType());
+            vtable_size = vtable_type->elements().size();
+        }
+
+        auto vtable_size_var = llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), vtable_size);
+        builder.CreateCall(regsiter_vtable_func, { core_arg, module_name_var, vtable, vtable_size_var });
     }
 
     if (runtime && !runtime_name.empty())
@@ -183,6 +192,7 @@ std::string getImplements(const std::string& filepath, const std::string& patter
     std::ifstream file(filepath);
     if (!file.is_open())
     {
+        llvm::errs() << "Cannot open file \"" << filepath << "\"\n";
         return "";
     }
 
@@ -208,6 +218,7 @@ std::string getImplements(const std::string& filepath, const std::string& patter
         return matches[1].str();
     }
 
+    llvm::errs() << "Cannot find implements signature in file \"" << filepath << "\"\n";
     return "";
 }
 

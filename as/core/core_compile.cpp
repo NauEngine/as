@@ -79,7 +79,7 @@ std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(
 
     language_script->load(m_base_path / filename, *m_ts_context.getContext());
 
-    const auto interface = language_script->getInterface(filename, *m_cpp_parser);
+    const auto interface = language_script->getInterface(m_base_path / filename, *m_cpp_parser);
     if (!interface)
     {
         llvm::errs() << "ERROR: Cannot compile file \"" << filename << "\". Cannot acquire implemented interface\n";

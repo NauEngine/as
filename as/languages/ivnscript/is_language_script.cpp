@@ -22,8 +22,6 @@ IvnScriptLanguageScript::IvnScriptLanguageScript()
 
 void IvnScriptLanguageScript::load(const std::string& filename, llvm::LLVMContext& context)
 {
-    std::cout << filename << " -> " << ir::getImplements(filename, "//") << std::endl;
-
     m_filename = filename;
 
     std::ifstream ifs(m_filename);
@@ -42,7 +40,10 @@ std::shared_ptr<ScriptInterface> IvnScriptLanguageScript::getInterface(const std
 {
     auto interface_filename = ir::getImplements(filename, "//");
     if (interface_filename.empty())
+    {
+        llvm::errs() << "Cannot find implementation for script " << filename << "\n";
         return nullptr;
+    }
 
     return ir::getInterface(filename, interface_filename, cpp_paser);
 }

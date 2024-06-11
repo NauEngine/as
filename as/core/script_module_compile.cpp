@@ -39,11 +39,30 @@ InitFunction ScriptModuleCompile::materialize(std::shared_ptr<llvm::orc::LLJIT>&
     auto& context = *ts_context.getContext();
     m_language_script->materialize(jit, *m_module, context);
 
-    // llvm::errs() << "\nINTERFACE MODULE: \n" << *m_module << "\n";
-    llvm::cantFail(jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(m_module), ts_context)));
+    const auto init_name = "init_" + m_export_name;
 
-    const auto init_func_addr = llvm::cantFail(jit->lookup("init_" + m_export_name));
-    return init_func_addr.toPtr<void(void*)>();
+    auto init_func_addr_prev = jit->lookup(init_name);
+    if (init_func_addr_prev)
+    {
+        llvm::outs() << "Init function (" << init_name << ") already register. Remove it and register new one\n";
+        
+    }
+
+    auto error_add = jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(m_module), ts_context));
+    if (error_add)
+    {
+        llvm::errs() << "Cannot add module. " << error_add << "\n";
+        return nullptr;
+    }
+
+    auto init_func_addr = jit->lookup(init_name);
+    if (!init_func_addr)
+    {
+        llvm::errs() << "Cannot get init function (" << init_name << "). " << init_func_addr.takeError() << "\n";
+        return nullptr;
+    }
+
+    return init_func_addr.get().toPtr<void(void*)>();
 }
 
 void ScriptModuleCompile::compile(const ScriptInterface& interface,
