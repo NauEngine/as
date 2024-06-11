@@ -30,7 +30,9 @@ target_link_libraries(SandboxTests
 add_executable(SandboxCompiler
     main_compiler.cpp)
 
-target_link_scripts(SandboxCompiler scripts/test_script.is)
+target_link_scripts(SandboxCompiler
+    scripts/test_1.is
+    scripts/test_1.cpp)
 target_link_libraries(SandboxCompiler
     IvnScriptIntegration
 )
@@ -39,3 +41,10 @@ add_executable(SandboxV main_v.cpp)
 target_link_libraries(SandboxV LuaIntegration SquirrelIntegration)
 target_compile_options(SandboxV PRIVATE -g)
 target_link_options(SandboxV PRIVATE -g)
+
+add_executable(SandboxCpp
+    main_cpp.cpp)
+target_link_libraries(SandboxCpp
+    CppScriptIntegration
+)
+

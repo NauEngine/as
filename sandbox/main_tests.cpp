@@ -12,11 +12,11 @@
 #include "script/module.h"
 
 DEFINE_SCRIPT_INTERFACE(TestScript,
-    struct TestScript
-    {
+struct TestScript
+{
     virtual double foo(int a, double b) = 0;
     virtual int bar(int a) = 0;
-    };
+};
 )
 
 DEFINE_SCRIPT_INTERFACE(Logger,
@@ -140,20 +140,20 @@ int main()
   auto test_1_is_instance2(test_1_is->newInstance());
   auto test_2_is_instance2(test_2_is->newInstance());
 
-  assert(test_1_is_instance1->foo(10, 20) == 20);
-  assert(test_1_is_instance1->foo(10, 20) == 20);
-  assert(test_2_is_instance1->foo(10, 20) == 20);
-  assert(test_2_is_instance1->foo(10, 20) == 20);
+  assert(test_1_is_instance1->foo(10, 20) == 30);
+  assert(test_1_is_instance1->foo(10, 20) == 30);
+  assert(test_2_is_instance1->foo(10, 20) == 31);
+  assert(test_2_is_instance1->foo(10, 20) == 31);
 
   assert(test_1_is_instance1->bar(10) == 100);
   assert(test_1_is_instance1->bar(20) == 200);
   assert(test_2_is_instance1->bar(10) == 1000);
   assert(test_2_is_instance1->bar(20) == 2000);
 
-  assert(test_1_is_instance2->foo(10, 20) == 20);
-  assert(test_1_is_instance2->foo(10, 20) == 20);
-  assert(test_2_is_instance2->foo(10, 20) == 20);
-  assert(test_2_is_instance2->foo(10, 20) == 20);
+  assert(test_1_is_instance2->foo(10, 20) == 30);
+  assert(test_1_is_instance2->foo(10, 20) == 30);
+  assert(test_2_is_instance2->foo(10, 20) == 31);
+  assert(test_2_is_instance2->foo(10, 20) == 31);
 
   assert(test_1_is_instance2->bar(10) == 100);
   assert(test_1_is_instance2->bar(20) == 200);

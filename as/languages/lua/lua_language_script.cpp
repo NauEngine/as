@@ -53,7 +53,7 @@ LuaLanguageScript::~LuaLanguageScript()
     }
 }
 
-void LuaLanguageScript::load(const std::string& filename)
+void LuaLanguageScript::load(const std::string& filename, llvm::LLVMContext& context)
 {
     const int result = luaL_loadfile(m_lua_state, filename.c_str());
 

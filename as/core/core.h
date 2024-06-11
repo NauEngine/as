@@ -56,7 +56,7 @@ public:
     template<typename Interface>
     void registerInstance(Interface* instance, const std::string& instance_name)
     {
-        m_compile.registerInstance(instance, instance_name, *getInterface<Interface>());
+        m_compile.registerInstance(instance, instance_name, getInterface<Interface>());
     }
 
     void registerRuntime(std::shared_ptr<ILanguageRuntime> runtime);
@@ -72,8 +72,7 @@ private:
     const std::shared_ptr<ScriptInterface>& getInterface() const
     {
         const char* source_code = getSourceCode<Interface>();
-        const char* type_name = getTypeName<Interface>();
-        return m_compile.getInterface(type_name, source_code);
+        return m_compile.getInterface(source_code);
     }
 
     std::shared_ptr<ScriptModuleRuntime> getCachedModule(const std::string& filename) const;

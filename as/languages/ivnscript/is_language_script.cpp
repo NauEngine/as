@@ -20,8 +20,10 @@ IvnScriptLanguageScript::IvnScriptLanguageScript()
 
 }
 
-void IvnScriptLanguageScript::load(const std::string& filename)
+void IvnScriptLanguageScript::load(const std::string& filename, llvm::LLVMContext& context)
 {
+    std::cout << filename << " -> " << ir::getImplements(filename, "//") << std::endl;
+
     m_filename = filename;
 
     std::ifstream ifs(m_filename);
@@ -33,6 +35,16 @@ void IvnScriptLanguageScript::load(const std::string& filename)
     for (const auto &error: errors) {
       std::cerr << m_filename << ":" << error.line << ":" << error.column << ": error: " << error.message << "\n";
     }
+}
+
+std::shared_ptr<ScriptInterface> IvnScriptLanguageScript::getInterface(const std::string& filename,
+                                                                       CPPParser& cpp_paser)
+{
+    auto interface_filename = ir::getImplements(filename, "//");
+    if (interface_filename.empty())
+        return nullptr;
+
+    return ir::getInterface(filename, interface_filename, cpp_paser);
 }
 
 std::unique_ptr<llvm::Module> IvnScriptLanguageScript::createModule(

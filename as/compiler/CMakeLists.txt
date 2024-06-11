@@ -3,4 +3,5 @@ target_link_libraries(asc
     LuaIntegration
     SquirrelIntegration
     IvnScriptIntegration
+    CppScriptIntegration
 )

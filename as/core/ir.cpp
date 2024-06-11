@@ -2,7 +2,14 @@
 // Created by Alex Zelenshikov on 07.05.2024.
 //
 
+#include <fstream>
+#include <regex>
+#include <sstream>
+
 #include <set>
+
+#include "cpp_interface_parser.h"
+#include "script_interface.h"
 #include "llvm/IR/IRBuilder.h"
 
 namespace as::ir
@@ -167,6 +174,61 @@ llvm::Function* createInitFunc(llvm::Module& module,
     }
 
     return init_func;
+}
+
+std::string getImplements(const std::string& filepath, const std::string& pattern)
+{
+    std::ifstream file(filepath);
+    if (!file.is_open())
+    {
+        return "";
+    }
+
+    char buffer[1025];  // Buffer to store up to 1024 characters + null terminator
+    file.read(buffer, 1024);  // Read the first 1024 characters from the file
+    buffer[file.gcount()] = '\0';  // Ensure null termination
+
+    std::string content(buffer);  // Convert buffer to std::string for easier processing
+    std::istringstream iss(content);  // Use istringstream to read line by line
+    std::string line;
+
+    std::regex implements("implements\\s+\"([^\"]+)\"");
+
+    while (std::getline(iss, line))
+    {
+        if (line.rfind(pattern, 0) != 0)
+            continue;
+
+        std::smatch matches;
+        if (!std::regex_search(line, matches, implements) || matches.size() != 2)
+            continue;
+
+        return matches[1].str();
+    }
+
+    return "";
+}
+
+std::string getRelativeFileName(const std::string& base_filename, const std::string& filename)
+{
+    if (filename.empty())
+        return nullptr;
+
+    std::filesystem::path base_file_path(std::filesystem::path(base_filename).parent_path());
+    std::filesystem::path file_path = base_file_path / filename;
+
+    return file_path;
+}
+
+std::shared_ptr<ScriptInterface> getInterface(const std::string& filename,
+    const std::string& interface_filename,
+    CPPParser& cpp_parser)
+{
+    std::ifstream ifs(getRelativeFileName(filename, interface_filename));
+    std::string interface_content{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
+    interface_content = "#define DEFINE_SCRIPT_INTERFACE(Type, I) I\n" + interface_content;
+
+    return cpp_parser.getInterface(interface_content);
 }
 
 void addMissingDeclarations(llvm::Module& module)
