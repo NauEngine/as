@@ -61,11 +61,16 @@ public:
 
     void registerRuntime(std::shared_ptr<ILanguageRuntime> runtime);
 
+    void reload(const std::string& filename)
+    {
+        std::cout << filename << std::endl;
+    }
+
 private:
     CoreCompile m_compile;
     std::unordered_map<std::string, std::shared_ptr<ScriptModuleRuntime>> m_modules;
 
-    // TODO [Ivn] Hack to hold somewhere instance of ILanguageScript. Actually it shoud be runtime part of each module
+    // TODO [Ivn] Hack to hold somewhere instance of ILanguageScript.Actually it shoud be runtime part of each module
     std::vector<std::shared_ptr<ILanguageScript>> m_scripts;
 
     template<typename Interface>
