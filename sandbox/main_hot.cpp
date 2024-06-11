@@ -39,23 +39,16 @@ int main()
 
     std::cout << "Hit CTRL+C to exit..." << std::endl;
 
-    std::time_t nextTimeTick = 0;
-    std::time_t nextTimeCalculate = 0;
+    std::cout << "instance1->foo(10, 20) = " << instance1->foo(10, 20) << ", ";
+    std::cout << "instance2->foo(10, 20) = " << instance2->foo(10, 20) << std::endl;
+
     while (!ctrl_c_event)
     {
-        auto now = std::time(nullptr);
-        if (now > nextTimeTick)
-        {
-            file_watcher->tick();
-            file_watcher->collect(script_core.get(), &as::Core::reload);
-            nextTimeTick = now + 1;
-        }
-
-        if (now > nextTimeCalculate)
+        file_watcher->tick();
+        if (file_watcher->collect(script_core.get(), &as::Core::reload))
         {
             std::cout << "instance1->foo(10, 20) = " << instance1->foo(10, 20) << ", ";
             std::cout << "instance2->foo(10, 20) = " << instance2->foo(10, 20) << std::endl;
-            nextTimeCalculate = now + 1;
         }
     }
 

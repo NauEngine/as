@@ -41,7 +41,6 @@ private:
     std::shared_ptr<ILanguageScript> m_language_script;
 
     void compile(const ScriptInterface& interface, llvm::LLVMContext& context, bool add_init);
-    // std::vector<llvm::Constant*> compileFunctions(const ScriptInterface& interface, llvm::LLVMContext& context) const;
 };
 
 } // as

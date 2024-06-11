@@ -23,9 +23,12 @@ std::time_t getLastWriteTime(const std::string& path)
 }
 
 namespace as {
-bool FileWatcher::FileWatcherFile::checkModified()
+bool FileWatcher::FileWatcherFile::checkModified(const std::time_t now)
 {
     if (m_old_time == m_time)
+        return false;
+
+    if (m_time > now - 1)
         return false;
 
     m_old_time = m_time;

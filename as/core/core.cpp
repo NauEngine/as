@@ -20,11 +20,6 @@
 #include "language_script.h"
 #include "script_module_compile.h"
 
-namespace
-{
-    llvm::ExitOnError ExitOnErr;
-}
-
 typedef void (*InitFunction)(as::Core* core);
 
 std::unordered_map<std::string, InitFunction>& getInits()
@@ -39,9 +34,9 @@ extern "C" void __asRegisterInit(const char* name, InitFunction ptr)
     getInits()[name] = ptr;
 }
 
-extern "C" void __asRegisterModule(as::Core* core, const char* name, void* ptr)
+extern "C" void __asRegisterVTable(as::Core* core, const char* name, void* vtable, int vtable_size)
 {
-    core->registerVTable(name, ptr);
+    core->registerVTable(name, vtable, vtable_size);
 }
 
 extern "C" const void* __asRequireRuntime(as::Core* core, const char* name)
@@ -66,20 +61,17 @@ void Core::registerRuntime(std::shared_ptr<ILanguageRuntime> runtime)
     m_runtimes[runtime->name()] = std::move(runtime);
 }
 
-void Core::reload(const std::string& filename)
+void Core::registerVTable(const char* name, void* vtable, int vtable_size)
 {
-    auto vtable1_raw = m_vtables.find(ir::safe_name("scripts/test_1.is"))->second;
-    auto vtable2_raw = m_vtables.find(ir::safe_name("scripts/test_2.is"))->second;
-
-    void** vtable1 = static_cast<void**>(vtable1_raw);
-    void** vtable2 = static_cast<void**>(vtable2_raw);
-
-    vtable1[0] = vtable2[0];
-}
-
-void Core::registerVTable(const char* name, void* vtable)
-{
-    m_vtables[name] = vtable;
+    const auto &vtabe_it = m_vtables.find(name);
+    if (vtabe_it == m_vtables.end())
+    {
+        m_vtables[name] = vtable;
+    }
+    else
+    {
+        std::cout << "Replace vtable for " << name << std::endl;
+    }
 }
 
 const void* Core::requireRuntime(const char* name)
@@ -137,6 +129,20 @@ std::shared_ptr<ScriptModuleRuntime> Core::getCompiledModule(const ScriptInterfa
     auto module = std::make_shared<ScriptModuleRuntime>(vtable->second);
     m_modules[filename] = module;
     return module;
+}
+
+void Core::reload(const std::string& filename)
+{
+    auto module_compile = m_compile.newScriptModule(filename);
+    auto init_func = module_compile->materialize(m_compile.getJit(), m_compile.getContext());
+    if (!init_func)
+    {
+        std::cerr << "Cannot reload module \"" << filename << std::endl;
+        return;
+    }
+    init_func(this);
+    auto script = module_compile->getLanguageScript();
+    m_scripts.emplace_back(script);
 }
 
 } // as

@@ -18,7 +18,7 @@ struct FileWatcherFile
     std::time_t m_old_time;
     std::time_t m_time;
 
-    bool checkModified();
+    bool checkModified(const std::time_t now);
     void updateTime();
 };
 
@@ -29,27 +29,37 @@ public:
     void tick();
 
     template<typename T>
-    void collect(T* self, void (T::*callback)(const std::string&))
+    bool collect(T* self, void (T::*callback)(const std::string&))
     {
+        const auto now = std::time(nullptr);
+        bool result = false;
         for(auto &file : m_files)
         {
-            if (file.checkModified())
+            if (file.checkModified(now))
             {
                 (self->*callback)(file.m_name);
+                result = true;
             }
         }
+
+        return result;
     }
 
     template<typename Data>
-    void collect(void (*callback)(const std::string&, Data), Data data)
+    bool collect(void (*callback)(const std::string&, Data), Data data)
     {
+        const auto now = std::time(nullptr);
+        bool result = false;
         for(auto &file : m_files)
         {
-            if (file.checkModified())
+            if (file.checkModified(now))
             {
                 callback(file.m_name, data);
+                result = true;
             }
         }
+
+        return result;
     }
 
 private:

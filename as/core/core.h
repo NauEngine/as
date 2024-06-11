@@ -63,7 +63,7 @@ public:
 
     void reload(const std::string& filename);
 
-    void registerVTable(const char* name, void* vtable);
+    void registerVTable(const char* name, void* vtable, int vtable_size);
 
     const void* requireRuntime(const char* name);
 
