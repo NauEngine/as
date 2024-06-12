@@ -6,6 +6,7 @@
 #define LANGUAGE_SCRIPT_H
 
 #include <string>
+#include <llvm/ExecutionEngine/Orc/LLJIT.h>
 
 #include "cpp_interface_parser.h"
 
@@ -29,8 +30,6 @@ struct ILanguageScript
 {
     virtual ~ILanguageScript() = default;
 
-    virtual bool isSupportReload() const = 0;
-
     virtual void load(const std::string& filename, llvm::LLVMContext& context) = 0;
 
     virtual std::shared_ptr<ScriptInterface> getInterface(const std::string& filename, CPPParser& cpp_paser) = 0;
@@ -43,6 +42,7 @@ struct ILanguageScript
         llvm::Module& module) = 0;
 
     virtual void materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
+        llvm::orc::JITDylib& lib,
         llvm::Module& module,
         llvm::LLVMContext& context) = 0;
 };

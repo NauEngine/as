@@ -43,6 +43,18 @@ void SquirrelLanguageScript::load(const std::string& filename, llvm::LLVMContext
     }
 }
 
+std::shared_ptr<ScriptInterface> SquirrelLanguageScript::getInterface(const std::string& filename, CPPParser& cpp_paser)
+{
+    auto interface_filename = ir::getImplements(filename, "#");
+    if (interface_filename.empty())
+    {
+        llvm::errs() << "Cannot find implementation for script " << filename << "\n";
+        return nullptr;
+    }
+
+    return ir::getInterface(filename, interface_filename, cpp_paser);
+}
+
 SquirrelLanguageScript::SquirrelLanguageScript(SQVM* vm, const std::shared_ptr<SquirrelIR>& sq_ir) :
     m_sq_vm(vm),
     m_sq_ir(sq_ir)
@@ -158,11 +170,14 @@ llvm::Function* SquirrelLanguageScript::buildFunction(
     return func;
 }
 
-void SquirrelLanguageScript::materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::Module& module, llvm::LLVMContext& context)
+void SquirrelLanguageScript::materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
+    llvm::orc::JITDylib& lib,
+    llvm::Module& module,
+    llvm::LLVMContext& context)
 {
     for (const auto& [name, func] : m_funcs)
     {
-        auto error = jit->getMainJITDylib().define(llvm::orc::absoluteSymbols({
+        auto error = lib.define(llvm::orc::absoluteSymbols({
           {
             jit->mangleAndIntern(name),
             { llvm::orc::ExecutorAddr::fromPtr(func.get()), llvm::JITSymbolFlags::Exported }

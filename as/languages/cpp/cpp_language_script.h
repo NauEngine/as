@@ -3,6 +3,8 @@
 //
 
 #pragma once
+#include <llvm/ExecutionEngine/Orc/Core.h>
+
 #include "as/core/language_script.h"
 #include "clang/Frontend/CompilerInstance.h"
 
@@ -12,11 +14,6 @@ class CppLanguageScript: public ILanguageScript
 {
 public:
     ~CppLanguageScript() override = default;
-
-    bool isSupportReload() const override
-    {
-        return true;
-    }
 
     void load(const std::string& filename, llvm::LLVMContext& context) override;
 
@@ -30,8 +27,8 @@ public:
         llvm::Module& module) override;
 
     void materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
-        llvm::Module& module,
-        llvm::LLVMContext& context) override;
+                     llvm::orc::JITDylib& lib,
+                     llvm::Module& module, llvm::LLVMContext& context) override;
 
 private:
     std::string m_content;

@@ -11,6 +11,7 @@
 #include "ts_language_script.h"
 
 #include <TypeScript/MLIRGen.h>
+#include <llvm/ExecutionEngine/Orc/Core.h>
 #include <llvm/IR/Module.h>
 #include <llvm/TargetParser/Host.h>
 #include <llvm/TargetParser/Triple.h>
@@ -95,8 +96,8 @@ llvm::Function* TypeScriptLanguageScript::buildModule(const std::string& init_na
 }
 
 void TypeScriptLanguageScript::materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
-    llvm::Module& module,
-    llvm::LLVMContext& context)
+                                           llvm::orc::JITDylib& lib,
+                                           llvm::Module& module, llvm::LLVMContext& context)
 {
 }
 } // as

@@ -8,6 +8,8 @@
 
 #include "cpp_language_script.h"
 
+#include <llvm/ExecutionEngine/Orc/Core.h>
+
 #include "as/core/ir.h"
 #include "as/core/script_interface.h"
 
@@ -217,8 +219,8 @@ llvm::Function* CppLanguageScript::buildFunction(const std::string& name,
 }
 
 void CppLanguageScript::materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
-    llvm::Module& module,
-    llvm::LLVMContext& context)
+                                    llvm::orc::JITDylib& lib,
+                                    llvm::Module& module, llvm::LLVMContext& context)
 {
 }
 } // as

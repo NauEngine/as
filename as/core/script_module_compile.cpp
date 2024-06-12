@@ -35,11 +35,6 @@ void ScriptModuleCompile::dump(llvm::raw_fd_ostream& stream) const
 
 llvm::orc::JITDylib* ScriptModuleCompile::getModuleLib(std::shared_ptr<llvm::orc::LLJIT>& jit)
 {
-    if (!m_language_script->isSupportReload())
-    {
-        return &(jit->getMainJITDylib());
-    }
-
     auto jd = jit->getJITDylibByName(m_export_name);
     if (!jd)
     {
@@ -50,6 +45,7 @@ llvm::orc::JITDylib* ScriptModuleCompile::getModuleLib(std::shared_ptr<llvm::orc
             return nullptr;
         }
 
+        error_jd.get().addToLinkOrder(jit->getMainJITDylib());
         return &(error_jd.get());
     }
 
@@ -66,8 +62,6 @@ llvm::orc::JITDylib* ScriptModuleCompile::getModuleLib(std::shared_ptr<llvm::orc
 InitFunction ScriptModuleCompile::materialize(std::shared_ptr<llvm::orc::LLJIT>& jit,
     llvm::orc::ThreadSafeContext ts_context)
 {
-    auto& context = *ts_context.getContext();
-    m_language_script->materialize(jit, *m_module, context);
 
     auto lib = getModuleLib(jit);
     if (!lib)
@@ -77,6 +71,8 @@ InitFunction ScriptModuleCompile::materialize(std::shared_ptr<llvm::orc::LLJIT>&
 
     const auto init_name = "init_" + m_export_name;
 
+    auto& context = *ts_context.getContext();
+    m_language_script->materialize(jit, *lib, *m_module, context);
     auto error_add = jit->addIRModule(*lib, llvm::orc::ThreadSafeModule(std::move(m_module), ts_context));
     if (error_add)
     {

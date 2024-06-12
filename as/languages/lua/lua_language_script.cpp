@@ -75,6 +75,18 @@ void LuaLanguageScript::load(const std::string& filename, llvm::LLVMContext& con
     m_registry_index = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
 }
 
+std::shared_ptr<ScriptInterface> LuaLanguageScript::getInterface(const std::string& filename, CPPParser& cpp_paser)
+{
+    auto interface_filename = ir::getImplements(filename, "--");
+    if (interface_filename.empty())
+    {
+        llvm::errs() << "Cannot find implementation for script " << filename << "\n";
+        return nullptr;
+    }
+
+    return ir::getInterface(filename, interface_filename, cpp_paser);
+}
+
 std::unique_ptr<llvm::Module> LuaLanguageScript::createModule(
         llvm::LLVMContext& context)
 {
