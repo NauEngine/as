@@ -41,7 +41,7 @@ llvm::orc::JITDylib* ScriptModuleCompile::getModuleLib(std::shared_ptr<llvm::orc
         auto error_jd = jit->createJITDylib(m_export_name);
         if (!error_jd)
         {
-            llvm::errs() << "Cannor create new library. " << error_jd.takeError() << "\n";
+            llvm::errs() << "Cannot create new library. " << error_jd.takeError() << "\n";
             return nullptr;
         }
 
@@ -52,11 +52,26 @@ llvm::orc::JITDylib* ScriptModuleCompile::getModuleLib(std::shared_ptr<llvm::orc
     auto error_jd_clear = jd->clear();
     if (error_jd_clear)
     {
-        llvm::errs() << "Cannor clear existing library. " << error_jd_clear << "\n";
+        llvm::errs() << "Cannot clear existing library. " << error_jd_clear << "\n";
         return nullptr;
     }
 
-    return jd;
+    auto error_remove = jit->getExecutionSession().removeJITDylib(*jd);
+    if (error_remove)
+    {
+        llvm::errs() << "Cannot remove existing library. " << error_remove << "\n";
+        return nullptr;
+    }
+
+    auto error_jd2 = jit->createJITDylib(m_export_name);
+    if (!error_jd2)
+    {
+        llvm::errs() << "Cannot create new library to replace. " << error_jd2.takeError() << "\n";
+        return nullptr;
+    }
+
+    error_jd2.get().addToLinkOrder(jit->getMainJITDylib());
+    return &(error_jd2.get());
 }
 
 InitFunction ScriptModuleCompile::materialize(std::shared_ptr<llvm::orc::LLJIT>& jit,

@@ -19,10 +19,10 @@ int main()
     assert(instance->foo(10, 20) == 30);
     assert(instance->bar(10) == 100);
 
-    const auto module2 = core->newScriptModule<TestScript>("scripts/test_script.cpp");
+    const auto module2 = core->newScriptModule<TestScript>("scripts/test_1.cpp");
     const auto instance2(module2->newInstance());
-    assert(instance2->foo(10, 20) == 31);
-    assert(instance2->bar(10) == 101);
+    assert(instance2->foo(10, 20) == 30);
+    assert(instance2->bar(10) == 100);
 
     const auto module3 = core->newScriptModule<TestScript>("scripts/test_2.is");
     const auto instance3(module3->newInstance());
