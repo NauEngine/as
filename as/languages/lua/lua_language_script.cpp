@@ -27,15 +27,11 @@ namespace as
 LuaLanguageScript::LuaLanguageScript(
     lua_State* state,
     const std::shared_ptr<LuaIR>& lua_ir,
-    const std::shared_ptr<LuaLLVMCompiler>& llvmCompiler,
-    const std::shared_ptr<llvm::orc::LLJIT>& jit,
-    llvm::orc::ThreadSafeContext ts_context):
+    const std::shared_ptr<LuaLLVMCompiler>& llvmCompiler):
     m_lua_state(state),
     m_lua_ir(lua_ir),
     m_llvmCompiler(llvmCompiler),
-    m_jit(jit),
-    m_registry_index(LUA_NOREF),
-    m_ts_context(std::move(ts_context))
+    m_registry_index(LUA_NOREF)
 {
 
 }
