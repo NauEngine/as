@@ -62,17 +62,13 @@ llvm::orc::JITDylib* ScriptModuleCompile::getModuleLib(std::shared_ptr<llvm::orc
 InitFunction ScriptModuleCompile::materialize(std::shared_ptr<llvm::orc::LLJIT>& jit,
     llvm::orc::ThreadSafeContext ts_context)
 {
-
     auto lib = getModuleLib(jit);
     if (!lib)
     {
         return nullptr;
     }
 
-    const auto init_name = "init_" + m_export_name;
-
     auto& context = *ts_context.getContext();
-    m_language_script->materialize(jit, *lib, *m_module, context);
     auto error_add = jit->addIRModule(*lib, llvm::orc::ThreadSafeModule(std::move(m_module), ts_context));
     if (error_add)
     {
@@ -80,6 +76,9 @@ InitFunction ScriptModuleCompile::materialize(std::shared_ptr<llvm::orc::LLJIT>&
         return nullptr;
     }
 
+    m_language_script->materialize(jit, *lib, *m_module, context);
+
+    const auto init_name = "init_" + m_export_name;
     auto init_func_addr = jit->lookup(*lib, init_name);
     if (!init_func_addr)
     {

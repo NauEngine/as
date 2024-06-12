@@ -9,6 +9,7 @@
 #include "as/core/language_script.h"
 
 struct lua_State;
+struct Proto;
 
 namespace as::orc
 {
@@ -46,7 +47,7 @@ public:
     void materialize(
             const std::shared_ptr<llvm::orc::LLJIT>& jit,
             llvm::orc::JITDylib& lib,
-            llvm::Module& module, llvm::LLVMContext& context) override {}
+            llvm::Module& module, llvm::LLVMContext& context) override;
 
 private:
     lua_State* m_lua_state = nullptr;
@@ -58,6 +59,7 @@ private:
     llvm::orc::ThreadSafeContext m_ts_context;
 
     llvm::Value* m_lua_state_extern = nullptr;
+    std::unordered_map<Proto*, std::string> m_func_names;
 
     llvm::Function* buildFunction(const std::string& bare_name,
             llvm::FunctionType* signature,
