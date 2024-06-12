@@ -1,3 +1,4 @@
+# implements "test_script.h"
 
 local counter = 0;
 
