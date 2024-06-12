@@ -51,7 +51,7 @@ void LuaLanguage::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadS
 
 std::shared_ptr<ILanguageScript> LuaLanguage::newScript()
 {
-  return std::make_shared<LuaLanguageScript>(m_lua_state, m_lua_ir, m_llvmCompiler, m_jit, m_ts_context);
+  return std::make_shared<LuaLanguageScript>(m_lua_state, m_lua_ir, m_llvmCompiler);
 }
 
 void LuaLanguage::registerInstance(void* instance, const std::string& instanceName,
