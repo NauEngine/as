@@ -63,13 +63,12 @@ public:
 
     void reload(const std::string& filename);
 
-    void registerVTable(const char* name, void* vtable, int vtable_size);
+    void registerVTable(const char* name, ScriptModuleRuntime::FunctionPtr* vtable, int vtable_size);
 
     const void* requireRuntime(const char* name);
 
 private:
     CoreCompile m_compile;
-    std::unordered_map<std::string, void*> m_vtables;
     std::unordered_map<std::string, std::shared_ptr<ILanguageRuntime>> m_runtimes;
     std::unordered_map<std::string, std::shared_ptr<ScriptModuleRuntime>> m_modules;
 

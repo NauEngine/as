@@ -34,7 +34,7 @@ extern "C" void __asRegisterInit(const char* name, InitFunction ptr)
     getInits()[name] = ptr;
 }
 
-extern "C" void __asRegisterVTable(as::Core* core, const char* name, void* vtable, int vtable_size)
+extern "C" void __asRegisterVTable(as::Core* core, const char* name, as::ScriptModuleRuntime::FunctionPtr* vtable, int vtable_size)
 {
     core->registerVTable(name, vtable, vtable_size);
 }
@@ -61,22 +61,16 @@ void Core::registerRuntime(std::shared_ptr<ILanguageRuntime> runtime)
     m_runtimes[runtime->name()] = std::move(runtime);
 }
 
-void Core::registerVTable(const char* name, void* vtable, int vtable_size)
+void Core::registerVTable(const char* safe_name, ScriptModuleRuntime::FunctionPtr* vtable, int vtable_size)
 {
-    const auto &vtabe_it = m_vtables.find(name);
-    if (vtabe_it == m_vtables.end())
+    const auto &module = m_modules.find(safe_name);
+    if (module == m_modules.end())
     {
-        m_vtables[name] = vtable;
+        m_modules[safe_name] = std::make_shared<ScriptModuleRuntime>(vtable, vtable_size);
     }
     else
     {
-        std::cout << "Replace vtable for " << name << std::endl;
-        void** vtable_dest = static_cast<void**>(vtabe_it->second);
-        void** vtable_src = static_cast<void**>(vtable);
-        for (int i = 0; i < vtable_size; ++i)
-        {
-            *(vtable_dest++) = *(vtable_src++);
-        }
+        module->second->replaceVtable(vtable, vtable_size);
     }
 }
 
@@ -97,7 +91,7 @@ const void* Core::requireRuntime(const char* name)
 
 std::shared_ptr<ScriptModuleRuntime> Core::getCachedModule(const std::string& filename) const
 {
-    const auto module = m_modules.find(filename);
+    const auto module = m_modules.find(ir::safe_name(filename));
     return module != m_modules.end() ? module->second : nullptr;
 }
 
@@ -110,13 +104,7 @@ std::shared_ptr<ScriptModuleRuntime> Core::getLinkedModule(const std::string& fi
     std::cout << "Call init from linked module \"" << filename << "\"..." << std::endl;
     (init_func_it->second)(this);
 
-    const auto vtable = m_vtables.find(ir::safe_name(filename));
-    if (vtable == m_vtables.end())
-        return nullptr;
-
-    auto module = std::make_shared<ScriptModuleRuntime>(vtable->second);
-    m_modules[filename] = module;
-    return module;
+    return getCachedModule(filename);
 }
 
 std::shared_ptr<ScriptModuleRuntime> Core::getCompiledModule(const ScriptInterface& interface,
@@ -126,24 +114,13 @@ std::shared_ptr<ScriptModuleRuntime> Core::getCompiledModule(const ScriptInterfa
     auto init_func = module_compile->materialize(m_compile.getJit(), m_compile.getContext());
     init_func(this);
 
-    const auto vtable = m_vtables.find(ir::safe_name(filename));
-    if (vtable == m_vtables.end())
-        return nullptr;
-
-    auto module = std::make_shared<ScriptModuleRuntime>(vtable->second);
-    m_modules[filename] = module;
-    return module;
+    return getCachedModule(filename);
 }
 
 void Core::reload(const std::string& filename)
 {
     auto module_compile = m_compile.newScriptModule(filename);
     auto init_func = module_compile->materialize(m_compile.getJit(), m_compile.getContext());
-    if (!init_func)
-    {
-        std::cerr << "Cannot reload module \"" << filename << std::endl;
-        return;
-    }
     init_func(this);
 }
 

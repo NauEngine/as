@@ -8,14 +8,19 @@ namespace as {
 
 class ScriptModuleRuntime {
 public:
-    explicit ScriptModuleRuntime(void* vtable):
-        m_vtable(vtable)
-    {}
+    typedef void (*FunctionPtr)();
+
+    explicit ScriptModuleRuntime(FunctionPtr* vtable, int vtable_size);
+
+    ~ScriptModuleRuntime();
+
+    void replaceVtable(FunctionPtr* vtable, int vtable_size);
 
     void* newInstance() const;
 
 private:
-    void* m_vtable;
+    FunctionPtr* m_vtable;
+    int m_vtable_size;
 };
 
 } // as
