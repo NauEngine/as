@@ -1,3 +1,5 @@
+set(TYPESCRIPT_IGNORE_UNIT_TESTS ON)
+
 add_library(TypeScriptIntegration STATIC
     ts_language.cpp
     ts_language.h

@@ -4,7 +4,12 @@
 
 #pragma once
 
-template <typename T> const char* getSourceCode();
-
-#define DEFINE_SCRIPT_INTERFACE(Type, I) I \
-template <> const char* getSourceCode<Type>() { return #I; }
+#define DEFINE_SCRIPT_INTERFACE(Type, I)        \
+struct Type                                     \
+{                                               \
+    I                                           \
+    static const char* getSourceCode()          \
+    {                                           \
+        return "struct "#Type" { "#I" };";      \
+    }                                           \
+};

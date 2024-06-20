@@ -75,7 +75,7 @@ private:
     template<typename Interface>
     const std::shared_ptr<ScriptInterface>& getInterface() const
     {
-        const char* source_code = getSourceCode<Interface>();
+        const char* source_code = Interface::getSourceCode();
         return m_compile.getInterface(source_code);
     }
 
