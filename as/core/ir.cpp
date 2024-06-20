@@ -239,7 +239,7 @@ std::shared_ptr<ScriptInterface> getInterface(const std::string& filename,
 {
     std::ifstream ifs(getRelativeFileName(filename, interface_filename));
     std::string interface_content{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
-    interface_content = "#define DEFINE_SCRIPT_INTERFACE(Type, I) I\n" + interface_content;
+    interface_content = "#define DEFINE_SCRIPT_INTERFACE(Type, I) struct Type { I };\n" + interface_content;
 
     return cpp_parser.getInterface(interface_content);
 }

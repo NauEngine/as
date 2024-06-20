@@ -1,3 +1,5 @@
+// implements "simple_script.h"
+
 function foo()
 {
     return 42;

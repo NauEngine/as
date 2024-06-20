@@ -35,7 +35,7 @@ protected:
 
 TEST_F(IvnScriptLanguageTest, SimpleTest)
 {
-    auto module = getCore().newScriptModule<SimpleScript>("simple_script.is");
+    auto module = getCore().newScriptModule<SimpleScript>("test/scripts/simple_script.is");
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -46,7 +46,7 @@ TEST_F(IvnScriptLanguageTest, SimpleTest)
 
 TEST_F(IvnScriptLanguageTest, IntegerTest)
 {
-    auto module = getCore().newScriptModule<IntegerScript>("integer_script.is");
+    auto module = getCore().newScriptModule<IntegerScript>("test/scripts/integer_script.is");
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -64,7 +64,7 @@ TEST_F(IvnScriptLanguageTest, IntegerTest)
 
 TEST_F(IvnScriptLanguageTest, DoubleTest)
 {
-    auto module = getCore().newScriptModule<DoubleScript>("double_script.is");
+    auto module = getCore().newScriptModule<DoubleScript>("test/scripts/double_script.is");
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -83,10 +83,10 @@ TEST_F(IvnScriptLanguageTest, DoubleTest)
 
 TEST_F(IvnScriptLanguageTest, ModulesTest)
 {
-    auto module = getCore().newScriptModule<SimpleScript>("simple_script.is");
+    auto module = getCore().newScriptModule<SimpleScript>("test/scripts/simple_script.is");
     ASSERT_NE(module, nullptr);
 
-    auto module2 = getCore().newScriptModule<SimpleScript>("simple_script2.is");
+    auto module2 = getCore().newScriptModule<SimpleScript>("test/scripts/simple_script2.is");
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -97,4 +97,25 @@ TEST_F(IvnScriptLanguageTest, ModulesTest)
 
     EXPECT_EQ(instance->foo(), 42);
     EXPECT_EQ(instance2->foo(), 4242);
+}
+
+TEST_F(IvnScriptLanguageTest, HotReloadTest)
+{
+    ASSERT_FALSE(copyFile("test/scripts/simple_script.h", "simple_script.h").empty());
+
+    auto tempFile = copyFile("test/scripts/simple_script.is", "simple_script.is");
+    ASSERT_FALSE(tempFile.empty());
+
+    auto module = getCore().newScriptModule<SimpleScript>(tempFile);
+    ASSERT_NE(module, nullptr);
+
+    auto instance = module->newInstance();
+    ASSERT_NE(instance, nullptr);
+
+    EXPECT_EQ(instance->foo(), 42);
+
+    copyFile("test/scripts/simple_script2.is", "simple_script.is");
+    getCore().reload(tempFile);
+
+    EXPECT_EQ(instance->foo(), 4242);
 }

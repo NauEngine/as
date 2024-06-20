@@ -34,7 +34,7 @@ protected:
 
 TEST_F(LuaLanguageTest, SimpleTest)
 {
-    auto module = getCore().newScriptModule<SimpleScript>("simple_script.lua");
+    auto module = getCore().newScriptModule<SimpleScript>("test/scripts/simple_script.lua");
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -45,7 +45,7 @@ TEST_F(LuaLanguageTest, SimpleTest)
 
 TEST_F(LuaLanguageTest, IntegerTest)
 {
-    auto module = getCore().newScriptModule<IntegerScript>("integer_script.lua");
+    auto module = getCore().newScriptModule<IntegerScript>("test/scripts/integer_script.lua");
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -63,7 +63,7 @@ TEST_F(LuaLanguageTest, IntegerTest)
 
 TEST_F(LuaLanguageTest, DoubleTest)
 {
-    auto module = getCore().newScriptModule<DoubleScript>("double_script.lua");
+    auto module = getCore().newScriptModule<DoubleScript>("test/scripts/double_script.lua");
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
