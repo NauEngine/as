@@ -7,32 +7,32 @@
 #include "as/core/core.h"
 #include "as/languages/lua/lua_language.h"
 
+#include "core_test_fixture.h"
+
 #include "./scripts/simple_script.h"
 #include "./scripts/integer_script.h"
 #include "./scripts/double_script.h"
 
-class LanguageLuaTest : public testing::Test
+class LuaLanguageTest : public CoreTestFixture
 {
 protected:
-    LanguageLuaTest() :
-        m_core(std::make_unique<as::Core>("../../test/scripts"))
+    const char* getLanguageName() const override
     {
-        auto language = std::make_shared<as::LuaLanguage>();
-        m_core->registerLanguage("lua", std::move(language));
+        return "lua";
     }
 
-    ~LanguageLuaTest() override = default;
-
-    as::Core& getCore()
+    std::shared_ptr<as::ILanguage> createLanguage() const override
     {
-        return *m_core;
+        return std::make_shared<as::LuaLanguage>();
     }
 
-private:
-    std::unique_ptr<as::Core> m_core;
+    std::shared_ptr<as::ILanguageRuntime> createRuntime() const override
+    {
+        return nullptr;
+    }
 };
 
-TEST_F(LanguageLuaTest, LanguageLuaSimpleTest)
+TEST_F(LuaLanguageTest, SimpleTest)
 {
     auto module = getCore().newScriptModule<SimpleScript>("simple_script.lua");
     ASSERT_NE(module, nullptr);
@@ -43,7 +43,7 @@ TEST_F(LanguageLuaTest, LanguageLuaSimpleTest)
     EXPECT_EQ(instance->foo(), 42);
 }
 
-TEST_F(LanguageLuaTest, LanguageLuaIntegerTest)
+TEST_F(LuaLanguageTest, IntegerTest)
 {
     auto module = getCore().newScriptModule<IntegerScript>("integer_script.lua");
     ASSERT_NE(module, nullptr);
@@ -61,7 +61,7 @@ TEST_F(LanguageLuaTest, LanguageLuaIntegerTest)
     EXPECT_EQ(instance->add(42, 42, 42), 126);
 }
 
-TEST_F(LanguageLuaTest, LanguageLuaDoubleTest)
+TEST_F(LuaLanguageTest, DoubleTest)
 {
     auto module = getCore().newScriptModule<DoubleScript>("double_script.lua");
     ASSERT_NE(module, nullptr);
