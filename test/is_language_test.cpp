@@ -8,35 +8,32 @@
 #include "as/languages/ivnscript/is_language_runtime.h"
 #include "as/languages/ivnscript/is_language.h"
 
+#include "core_test_fixture.h"
+
 #include "./scripts/simple_script.h"
 #include "./scripts/integer_script.h"
 #include "./scripts/double_script.h"
 
-class LanguageIvnScriptTest : public testing::Test
+class IvnScriptLanguageTest : public CoreTestFixture
 {
 protected:
-    LanguageIvnScriptTest() :
-        m_core(std::make_unique<as::Core>("../../test/scripts"))
+    const char* getLanguageName() const override
     {
-        auto language = std::make_shared<as::IvnScriptLanguage>();
-        m_core->registerLanguage("is", std::move(language));
-
-        auto runtime = std::make_shared<as::IvnScriptLanguageRuntime>("is_integration_test");
-        m_core->registerRuntime(std::move(runtime));
+        return "is";
     }
 
-    ~LanguageIvnScriptTest() override = default;
-
-    as::Core& getCore()
+    std::shared_ptr<as::ILanguage> createLanguage() const override
     {
-        return *m_core;
+        return std::make_shared<as::IvnScriptLanguage>();
     }
 
-private:
-    std::unique_ptr<as::Core> m_core;
+    std::shared_ptr<as::ILanguageRuntime> createRuntime() const override
+    {
+        return std::make_shared<as::IvnScriptLanguageRuntime>("langiage_is_test");
+    }
 };
 
-TEST_F(LanguageIvnScriptTest, LanguageIvnScriptSimpleTest)
+TEST_F(IvnScriptLanguageTest, SimpleTest)
 {
     auto module = getCore().newScriptModule<SimpleScript>("simple_script.is");
     ASSERT_NE(module, nullptr);
@@ -47,7 +44,7 @@ TEST_F(LanguageIvnScriptTest, LanguageIvnScriptSimpleTest)
     EXPECT_EQ(instance->foo(), 42);
 }
 
-TEST_F(LanguageIvnScriptTest, LanguageIvnScriptIntegerTest)
+TEST_F(IvnScriptLanguageTest, IntegerTest)
 {
     auto module = getCore().newScriptModule<IntegerScript>("integer_script.is");
     ASSERT_NE(module, nullptr);
@@ -65,7 +62,7 @@ TEST_F(LanguageIvnScriptTest, LanguageIvnScriptIntegerTest)
     EXPECT_EQ(instance->add(42, 42, 42), 126);
 }
 
-TEST_F(LanguageIvnScriptTest, LanguageIvnScriptDoubleTest)
+TEST_F(IvnScriptLanguageTest, DoubleTest)
 {
     auto module = getCore().newScriptModule<DoubleScript>("double_script.is");
     ASSERT_NE(module, nullptr);
@@ -82,4 +79,22 @@ TEST_F(LanguageIvnScriptTest, LanguageIvnScriptDoubleTest)
 
     EXPECT_EQ(instance->add(0, 1, 2), 3);
     EXPECT_EQ(instance->add(42.4, 42.4, 42.4), 126.0);
+}
+
+TEST_F(IvnScriptLanguageTest, ModulesTest)
+{
+    auto module = getCore().newScriptModule<SimpleScript>("simple_script.is");
+    ASSERT_NE(module, nullptr);
+
+    auto module2 = getCore().newScriptModule<SimpleScript>("simple_script2.is");
+    ASSERT_NE(module, nullptr);
+
+    auto instance = module->newInstance();
+    ASSERT_NE(instance, nullptr);
+
+    auto instance2 = module2->newInstance();
+    ASSERT_NE(instance2, nullptr);
+
+    EXPECT_EQ(instance->foo(), 42);
+    EXPECT_EQ(instance2->foo(), 4242);
 }

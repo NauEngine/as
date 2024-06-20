@@ -9,12 +9,14 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 add_executable(AScriptTest
-    language_is_test.cpp
-    language_lua_test.cpp
+        is_language_test.cpp
+        lua_language_test.cpp
 
     scripts/simple_script.h
     scripts/integer_script.h
     scripts/double_script.h
+        core_test_fixture.cpp
+        core_test_fixture.h
 )
 
 target_link_libraries(AScriptTest
