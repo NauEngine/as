@@ -55,7 +55,7 @@ llvm::Function* createRegisterVTableDecl(llvm::Module& module)
     const auto char_ptr_t = llvm::Type::getInt8PtrTy(context);
     const auto void_ptr_t = llvm::Type::getInt8PtrTy(context);
     const auto int_t = llvm::Type::getInt32Ty(context);
-    const auto func_t = llvm::FunctionType::get(void_t, { char_ptr_t, void_ptr_t, int_t }, false);
+    const auto func_t = llvm::FunctionType::get(void_t, { void_ptr_t, char_ptr_t, void_ptr_t, int_t }, false);
     return llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, "__asRegisterVTable", module);
 }
 
@@ -65,7 +65,7 @@ llvm::Function* createRequireRuntimeDecl(llvm::Module& module)
 
     const auto void_ptr_t = llvm::Type::getInt8PtrTy(context);
     const auto char_ptr_t = llvm::Type::getInt8PtrTy(context);
-    const auto func_t = llvm::FunctionType::get(void_ptr_t, { char_ptr_t }, false);
+    const auto func_t = llvm::FunctionType::get(void_ptr_t, { void_ptr_t, char_ptr_t }, false);
     return llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, "__asRequireRuntime", module);
 }
 

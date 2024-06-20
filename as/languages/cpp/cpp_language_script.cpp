@@ -2,13 +2,14 @@
 #include "clang/CodeGen/CodeGenAction.h"
 #include "clang/CodeGen/BackendUtil.h"
 #include "clang/AST/Mangle.h"
+#include "clang/Lex/PreprocessorOptions.h"
 #include "llvm/TargetParser/Host.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 
 #include "cpp_language_script.h"
 
-#include <llvm/ExecutionEngine/Orc/Core.h>
+#include "llvm/ExecutionEngine/Orc/Core.h"
 
 #include "as/core/ir.h"
 #include "as/core/script_interface.h"
@@ -141,14 +142,22 @@ void CppLanguageScript::load(const std::string& filename, llvm::LLVMContext& con
     std::ifstream ifs(filename);
     m_content = { std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
     m_content = "#define DEFINE_SCRIPT_INTERFACE(Type, I) I\n" + m_content;
-    createCompiler(std::filesystem::path(filename).parent_path());
+    createCompiler(filename, std::filesystem::path(filename).parent_path());
 
     auto action2 = std::make_unique<CollectNamesAction>(context, m_script_interface, m_func_names);
     m_compiler->ExecuteAction(*action2);
 }
 
-void CppLanguageScript::createCompiler(const std::string& base_path)
+void CppLanguageScript::createCompiler(const std::string& filename, const std::string& base_path)
 {
+    m_compiler = std::make_unique<clang::CompilerInstance>();
+    m_compiler->createDiagnostics();
+    if (!m_compiler->hasDiagnostics())
+    {
+        m_compiler.reset();
+        return;
+    }
+
     auto invocation = std::make_shared<clang::CompilerInvocation>();
 
     invocation->getLangOpts()->CPlusPlus = true;
@@ -160,29 +169,24 @@ void CppLanguageScript::createCompiler(const std::string& base_path)
     auto &headerSearchOpts = invocation->getHeaderSearchOpts();
     headerSearchOpts.AddPath(base_path, clang::frontend::Quoted, false, false);
 
-    auto mem_buffer = llvm::MemoryBuffer::getMemBuffer(m_content);
-    invocation->getFrontendOpts().Inputs.push_back(clang::FrontendInputFile(*mem_buffer, clang::Language::CXX));
-    invocation->getFrontendOpts().ProgramAction = clang::frontend::EmitLLVMOnly;
-    invocation->getFrontendOpts().DashX = clang::InputKind(clang::Language::CXX);
-
     invocation->getCodeGenOpts().CodeModel = "default";
+    invocation->getCodeGenOpts().setDebugInfo(llvm::codegenoptions::FullDebugInfo);
 
     invocation->getTargetOpts().Triple = llvm::sys::getDefaultTargetTriple();
 
-    m_compiler = std::make_unique<clang::CompilerInstance>();
-    m_compiler->setInvocation(std::move(invocation));
+    invocation->getFrontendOpts().Inputs.push_back(clang::FrontendInputFile(filename, clang::Language::CXX));
+    invocation->getFrontendOpts().ProgramAction = clang::frontend::EmitLLVMOnly;
+    invocation->getFrontendOpts().DashX = clang::InputKind(clang::Language::CXX);
 
-    m_compiler->createDiagnostics();
-    if (!m_compiler->hasDiagnostics())
-    {
-        m_compiler.reset();
-        return;
-    }
+    invocation->getPreprocessorOpts().clearRemappedFiles();
+    invocation->getPreprocessorOpts().RetainRemappedFileBuffers = true;
+    invocation->getPreprocessorOpts().addRemappedFile(filename, llvm::MemoryBuffer::getMemBufferCopy(m_content, filename).release());
 
+    m_compiler->setInvocation(invocation);
     m_compiler->setTarget(clang::TargetInfo::CreateTargetInfo(m_compiler->getDiagnostics(), m_compiler->getInvocation().TargetOpts));
+
     m_compiler->createFileManager();
     m_compiler->createSourceManager(m_compiler->getFileManager());
-    m_compiler->createPreprocessor(clang::TU_Complete);
 }
 
 std::shared_ptr<ScriptInterface> CppLanguageScript::getInterface(const std::string& filename, CPPParser& cpp_paser)

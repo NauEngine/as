@@ -36,7 +36,7 @@ private:
     std::shared_ptr<ScriptInterface> m_script_interface;
     std::unordered_map<std::string, std::string> m_func_names;
 
-    void createCompiler(const std::string& base_path);
+    void createCompiler(const std::string& filename, const std::string& base_path);
 
     llvm::Function* buildFunction(const std::string& name,
         llvm::FunctionType* signature,
