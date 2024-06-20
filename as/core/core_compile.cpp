@@ -15,6 +15,13 @@
 
 #include <fstream>
 #include <llvm/Support/TargetSelect.h>
+#include <llvm/ExecutionEngine/Orc/TargetProcess/JITLoaderGDB.h>
+
+// Force linking some of the runtimes that helps attaching to a debugger.
+LLVM_ATTRIBUTE_USED void linkComponents() {
+  llvm::errs() << (void *)&llvm_orc_registerJITLoaderGDBWrapper
+               << (void *)&llvm_orc_registerJITLoaderGDBAllocAction;
+}
 
 namespace
 {
@@ -47,7 +54,9 @@ CoreCompile::CoreCompile(const std::string& base_path, bool add_init):
     llvm::InitializeAllAsmPrinters();
     llvm::InitializeAllAsmParsers();
 
-    m_jit = ExitOnErr(llvm::orc::LLJITBuilder().create());
+    auto builder = llvm::orc::LLJITBuilder();
+    builder.EnableDebuggerSupport = true;
+    m_jit = ExitOnErr(builder.create());
 }
 
 CoreCompile::~CoreCompile()
