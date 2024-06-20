@@ -13,7 +13,7 @@
 class CoreTestFixture : public testing::Test {
 protected:
     CoreTestFixture();
-    ~CoreTestFixture() override = default;
+    ~CoreTestFixture() override;
 
     virtual const char* getLanguageName() const = 0;
     virtual std::shared_ptr<as::ILanguage> createLanguage() const = 0;
@@ -26,6 +26,9 @@ protected:
         return *m_core;
     }
 
+    std::string copyFile(const std::string& source_file, const std::string& dest_file);
+
 private:
     std::unique_ptr<as::Core> m_core;
+    std::unordered_set<std::filesystem::path> m_temp_files;
 };

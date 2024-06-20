@@ -15,11 +15,8 @@
 #include "scripts/test_script.h"
 
 DEFINE_SCRIPT_INTERFACE(Logger,
-struct Logger
-{
     virtual void warn(int a, int b) = 0;
     virtual int debug(int a, int b) = 0;
-};
 )
 
 struct LoggerImpl : Logger
