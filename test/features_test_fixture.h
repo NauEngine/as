@@ -36,6 +36,7 @@ protected:
     void doHotReloadTest(const char* code_before, const char* code_after);
 
     void doCompileStaticInitTest(const char* code);
+    void doCompileDebugInfoTest(const char* code);
 
 private:
     std::unique_ptr<as::Core> m_core;

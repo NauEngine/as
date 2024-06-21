@@ -30,29 +30,7 @@ public:
     MOCK_METHOD(void, set, (int a), (override));
 };
 
-std::string findCtorFunction(const std::string& ll_code)
-{
-    std::regex global_ctors_regex(R"(\@llvm\.global_ctors\s+=\s+appending global.*i32\s+\d+,\s+ptr\s([^\s,]+),\s+ptr\s+null\s*\}\])", std::regex_constants::ECMAScript);
-    std::smatch matches;
-
-    if (!std::regex_search(ll_code, matches, global_ctors_regex))
-        return "";
-
-    return matches[1].str();
-}
-
-std::string findFunctionBody(const std::string& ll_code, const std::string& declaration, const std::string& name)
-{
-    std::regex body_regex("define\\s+" + declaration + "\\s+" + name + R"(\s*\([^)]*\)\s*\{\s*entry\:([^}]*)\})", std::regex_constants::ECMAScript);
-    std::smatch matches;
-
-    if (!std::regex_search(ll_code, matches, body_regex))
-        return "";
-
-    return matches[1].str();
-}
-
-std::vector<std::string> splitString(const std::string& content, const std::string& delimeter)
+std::vector<std::string> split(const std::string& content, const std::string& delimeter)
 {
     std::vector<std::string> result;
     auto prev_pos = content.begin();
@@ -73,22 +51,55 @@ std::vector<std::string> splitString(const std::string& content, const std::stri
     return result;
 }
 
-std::string funcFunctionCallArgument(const std::string& ll_code, const std::string& func, int index)
+std::string match(const std::string& regex, const std::string& text)
 {
-    std::regex args_regex(R"(call\s+\w+\s+)" + func + R"(\(\s*([^)]*)\))", std::regex_constants::ECMAScript);
-    std::smatch matches;
-
-    if (!std::regex_search(ll_code, matches, args_regex))
+    std::regex r(regex, std::regex_constants::ECMAScript);
+    std::smatch m;
+    if (!std::regex_search(text, m, r))
         return "";
 
+    return m[1].str();
+}
+
+std::string findCtorFunction(const std::string& ll_code)
+{
+    return match(R"(\@llvm\.global_ctors\s+=\s+appending global.*i32\s+\d+,\s+ptr\s([^\s,]+),\s+ptr\s+null\s*\}\])", ll_code);
+}
+
+std::string findFunctionBody(const std::string& ll_code, const std::string& declaration, const std::string& name)
+{
+    return match("define\\s+" + declaration + "\\s+" + name + R"(\s*\([^)]*\)[^{]*\{\s*entry\:([^}]*)\})", ll_code);
+}
+
+std::string findFunctionDebugEntry(const std::string& ll_code, const std::string& declaration, const std::string& name)
+{
+    auto attrs = match("define\\s+" + declaration + "\\s+" + name + R"(\([^)]*\)\s*([^{]*)\s*\{)", ll_code);
+    return match(R"(\!dbg\s+(\!\d+))", attrs);
+}
+
+std::string findFunctionCallArgument(const std::string& ll_code, const std::string& func, int index)
+{
+    auto args_str = match(R"(call\s+\w+\s+)" + func + R"(\(\s*([^)]*)\))", ll_code);
+    if (args_str.empty())
+        return "";
     if (index < 0)
         return " ";
 
-    const auto& args = splitString(matches[1].str(), ",");
+    auto args = split(args_str, ",");
     if (index >= args.size())
         return "";
 
-    return splitString(args[index], " ")[2];
+    return split(match("^\\s*(.*)\\s*$", args[index]), " ")[1];
+}
+
+std::string getDebugEntryIndex(const std::string& debug_entry)
+{
+    return match(R"(\!(\d+))", debug_entry);
+}
+
+std::string findDebugAttr(const std::string& ll_code, const std::string& debug_entry_index, const std::string& attr_name)
+{
+    return match(R"(\!)" + debug_entry_index + R"(\s*=\s*[^(]*\(.*)" + attr_name + R"(\s*:\s*([^,)]+))", ll_code);
 }
 
 FeaturesTestFixture::~FeaturesTestFixture()
@@ -354,11 +365,32 @@ void FeaturesTestFixture::doCompileStaticInitTest(const char* code)
     auto cotr_func_body = findFunctionBody(ll_code, "internal void", cotr_func_name);
     ASSERT_FALSE(cotr_func_body.empty());
 
-    auto init_func_name = funcFunctionCallArgument(cotr_func_body, "@__asRegisterInit", 1);
+    auto init_func_name = findFunctionCallArgument(cotr_func_body, "@__asRegisterInit", 1);
     ASSERT_FALSE(init_func_name.empty());
 
     auto init_func_body = findFunctionBody(ll_code, "internal void", init_func_name);
     ASSERT_FALSE(init_func_body.empty());
 
-    ASSERT_FALSE(funcFunctionCallArgument(init_func_body, "@__asRegisterVTable", -1).empty());
+    ASSERT_FALSE(findFunctionCallArgument(init_func_body, "@__asRegisterVTable", -1).empty());
+}
+
+void FeaturesTestFixture::doCompileDebugInfoTest(const char* code)
+{
+    ASSERT_TRUE(writeHeader<SimpleScript>());
+    auto script_name = writeCode("test_simple", code);
+    ASSERT_FALSE(script_name.empty());
+
+    auto ll_code = compile(script_name);
+    EXPECT_FALSE(ll_code.empty());
+
+    auto func_dbg_entry = getDebugEntryIndex(findFunctionDebugEntry(ll_code, "linkonce_odr i32", "@[_\\w]+3foo[_\\w]+"));
+    EXPECT_FALSE(func_dbg_entry.empty());
+
+    auto func_file_dbg_entry = getDebugEntryIndex(findDebugAttr(ll_code, func_dbg_entry, "file"));
+    EXPECT_FALSE(func_file_dbg_entry.empty());
+
+    auto func_file_name_dbg_entry = match("\"([^\"]+)\"", findDebugAttr(ll_code, func_file_dbg_entry, "filename"));
+    EXPECT_FALSE(func_file_name_dbg_entry.empty());
+
+    EXPECT_TRUE(func_file_name_dbg_entry.ends_with(script_name));
 }
