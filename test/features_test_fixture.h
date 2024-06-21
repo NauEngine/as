@@ -27,16 +27,23 @@ protected:
     virtual std::shared_ptr<as::ILanguage> createLanguage() const = 0;
     virtual std::shared_ptr<as::ILanguageRuntime> createRuntime() const = 0;
 
-    void doSimpleTest(const char* code);
-    void doIntegerTest(const char* code);
-    void doDoubleTest(const char* code, TreatDouble treat_as);
-    void doModulesTest(const char* code1, const char* code2);
-    void doExternalObjTest(const char* code);
-    void doGlobalVarTest(const char* code);
-    void doHotReloadTest(const char* code_before, const char* code_after);
+    virtual const char* getSimpleScript42() const { return nullptr; }
+    virtual const char* getSimpleScript4242() const { return nullptr; }
+    virtual const char* getSimpleExternalScript() const { return nullptr; }
+    virtual const char* getIntegerScript() const { return nullptr; }
+    virtual const char* getDoubleScript() const { return nullptr; }
+    virtual const char* getSetGetGlobalScript() const { return nullptr; }
 
-    void doCompileStaticInitTest(const char* code);
-    void doCompileDebugInfoTest(const char* code);
+    void doSimpleTest();
+    void doIntegerTest();
+    void doDoubleTest(TreatDouble treat_as);
+    void doExternalObjTest();
+    void doGlobalVarTest();
+    void doModulesTest();
+    void doHotReloadTest();
+
+    void doCompileStaticInitTest();
+    void doCompileDebugInfoTest(const std::string& func_pattern);
 
 private:
     std::unique_ptr<as::Core> m_core;

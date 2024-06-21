@@ -85,34 +85,39 @@ protected:
     {
         return std::make_shared<as::IvnScriptLanguageRuntime>("langiage_is_test");
     }
+
+    const char* getSimpleScript42() const override { return CODE_SIMPLE_42; }
+    const char* getSimpleScript4242() const override { return CODE_SIMPLE_4242; }
+    const char* getIntegerScript() const override { return CODE_INTEGER; }
+    const char* getDoubleScript() const override { return CODE_DOUBLE; }
 };
 
 TEST_F(IvnScriptLanguageTest, SimpleTest)
 {
-    doSimpleTest(CODE_SIMPLE_42);
+    doSimpleTest();
 }
 
 TEST_F(IvnScriptLanguageTest, IntegerTest)
 {
-    doIntegerTest(CODE_INTEGER);
+    doIntegerTest();
 }
 
 TEST_F(IvnScriptLanguageTest, DoubleTest)
 {
-    doDoubleTest(CODE_DOUBLE, TreatDouble::AsInteger);
+    doDoubleTest(TreatDouble::AsInteger);
 }
 
 TEST_F(IvnScriptLanguageTest, ModulesTest)
 {
-    doModulesTest(CODE_SIMPLE_42, CODE_SIMPLE_4242);
+    doModulesTest();
 }
 
 TEST_F(IvnScriptLanguageTest, HotReloadTest)
 {
-    doHotReloadTest(CODE_SIMPLE_42, CODE_SIMPLE_4242);
+    doHotReloadTest();
 }
 
 TEST_F(IvnScriptLanguageTest, CompileStaticInitTest)
 {
-    doCompileStaticInitTest(CODE_SIMPLE_42);
+    doCompileStaticInitTest();
 }
