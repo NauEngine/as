@@ -15,6 +15,7 @@ add_executable(AScriptTest
     is_language_test.cpp
     lua_language_test.cpp
     sq_language_test.cpp
+    cpp_language_test.cpp
 
     scripts/simple.h
     scripts/integer.h
