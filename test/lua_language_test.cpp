@@ -7,11 +7,25 @@
 #include "as/core/core.h"
 #include "as/languages/lua/lua_language.h"
 
+#include <gmock/gmock-function-mocker.h>
+
 #include "core_test_fixture.h"
 
 #include "./scripts/simple_script.h"
 #include "./scripts/integer_script.h"
 #include "./scripts/double_script.h"
+
+DEFINE_SCRIPT_INTERFACE(ExternalObj,
+    virtual int get() = 0;
+    virtual void set(int a) = 0;
+)
+
+class MockExternalObj : public ExternalObj
+{
+public:
+    MOCK_METHOD(int, get, (), (override));
+    MOCK_METHOD(void, set, (int a), (override));
+};
 
 class LuaLanguageTest : public CoreTestFixture
 {
@@ -78,4 +92,21 @@ TEST_F(LuaLanguageTest, DoubleTest)
 
     EXPECT_DOUBLE_EQ(instance->add(0, 1, 2), 3);
     EXPECT_DOUBLE_EQ(instance->add(42.4, 42.4, 42.4), 127.2);
+}
+
+TEST_F(LuaLanguageTest, ExternalObjTest)
+{
+    MockExternalObj external;
+    getCore().registerInstance<ExternalObj>(&external, "external");
+
+    auto module = getCore().newScriptModule<SimpleScript>("test/scripts/simple_script_external.lua");
+    ASSERT_NE(module, nullptr);
+
+    auto instance = module->newInstance();
+    ASSERT_NE(instance, nullptr);
+
+    testing::Expectation set_call = EXPECT_CALL(external, set(42));
+    EXPECT_CALL(external, get()).After(set_call).WillOnce(testing::Return(42));
+
+    instance->foo();
 }
