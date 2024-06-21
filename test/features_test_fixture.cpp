@@ -115,7 +115,7 @@ void FeaturesTestFixture::doIntegerTest(const char* code)
     EXPECT_EQ(instance->add(42, 42, 42), 126);
 }
 
-void FeaturesTestFixture::doDoubleTest(const char* code, bool as_integer)
+void FeaturesTestFixture::doDoubleTest(const char* code, TreatDouble treat_as)
 {
     ASSERT_FALSE(copyFile("test/scripts/double.h", "double.h").empty());
 
@@ -128,19 +128,7 @@ void FeaturesTestFixture::doDoubleTest(const char* code, bool as_integer)
     auto instance = module->newInstance();
     ASSERT_NE(instance, nullptr);
 
-    if (as_integer)
-    {
-        EXPECT_EQ(instance->pass(0), 0);
-        EXPECT_EQ(instance->pass(4.2), 4);
-        EXPECT_EQ(instance->pass(4.8), 4);
-
-        EXPECT_EQ(instance->mul(0.5, 100), 0);
-        EXPECT_EQ(instance->mul(100, 4.2), 400);
-
-        EXPECT_EQ(instance->add(0, 1, 2), 3);
-        EXPECT_EQ(instance->add(42.4, 42.4, 42.4), 126.0);
-    }
-    else
+    if (treat_as == TreatDouble::AsDouble)
     {
         EXPECT_DOUBLE_EQ(instance->pass(0), 0);
         EXPECT_DOUBLE_EQ(instance->pass(4.2), 4.2);
@@ -151,6 +139,29 @@ void FeaturesTestFixture::doDoubleTest(const char* code, bool as_integer)
 
         EXPECT_DOUBLE_EQ(instance->add(0, 1, 2), 3);
         EXPECT_DOUBLE_EQ(instance->add(42.4, 42.4, 42.4), 127.2);
+    }
+    else if (treat_as == TreatDouble::AsFloat)
+    {
+        EXPECT_FLOAT_EQ(instance->pass(0), 0);
+        EXPECT_FLOAT_EQ(instance->pass(4.2), 4.2);
+        EXPECT_FLOAT_EQ(instance->pass(4.8), 4.8);
+
+        EXPECT_FLOAT_EQ(instance->mul(0.5, 100), 50);
+        EXPECT_FLOAT_EQ(instance->mul(100, 4.2), 420);
+
+        EXPECT_FLOAT_EQ(instance->add(0, 1, 2), 3);
+        EXPECT_FLOAT_EQ(instance->add(42.4, 42.4, 42.4), 127.2);
+    } else if (treat_as == TreatDouble::AsInteger)
+    {
+        EXPECT_EQ(instance->pass(0), 0);
+        EXPECT_EQ(instance->pass(4.2), 4);
+        EXPECT_EQ(instance->pass(4.8), 4);
+
+        EXPECT_EQ(instance->mul(0.5, 100), 0);
+        EXPECT_EQ(instance->mul(100, 4.2), 400);
+
+        EXPECT_EQ(instance->add(0, 1, 2), 3);
+        EXPECT_EQ(instance->add(42.4, 42.4, 42.4), 126.0);
     }
 }
 

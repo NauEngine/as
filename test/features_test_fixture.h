@@ -11,6 +11,13 @@
 #include "as/core/language_runtime.h"
 
 class FeaturesTestFixture : public testing::Test {
+public:
+    enum class TreatDouble : unsigned short {
+        AsDouble = 0,
+        AsFloat = 1,
+        AsInteger = 2
+    };
+
 protected:
     FeaturesTestFixture();
     ~FeaturesTestFixture() override;
@@ -31,7 +38,7 @@ protected:
 
     void doSimpleTest(const char* code);
     void doIntegerTest(const char* code);
-    void doDoubleTest(const char* code, bool as_integer);
+    void doDoubleTest(const char* code, TreatDouble treat_as);
     void doModulesTest(const char* code1, const char* code2);
     void doExternalObjTest(const char* code);
     void doGlobalVarTest(const char* code);

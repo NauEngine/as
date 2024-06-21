@@ -9,10 +9,12 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 add_executable(AScriptTest
-        features_test_fixture.cpp
-        features_test_fixture.h
+    features_test_fixture.cpp
+    features_test_fixture.h
+
     is_language_test.cpp
     lua_language_test.cpp
+    sq_language_test.cpp
 
     scripts/simple.h
     scripts/integer.h
