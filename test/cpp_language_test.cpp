@@ -154,3 +154,8 @@ TEST_F(CppLanguageTest, CompileStaticInitTest)
 {
     doCompileStaticInitTest(CODE_SIMPLE_42);
 }
+
+TEST_F(CppLanguageTest, CompileDebugInfoTest)
+{
+    doCompileDebugInfoTest(CODE_SIMPLE_42);
+}
