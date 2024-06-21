@@ -28,7 +28,7 @@ ScriptModuleCompile::ScriptModuleCompile(const std::string& export_name,
     compile(interface, context, add_init);
 }
 
-void ScriptModuleCompile::dump(llvm::raw_fd_ostream& stream) const
+void ScriptModuleCompile::dump(llvm::raw_ostream& stream) const
 {
     stream << *m_module;
 }

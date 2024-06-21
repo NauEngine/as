@@ -133,3 +133,8 @@ TEST_F(LuaLanguageTest, HotReloadTest)
 {
     doHotReloadTest(CODE_SIMPLE_42, CODE_SIMPLE_4242);
 }
+
+TEST_F(LuaLanguageTest, CompileStaticInitTest)
+{
+    doCompileStaticInitTest(CODE_SIMPLE_42);
+}

@@ -129,3 +129,8 @@ TEST_F(SquirrelLanguageTest, HotReloadTest)
 {
     doHotReloadTest(CODE_SIMPLE_42, CODE_SIMPLE_4242);
 }
+
+TEST_F(SquirrelLanguageTest, CompileStaticInitTest)
+{
+    doCompileStaticInitTest(CODE_SIMPLE_42);
+}

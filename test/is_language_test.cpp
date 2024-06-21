@@ -111,3 +111,8 @@ TEST_F(IvnScriptLanguageTest, HotReloadTest)
 {
     doHotReloadTest(CODE_SIMPLE_42, CODE_SIMPLE_4242);
 }
+
+TEST_F(IvnScriptLanguageTest, CompileStaticInitTest)
+{
+    doCompileStaticInitTest(CODE_SIMPLE_42);
+}

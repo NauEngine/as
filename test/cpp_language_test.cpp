@@ -149,3 +149,8 @@ TEST_F(CppLanguageTest, HotReloadTest)
 {
     doHotReloadTest(CODE_SIMPLE_42, CODE_SIMPLE_4242);
 }
+
+TEST_F(CppLanguageTest, CompileStaticInitTest)
+{
+    doCompileStaticInitTest(CODE_SIMPLE_42);
+}
