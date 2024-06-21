@@ -9,19 +9,13 @@
 #include "as/languages/ivnscript/is_language.h"
 
 DEFINE_SCRIPT_INTERFACE(TestScript,
-struct TestScript
-{
   virtual double foo(int a, double b) = 0;
   virtual int bar(int a) = 0;
-};
 )
 
 DEFINE_SCRIPT_INTERFACE(Logger,
-struct Logger
-{
   virtual void warn(int a, int b) = 0;
   virtual int debug(int a, int b) = 0;
-};
 )
 
 struct LoggerImpl : Logger
