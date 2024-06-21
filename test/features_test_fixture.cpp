@@ -5,6 +5,8 @@
 #include <fstream>
 
 #include "features_test_fixture.h"
+
+#include <regex>
 #include <gmock/gmock-function-mocker.h>
 
 #include "./scripts/simple.h"
@@ -12,8 +14,12 @@
 #include "./scripts/double.h"
 #include "./scripts/set_get.h"
 
-static const auto BASE_SCRIPTS_PATH = "../..";
-static const auto TEMP_SCRIPTS_PATH = "cmake-build-debug/test";
+static const auto BASE_SCRIPTS_PATH = ".";
+
+template <> const char* getHeaderFileName<SimpleScript>() { return "simple.h"; }
+template <> const char* getHeaderFileName<IntegerScript>() { return "integer.h"; }
+template <> const char* getHeaderFileName<DoubleScript>() { return "double.h"; }
+template <> const char* getHeaderFileName<SetGetScript>() { return "set_get.h"; }
 
 class MockExternalObj : public SetGetScript
 {
@@ -21,11 +27,6 @@ public:
     MOCK_METHOD(int, get, (), (override));
     MOCK_METHOD(void, set, (int a), (override));
 };
-
-FeaturesTestFixture::FeaturesTestFixture() :
-    m_core(std::make_unique<as::Core>(BASE_SCRIPTS_PATH))
-{
-}
 
 FeaturesTestFixture::~FeaturesTestFixture()
 {
@@ -38,52 +39,55 @@ FeaturesTestFixture::~FeaturesTestFixture()
     m_temp_files.clear();
 }
 
-void FeaturesTestFixture::SetUp()
+as::Core& FeaturesTestFixture::ensureCore()
 {
+    if (m_core)
+        return *m_core;
+
+    m_core = std::make_unique<as::Core>(BASE_SCRIPTS_PATH);
     m_core->registerLanguage(getLanguageName(), createLanguage());
 
     if (auto runtime = createRuntime())
         m_core->registerRuntime(std::move(runtime));
+
+    return *m_core;
 }
 
-std::string FeaturesTestFixture::copyFile(const std::string& source_file, const std::string& dest_file)
+bool FeaturesTestFixture::writeFile(const std::string& file_name, const std::string& content)
 {
-    const auto source_file_path = std::filesystem::path(BASE_SCRIPTS_PATH) / source_file;
-    const auto dest_file_path = std::filesystem::path(TEMP_SCRIPTS_PATH) / dest_file;
-    const auto dest_file_full_path = std::filesystem::path(BASE_SCRIPTS_PATH) / dest_file_path;
-
-    auto copy_options = std::filesystem::copy_options::overwrite_existing;
-    std::error_code ec;
-    const auto copy_result = copy_file(source_file_path, dest_file_full_path, copy_options, ec);
-
-    if (!copy_result)
-        return "";
-
-    m_temp_files.insert(dest_file_full_path);
-    return dest_file_path;
-}
-
-std::string FeaturesTestFixture::createFile(const std::string& content, const std::string& dest_file)
-{
-    const auto dest_file_path = std::filesystem::path(TEMP_SCRIPTS_PATH) / dest_file;
-    const auto dest_file_full_path = std::filesystem::path(BASE_SCRIPTS_PATH) / dest_file_path;
+    const auto dest_file_full_path = std::filesystem::path(BASE_SCRIPTS_PATH) / file_name;
 
     std::ofstream file(dest_file_full_path);
     file << content;
     file.close();
 
     m_temp_files.insert(dest_file_full_path);
-    return dest_file_path;
+    return true;
+}
+
+bool FeaturesTestFixture::writeHeader(const std::string& file_name, const std::string& code)
+{
+    std::regex header_update(R"(^\s*struct\s+(\w+)\s+\{([^}]+)\};)", std::regex_constants::ECMAScript);
+    auto code_updated = std::regex_replace(code, header_update, "#pragma once\n\nDEFINE_SCRIPT_INTERFACE($1,\n$2\n)");
+    return writeFile(file_name, code_updated);
+}
+
+std::string FeaturesTestFixture::writeCode(const std::string& file_name, const std::string& code)
+{
+    const auto full_file_name = file_name + "." + getLanguageName();
+    if (!writeFile(full_file_name, code))
+        return "";
+
+    return full_file_name;
 }
 
 void FeaturesTestFixture::doSimpleTest(const char* code)
 {
-    ASSERT_FALSE(copyFile("test/scripts/simple.h", "simple.h").empty());
-
-    auto script_name = createFile(code, std::string("test_simple.") + getLanguageName());
+    writeHeader<SimpleScript>();
+    auto script_name = writeCode("test_simple", code);
     ASSERT_FALSE(script_name.empty());
 
-    auto module = getCore().newScriptModule<SimpleScript>(script_name);
+    auto module = ensureCore().newScriptModule<SimpleScript>(script_name);
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -94,12 +98,11 @@ void FeaturesTestFixture::doSimpleTest(const char* code)
 
 void FeaturesTestFixture::doIntegerTest(const char* code)
 {
-    ASSERT_FALSE(copyFile("test/scripts/integer.h", "integer.h").empty());
-
-    auto script_name = createFile(code, std::string("test_integer.") + getLanguageName());
+    writeHeader<IntegerScript>();
+    auto script_name = writeCode("test_integer", code);
     ASSERT_FALSE(script_name.empty());
 
-    auto module = getCore().newScriptModule<IntegerScript>(script_name);
+    auto module = ensureCore().newScriptModule<IntegerScript>(script_name);
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -117,12 +120,11 @@ void FeaturesTestFixture::doIntegerTest(const char* code)
 
 void FeaturesTestFixture::doDoubleTest(const char* code, TreatDouble treat_as)
 {
-    ASSERT_FALSE(copyFile("test/scripts/double.h", "double.h").empty());
-
-    auto script_name = createFile(code, std::string("test_double.") + getLanguageName());
+    writeHeader<DoubleScript>();
+    auto script_name = writeCode("test_double", code);
     ASSERT_FALSE(script_name.empty());
 
-    auto module = getCore().newScriptModule<DoubleScript>(script_name);
+    auto module = ensureCore().newScriptModule<DoubleScript>(script_name);
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -167,18 +169,17 @@ void FeaturesTestFixture::doDoubleTest(const char* code, TreatDouble treat_as)
 
 void FeaturesTestFixture::doModulesTest(const char* code1, const char* code2)
 {
-    ASSERT_FALSE(copyFile("test/scripts/simple.h", "simple.h").empty());
-
-    auto script_name1 = createFile(code1, std::string("test_simple1.") + getLanguageName());
+    writeHeader<SimpleScript>();
+    auto script_name1 = writeCode("test_simple1", code1);
     ASSERT_FALSE(script_name1.empty());
 
-    auto script_name2 = createFile(code2, std::string("test_simple2.") + getLanguageName());
+    auto script_name2 = writeCode("test_simple2", code2);
     ASSERT_FALSE(script_name2.empty());
 
-    auto module1 = getCore().newScriptModule<SimpleScript>(script_name1);
+    auto module1 = ensureCore().newScriptModule<SimpleScript>(script_name1);
     ASSERT_NE(module1, nullptr);
 
-    auto module2 = getCore().newScriptModule<SimpleScript>(script_name2);
+    auto module2 = ensureCore().newScriptModule<SimpleScript>(script_name2);
     ASSERT_NE(module2, nullptr);
 
     auto instance1 = module1->newInstance();
@@ -194,14 +195,13 @@ void FeaturesTestFixture::doModulesTest(const char* code1, const char* code2)
 void FeaturesTestFixture::doExternalObjTest(const char* code)
 {
     MockExternalObj external;
-    getCore().registerInstance<SetGetScript>(&external, "external");
+    ensureCore().registerInstance<SetGetScript>(&external, "external");
 
-    ASSERT_FALSE(copyFile("test/scripts/simple.h", "simple.h").empty());
-
-    auto script_name = createFile(code, std::string("test_simple_external_obj.") + getLanguageName());
+    writeHeader<SimpleScript>();
+    auto script_name = writeCode("test_external_obj", code);
     ASSERT_FALSE(script_name.empty());
 
-    auto module = getCore().newScriptModule<SimpleScript>(script_name);
+    auto module = ensureCore().newScriptModule<SimpleScript>(script_name);
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -215,12 +215,11 @@ void FeaturesTestFixture::doExternalObjTest(const char* code)
 
 void FeaturesTestFixture::doGlobalVarTest(const char* code)
 {
-    ASSERT_FALSE(copyFile("test/scripts/set_get.h", "set_get.h").empty());
-
-    auto script_name = createFile(code, std::string("test_set_get_global_var.") + getLanguageName());
+    writeHeader<SetGetScript>();
+    auto script_name = writeCode("test_global_var", code);
     ASSERT_FALSE(script_name.empty());
 
-    auto module = getCore().newScriptModule<SetGetScript>(script_name);
+    auto module = ensureCore().newScriptModule<SetGetScript>(script_name);
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -238,12 +237,11 @@ void FeaturesTestFixture::doGlobalVarTest(const char* code)
 
 void FeaturesTestFixture::doHotReloadTest(const char* code_before, const char* code_after)
 {
-    ASSERT_FALSE(copyFile("test/scripts/simple.h", "simple.h").empty());
-
-    auto script_name = createFile(code_before, std::string("test_simple.") + getLanguageName());
+    writeHeader<SimpleScript>();
+    auto script_name = writeCode("test_simple", code_before);
     ASSERT_FALSE(script_name.empty());
 
-    auto module = getCore().newScriptModule<SimpleScript>(script_name);
+    auto module = ensureCore().newScriptModule<SimpleScript>(script_name);
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -251,8 +249,8 @@ void FeaturesTestFixture::doHotReloadTest(const char* code_before, const char* c
 
     EXPECT_EQ(instance->foo(), 42);
 
-    ASSERT_FALSE(createFile(code_after, std::string("test_simple.") + getLanguageName()).empty());
-    getCore().reload(script_name);
+    ASSERT_FALSE(writeCode("test_simple", code_after).empty());
+    ensureCore().reload(script_name);
 
     EXPECT_EQ(instance->foo(), 4242);
 }
