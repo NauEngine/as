@@ -111,7 +111,7 @@ TEST_F(LuaLanguageTest, IntegerTest)
 
 TEST_F(LuaLanguageTest, DoubleTest)
 {
-    doDoubleTest(CODE_DOUBLE, false);
+    doDoubleTest(CODE_DOUBLE, TreatDouble::AsDouble);
 }
 
 TEST_F(LuaLanguageTest, ExternalObjTest)
@@ -122,6 +122,11 @@ TEST_F(LuaLanguageTest, ExternalObjTest)
 TEST_F(LuaLanguageTest, GlobalVarTest)
 {
     doGlobalVarTest(CODE_SET_GET_GLOBAL);
+}
+
+TEST_F(LuaLanguageTest, ModulesTest)
+{
+    doModulesTest(CODE_SIMPLE_42, CODE_SIMPLE_4242);
 }
 
 TEST_F(LuaLanguageTest, HotReloadTest)

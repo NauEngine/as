@@ -1,17 +1,16 @@
 //
-// Created by ivn on 20.06.2024.
+// Created by ivn on 21.06.2024.
 //
 
 #include <gtest/gtest.h>
 
 #include "as/core/core.h"
-#include "as/languages/ivnscript/is_language_runtime.h"
-#include "as/languages/ivnscript/is_language.h"
+#include "as/languages/squirrel/sq_language.h"
 
 #include "features_test_fixture.h"
 
 static const char* CODE_SIMPLE_42 = R"(
-// implements "simple.h"
+# implements "simple.h"
 
 function foo()
 {
@@ -20,7 +19,7 @@ function foo()
 )";
 
 static const char* CODE_SIMPLE_4242 = R"(
-// implements "simple.h"
+# implements "simple.h"
 
 function foo()
 {
@@ -29,7 +28,7 @@ function foo()
 )";
 
 static const char* CODE_INTEGER = R"(
-// implements "integer.h"
+# implements "integer.h"
 
 function pass(a)
 {
@@ -43,13 +42,12 @@ function mul(a, b)
 
 function add(a, b, c)
 {
-    var x = a + b;
-    return x + c;
+    return a + b + c;
 }
 )";
 
 static const char* CODE_DOUBLE = R"(
-// implements "double.h"
+# implements "double.h"
 
 function pass(a)
 {
@@ -63,51 +61,71 @@ function mul(a, b)
 
 function add(a, b, c)
 {
-    var x = a + b;
-    return x + c;
+    return a + b + c;
 }
 )";
 
-class IvnScriptLanguageTest : public FeaturesTestFixture
+static const char* CODE_SET_GET_GLOBAL = R"(
+# implements "set_get.h"
+
+local value = 0;
+
+function set(v)
+{
+    value = v;
+}
+
+function get()
+{
+    return value;
+}
+)";
+
+class SquirrelLanguageTest : public FeaturesTestFixture
 {
 protected:
     const char* getLanguageName() const override
     {
-        return "is";
+        return "nut";
     }
 
     std::shared_ptr<as::ILanguage> createLanguage() const override
     {
-        return std::make_shared<as::IvnScriptLanguage>();
+        return std::make_shared<as::SquirrelLanguage>();
     }
 
     std::shared_ptr<as::ILanguageRuntime> createRuntime() const override
     {
-        return std::make_shared<as::IvnScriptLanguageRuntime>("langiage_is_test");
+        return nullptr;
     }
 };
 
-TEST_F(IvnScriptLanguageTest, SimpleTest)
+TEST_F(SquirrelLanguageTest, SimpleTest)
 {
     doSimpleTest(CODE_SIMPLE_42);
 }
 
-TEST_F(IvnScriptLanguageTest, IntegerTest)
+TEST_F(SquirrelLanguageTest, IntegerTest)
 {
     doIntegerTest(CODE_INTEGER);
 }
 
-TEST_F(IvnScriptLanguageTest, DoubleTest)
+TEST_F(SquirrelLanguageTest, DoubleTest)
 {
-    doDoubleTest(CODE_DOUBLE, TreatDouble::AsInteger);
+    doDoubleTest(CODE_DOUBLE, TreatDouble::AsFloat);
 }
 
-TEST_F(IvnScriptLanguageTest, ModulesTest)
+TEST_F(SquirrelLanguageTest, GlobalVarTest)
+{
+    doGlobalVarTest(CODE_SET_GET_GLOBAL);
+}
+
+TEST_F(SquirrelLanguageTest, ModulesTest)
 {
     doModulesTest(CODE_SIMPLE_42, CODE_SIMPLE_4242);
 }
 
-TEST_F(IvnScriptLanguageTest, HotReloadTest)
+TEST_F(SquirrelLanguageTest, HotReloadTest)
 {
     doHotReloadTest(CODE_SIMPLE_42, CODE_SIMPLE_4242);
 }
