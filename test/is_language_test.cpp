@@ -8,13 +8,67 @@
 #include "as/languages/ivnscript/is_language_runtime.h"
 #include "as/languages/ivnscript/is_language.h"
 
-#include "core_test_fixture.h"
+#include "features_test_fixture.h"
 
-#include "./scripts/simple_script.h"
-#include "./scripts/integer_script.h"
-#include "./scripts/double_script.h"
+static const char* CODE_SIMPLE_42 = R"(
+// implements "simple.h"
 
-class IvnScriptLanguageTest : public CoreTestFixture
+function foo()
+{
+    return 42;
+}
+)";
+
+static const char* CODE_SIMPLE_4242 = R"(
+// implements "simple.h"
+
+function foo()
+{
+    return 4242;
+}
+)";
+
+static const char* CODE_INTEGER = R"(
+// implements "integer.h"
+
+function pass(a)
+{
+    return a;
+}
+
+function mul(a, b)
+{
+    return a * b;
+}
+
+function add(a, b, c)
+{
+    var x = a + b;
+    return x + c;
+}
+)";
+
+static const char* CODE_DOUBLE = R"(
+// implements "double.h"
+
+function pass(a)
+{
+    return a;
+}
+
+function mul(a, b)
+{
+    return a * b;
+}
+
+function add(a, b, c)
+{
+    var x = a + b;
+    return x + c;
+}
+)";
+
+class IvnScriptLanguageTest : public FeaturesTestFixture
 {
 protected:
     const char* getLanguageName() const override
@@ -35,87 +89,25 @@ protected:
 
 TEST_F(IvnScriptLanguageTest, SimpleTest)
 {
-    auto module = getCore().newScriptModule<SimpleScript>("test/scripts/simple_script.is");
-    ASSERT_NE(module, nullptr);
-
-    auto instance = module->newInstance();
-    ASSERT_NE(instance, nullptr);
-
-    EXPECT_EQ(instance->foo(), 42);
+    doSimpleTest(CODE_SIMPLE_42);
 }
 
 TEST_F(IvnScriptLanguageTest, IntegerTest)
 {
-    auto module = getCore().newScriptModule<IntegerScript>("test/scripts/integer_script.is");
-    ASSERT_NE(module, nullptr);
-
-    auto instance = module->newInstance();
-    ASSERT_NE(instance, nullptr);
-
-    EXPECT_EQ(instance->pass(0), 0);
-    EXPECT_EQ(instance->pass(42), 42);
-
-    EXPECT_EQ(instance->mul(0, 100), 0);
-    EXPECT_EQ(instance->mul(100, 42), 4200);
-
-    EXPECT_EQ(instance->add(0, 1, 2), 3);
-    EXPECT_EQ(instance->add(42, 42, 42), 126);
+    doIntegerTest(CODE_INTEGER);
 }
 
 TEST_F(IvnScriptLanguageTest, DoubleTest)
 {
-    auto module = getCore().newScriptModule<DoubleScript>("test/scripts/double_script.is");
-    ASSERT_NE(module, nullptr);
-
-    auto instance = module->newInstance();
-    ASSERT_NE(instance, nullptr);
-
-    EXPECT_EQ(instance->pass(0), 0);
-    EXPECT_EQ(instance->pass(4.2), 4);
-    EXPECT_EQ(instance->pass(4.8), 4);
-
-    EXPECT_EQ(instance->mul(0.5, 100), 0);
-    EXPECT_EQ(instance->mul(100, 4.2), 400);
-
-    EXPECT_EQ(instance->add(0, 1, 2), 3);
-    EXPECT_EQ(instance->add(42.4, 42.4, 42.4), 126.0);
+    doDoubleTest(CODE_DOUBLE, true);
 }
 
 TEST_F(IvnScriptLanguageTest, ModulesTest)
 {
-    auto module = getCore().newScriptModule<SimpleScript>("test/scripts/simple_script.is");
-    ASSERT_NE(module, nullptr);
-
-    auto module2 = getCore().newScriptModule<SimpleScript>("test/scripts/simple_script2.is");
-    ASSERT_NE(module, nullptr);
-
-    auto instance = module->newInstance();
-    ASSERT_NE(instance, nullptr);
-
-    auto instance2 = module2->newInstance();
-    ASSERT_NE(instance2, nullptr);
-
-    EXPECT_EQ(instance->foo(), 42);
-    EXPECT_EQ(instance2->foo(), 4242);
+    doModulesTest(CODE_SIMPLE_42, CODE_SIMPLE_4242);
 }
 
 TEST_F(IvnScriptLanguageTest, HotReloadTest)
 {
-    ASSERT_FALSE(copyFile("test/scripts/simple_script.h", "simple_script.h").empty());
-
-    auto tempFile = copyFile("test/scripts/simple_script.is", "simple_script.is");
-    ASSERT_FALSE(tempFile.empty());
-
-    auto module = getCore().newScriptModule<SimpleScript>(tempFile);
-    ASSERT_NE(module, nullptr);
-
-    auto instance = module->newInstance();
-    ASSERT_NE(instance, nullptr);
-
-    EXPECT_EQ(instance->foo(), 42);
-
-    copyFile("test/scripts/simple_script2.is", "simple_script.is");
-    getCore().reload(tempFile);
-
-    EXPECT_EQ(instance->foo(), 4242);
+    doHotReloadTest(CODE_SIMPLE_42, CODE_SIMPLE_4242);
 }
