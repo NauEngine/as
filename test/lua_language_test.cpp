@@ -97,44 +97,51 @@ protected:
     {
         return nullptr;
     }
+
+    const char* getSimpleScript42() const override { return CODE_SIMPLE_42; }
+    const char* getSimpleScript4242() const override { return CODE_SIMPLE_4242; }
+    const char* getSimpleExternalScript() const override { return CODE_SIMPLE_EXTERNAL; }
+    const char* getIntegerScript() const override { return CODE_INTEGER; }
+    const char* getDoubleScript() const override { return CODE_DOUBLE; }
+    const char* getSetGetGlobalScript() const override { return CODE_SET_GET_GLOBAL; }
 };
 
 TEST_F(LuaLanguageTest, SimpleTest)
 {
-    doSimpleTest(CODE_SIMPLE_42);
+    doSimpleTest();
 }
 
 TEST_F(LuaLanguageTest, IntegerTest)
 {
-    doIntegerTest(CODE_INTEGER);
+    doIntegerTest();
 }
 
 TEST_F(LuaLanguageTest, DoubleTest)
 {
-    doDoubleTest(CODE_DOUBLE, TreatDouble::AsDouble);
+    doDoubleTest(TreatDouble::AsDouble);
 }
 
 TEST_F(LuaLanguageTest, ExternalObjTest)
 {
-    doExternalObjTest(CODE_SIMPLE_EXTERNAL);
+    doExternalObjTest();
 }
 
 TEST_F(LuaLanguageTest, GlobalVarTest)
 {
-    doGlobalVarTest(CODE_SET_GET_GLOBAL);
+    doGlobalVarTest();
 }
 
 TEST_F(LuaLanguageTest, ModulesTest)
 {
-    doModulesTest(CODE_SIMPLE_42, CODE_SIMPLE_4242);
+    doModulesTest();
 }
 
 TEST_F(LuaLanguageTest, HotReloadTest)
 {
-    doHotReloadTest(CODE_SIMPLE_42, CODE_SIMPLE_4242);
+    doHotReloadTest();
 }
 
 TEST_F(LuaLanguageTest, CompileStaticInitTest)
 {
-    doCompileStaticInitTest(CODE_SIMPLE_42);
+    doCompileStaticInitTest();
 }

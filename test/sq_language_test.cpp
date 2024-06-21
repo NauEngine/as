@@ -98,39 +98,45 @@ protected:
     {
         return nullptr;
     }
+
+    const char* getSimpleScript42() const override { return CODE_SIMPLE_42; }
+    const char* getSimpleScript4242() const override { return CODE_SIMPLE_4242; }
+    const char* getIntegerScript() const override { return CODE_INTEGER; }
+    const char* getDoubleScript() const override { return CODE_DOUBLE; }
+    const char* getSetGetGlobalScript() const override { return CODE_SET_GET_GLOBAL; }
 };
 
 TEST_F(SquirrelLanguageTest, SimpleTest)
 {
-    doSimpleTest(CODE_SIMPLE_42);
+    doSimpleTest();
 }
 
 TEST_F(SquirrelLanguageTest, IntegerTest)
 {
-    doIntegerTest(CODE_INTEGER);
+    doIntegerTest();
 }
 
 TEST_F(SquirrelLanguageTest, DoubleTest)
 {
-    doDoubleTest(CODE_DOUBLE, TreatDouble::AsFloat);
+    doDoubleTest(TreatDouble::AsFloat);
 }
 
 TEST_F(SquirrelLanguageTest, GlobalVarTest)
 {
-    doGlobalVarTest(CODE_SET_GET_GLOBAL);
+    doGlobalVarTest();
 }
 
 TEST_F(SquirrelLanguageTest, ModulesTest)
 {
-    doModulesTest(CODE_SIMPLE_42, CODE_SIMPLE_4242);
+    doModulesTest();
 }
 
 TEST_F(SquirrelLanguageTest, HotReloadTest)
 {
-    doHotReloadTest(CODE_SIMPLE_42, CODE_SIMPLE_4242);
+    doHotReloadTest();
 }
 
 TEST_F(SquirrelLanguageTest, CompileStaticInitTest)
 {
-    doCompileStaticInitTest(CODE_SIMPLE_42);
+    doCompileStaticInitTest();
 }

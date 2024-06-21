@@ -17,10 +17,10 @@ add_executable(AScriptTest
     sq_language_test.cpp
     cpp_language_test.cpp
 
-    scripts/simple.h
-    scripts/integer.h
-    scripts/double.h
-    scripts/set_get.h
+    includes/simple.h
+    includes/integer.h
+    includes/double.h
+    includes/set_get.h
 )
 
 target_link_libraries(AScriptTest
