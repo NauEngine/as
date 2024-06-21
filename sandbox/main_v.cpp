@@ -9,21 +9,15 @@
 #include "as/languages/squirrel/sq_language.h"
 
 DEFINE_SCRIPT_INTERFACE(TestScript,
-struct TestScript
-{
   virtual const char* a(bool a, const char* b, const char* c) = 0;
   virtual int32_t b(int64_t a) = 0;
   virtual float c(double a) = 0;
   virtual void d() = 0;
-};
 )
 
 DEFINE_SCRIPT_INTERFACE(TestInterface,
-struct TestInterface
-{
   virtual void a(const char* a) = 0;
   virtual const char* b(float a) = 0;
-};
 )
 
 struct TestInterfaceImpl : TestInterface
