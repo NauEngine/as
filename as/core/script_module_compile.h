@@ -6,6 +6,7 @@
 
 #include <memory>
 
+#include <llvm/ExecutionEngine/Orc/LLJIT.h>
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 
 namespace as {
@@ -25,7 +26,7 @@ public:
         llvm::LLVMContext& context,
         bool add_init);
 
-    void dump(llvm::raw_fd_ostream& stream) const;
+    void dump(llvm::raw_ostream& stream) const;
 
     InitFunction materialize(std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::orc::ThreadSafeContext ts_context);
 

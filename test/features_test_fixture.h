@@ -5,7 +5,6 @@
 #pragma once
 
 #include <gtest/gtest.h>
-#include <mlir/Support/InterfaceSupport.h>
 
 #include "as/core/core.h"
 #include "as/core/language.h"
@@ -36,21 +35,25 @@ protected:
     void doGlobalVarTest(const char* code);
     void doHotReloadTest(const char* code_before, const char* code_after);
 
+    void doCompileStaticInitTest(const char* code);
+
 private:
     std::unique_ptr<as::Core> m_core;
+    std::unique_ptr<as::CoreCompile> m_core_compile;
     std::unordered_set<std::filesystem::path> m_temp_files;
 
     as::Core& ensureCore();
+    as::CoreCompile& ensureCompile();
+
+    std::string compile(const std::string file_name);
 
     bool writeFile(const std::string& file_name, const std::string& content);
+    std::string writeCode(const std::string& file_name, const std::string& code);
+    bool writeHeader(const std::string& file_name, const std::string& code);
 
     template<typename Interface>
     bool writeHeader()
     {
         return writeHeader(getHeaderFileName<Interface>(), Interface::getSourceCode());
     }
-
-    bool writeHeader(const std::string& file_name, const std::string& code);
-
-    std::string writeCode(const std::string& file_name, const std::string& code);
 };

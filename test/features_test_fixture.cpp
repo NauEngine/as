@@ -4,10 +4,12 @@
 
 #include <fstream>
 
-#include "features_test_fixture.h"
-
 #include <regex>
 #include <gmock/gmock-function-mocker.h>
+
+#include "as/core/script_module_compile.h"
+
+#include "features_test_fixture.h"
 
 #include "./scripts/simple.h"
 #include "./scripts/integer.h"
@@ -27,6 +29,67 @@ public:
     MOCK_METHOD(int, get, (), (override));
     MOCK_METHOD(void, set, (int a), (override));
 };
+
+std::string findCtorFunction(const std::string& ll_code)
+{
+    std::regex global_ctors_regex(R"(\@llvm\.global_ctors\s+=\s+appending global.*i32\s+\d+,\s+ptr\s([^\s,]+),\s+ptr\s+null\s*\}\])", std::regex_constants::ECMAScript);
+    std::smatch matches;
+
+    if (!std::regex_search(ll_code, matches, global_ctors_regex))
+        return "";
+
+    return matches[1].str();
+}
+
+std::string findFunctionBody(const std::string& ll_code, const std::string& declaration, const std::string& name)
+{
+    std::regex body_regex("define\\s+" + declaration + "\\s+" + name + R"(\s*\([^)]*\)\s*\{\s*entry\:([^}]*)\})", std::regex_constants::ECMAScript);
+    std::smatch matches;
+
+    if (!std::regex_search(ll_code, matches, body_regex))
+        return "";
+
+    return matches[1].str();
+}
+
+std::vector<std::string> splitString(const std::string& content, const std::string& delimeter)
+{
+    std::vector<std::string> result;
+    auto prev_pos = content.begin();
+    auto next_pos = std::search(prev_pos, content.end(),
+                               delimeter.begin(), delimeter.end());
+    while (next_pos != content.end())
+    {
+        result.emplace_back(prev_pos, next_pos);
+        prev_pos = next_pos + delimeter.size();
+        next_pos = std::search(prev_pos, content.end(),
+                               delimeter.begin(), delimeter.end());
+    }
+
+    if (prev_pos != content.end())
+    {
+        result.emplace_back(prev_pos, content.end());
+    }
+    return result;
+}
+
+std::string funcFunctionCallArgument(const std::string& ll_code, const std::string& func, int index)
+{
+    std::regex args_regex(R"(call\s+\w+\s+)" + func + R"(\(\s*([^)]*)\))", std::regex_constants::ECMAScript);
+    std::smatch matches;
+
+    if (!std::regex_search(ll_code, matches, args_regex))
+        return "";
+
+    if (index < 0)
+        return " ";
+
+    const auto& args = splitString(matches[1].str(), ",");
+    if (index >= args.size())
+        return "";
+
+    return splitString(args[index], " ")[2];
+}
 
 FeaturesTestFixture::~FeaturesTestFixture()
 {
@@ -53,6 +116,27 @@ as::Core& FeaturesTestFixture::ensureCore()
     return *m_core;
 }
 
+as::CoreCompile& FeaturesTestFixture::ensureCompile()
+{
+    if (m_core_compile)
+        return *m_core_compile;
+
+    m_core_compile = std::make_unique<as::CoreCompile>(BASE_SCRIPTS_PATH, true);
+    m_core_compile->registerLanguage(getLanguageName(), createLanguage());
+
+    return *m_core_compile;
+}
+
+std::string FeaturesTestFixture::compile(const std::string file_name)
+{
+    auto module = ensureCompile().newScriptModule(file_name);
+    std::string result;
+    llvm::raw_string_ostream stream(result);
+    module->dump(stream);
+
+    return result;
+}
+
 bool FeaturesTestFixture::writeFile(const std::string& file_name, const std::string& content)
 {
     const auto dest_file_full_path = std::filesystem::path(BASE_SCRIPTS_PATH) / file_name;
@@ -65,13 +149,6 @@ bool FeaturesTestFixture::writeFile(const std::string& file_name, const std::str
     return true;
 }
 
-bool FeaturesTestFixture::writeHeader(const std::string& file_name, const std::string& code)
-{
-    std::regex header_update(R"(^\s*struct\s+(\w+)\s+\{([^}]+)\};)", std::regex_constants::ECMAScript);
-    auto code_updated = std::regex_replace(code, header_update, "#pragma once\n\nDEFINE_SCRIPT_INTERFACE($1,\n$2\n)");
-    return writeFile(file_name, code_updated);
-}
-
 std::string FeaturesTestFixture::writeCode(const std::string& file_name, const std::string& code)
 {
     const auto full_file_name = file_name + "." + getLanguageName();
@@ -81,9 +158,16 @@ std::string FeaturesTestFixture::writeCode(const std::string& file_name, const s
     return full_file_name;
 }
 
+bool FeaturesTestFixture::writeHeader(const std::string& file_name, const std::string& code)
+{
+    std::regex header_update(R"(^\s*struct\s+(\w+)\s+\{([^}]+)\};)", std::regex_constants::ECMAScript);
+    auto code_updated = std::regex_replace(code, header_update, "#pragma once\n\nDEFINE_SCRIPT_INTERFACE($1,\n$2\n)");
+    return writeFile(file_name, code_updated);
+}
+
 void FeaturesTestFixture::doSimpleTest(const char* code)
 {
-    writeHeader<SimpleScript>();
+    ASSERT_TRUE(writeHeader<SimpleScript>());
     auto script_name = writeCode("test_simple", code);
     ASSERT_FALSE(script_name.empty());
 
@@ -98,7 +182,7 @@ void FeaturesTestFixture::doSimpleTest(const char* code)
 
 void FeaturesTestFixture::doIntegerTest(const char* code)
 {
-    writeHeader<IntegerScript>();
+    ASSERT_TRUE(writeHeader<IntegerScript>());
     auto script_name = writeCode("test_integer", code);
     ASSERT_FALSE(script_name.empty());
 
@@ -120,7 +204,7 @@ void FeaturesTestFixture::doIntegerTest(const char* code)
 
 void FeaturesTestFixture::doDoubleTest(const char* code, TreatDouble treat_as)
 {
-    writeHeader<DoubleScript>();
+    ASSERT_TRUE(writeHeader<DoubleScript>());
     auto script_name = writeCode("test_double", code);
     ASSERT_FALSE(script_name.empty());
 
@@ -169,7 +253,7 @@ void FeaturesTestFixture::doDoubleTest(const char* code, TreatDouble treat_as)
 
 void FeaturesTestFixture::doModulesTest(const char* code1, const char* code2)
 {
-    writeHeader<SimpleScript>();
+    ASSERT_TRUE(writeHeader<SimpleScript>());
     auto script_name1 = writeCode("test_simple1", code1);
     ASSERT_FALSE(script_name1.empty());
 
@@ -197,7 +281,7 @@ void FeaturesTestFixture::doExternalObjTest(const char* code)
     MockExternalObj external;
     ensureCore().registerInstance<SetGetScript>(&external, "external");
 
-    writeHeader<SimpleScript>();
+    ASSERT_TRUE(writeHeader<SimpleScript>());
     auto script_name = writeCode("test_external_obj", code);
     ASSERT_FALSE(script_name.empty());
 
@@ -215,7 +299,7 @@ void FeaturesTestFixture::doExternalObjTest(const char* code)
 
 void FeaturesTestFixture::doGlobalVarTest(const char* code)
 {
-    writeHeader<SetGetScript>();
+    ASSERT_TRUE(writeHeader<SetGetScript>());
     auto script_name = writeCode("test_global_var", code);
     ASSERT_FALSE(script_name.empty());
 
@@ -237,7 +321,7 @@ void FeaturesTestFixture::doGlobalVarTest(const char* code)
 
 void FeaturesTestFixture::doHotReloadTest(const char* code_before, const char* code_after)
 {
-    writeHeader<SimpleScript>();
+    ASSERT_TRUE(writeHeader<SimpleScript>());
     auto script_name = writeCode("test_simple", code_before);
     ASSERT_FALSE(script_name.empty());
 
@@ -253,4 +337,28 @@ void FeaturesTestFixture::doHotReloadTest(const char* code_before, const char* c
     ensureCore().reload(script_name);
 
     EXPECT_EQ(instance->foo(), 4242);
+}
+
+void FeaturesTestFixture::doCompileStaticInitTest(const char* code)
+{
+    ASSERT_TRUE(writeHeader<SimpleScript>());
+    auto script_name = writeCode("test_simple", code);
+    ASSERT_FALSE(script_name.empty());
+
+    auto ll_code = compile(script_name);
+    EXPECT_FALSE(ll_code.empty());
+
+    auto cotr_func_name = findCtorFunction(ll_code);
+    ASSERT_FALSE(cotr_func_name.empty());
+
+    auto cotr_func_body = findFunctionBody(ll_code, "internal void", cotr_func_name);
+    ASSERT_FALSE(cotr_func_body.empty());
+
+    auto init_func_name = funcFunctionCallArgument(cotr_func_body, "@__asRegisterInit", 1);
+    ASSERT_FALSE(init_func_name.empty());
+
+    auto init_func_body = findFunctionBody(ll_code, "internal void", init_func_name);
+    ASSERT_FALSE(init_func_body.empty());
+
+    ASSERT_FALSE(funcFunctionCallArgument(init_func_body, "@__asRegisterVTable", -1).empty());
 }
