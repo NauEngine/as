@@ -1,6 +1,7 @@
 include(FetchContent)
 
-if ("${LLVM_ROOT_DIR}" STREQUAL "")
+set(LLVM_ROOT_DIR $ENV{LLVM_ROOT_DIR})
+if (NOT LLVM_ROOT_DIR)
     if (APPLE)
         if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
             set(LLVM_URL https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang+llvm-17.0.6-arm64-apple-darwin22.0.tar.xz)
@@ -11,7 +12,7 @@ if ("${LLVM_ROOT_DIR}" STREQUAL "")
 endif ()
 
 if (LLVM_URL)
-    message(STATUS "Fetching prebuild LLVM version...")
+    message(STATUS "Fetching prebuild LLVM binaries...")
     FetchContent_Declare(LLVM
         URL ${LLVM_URL}
     )
