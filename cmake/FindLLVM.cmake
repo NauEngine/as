@@ -1,8 +1,35 @@
-find_package(LLVM REQUIRED CONFIG)
+include(FetchContent)
 
+if ("${LLVM_ROOT_DIR}" STREQUAL "")
+    if (APPLE)
+        if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
+            set(LLVM_URL https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang+llvm-17.0.6-arm64-apple-darwin22.0.tar.xz)
+        endif ()
+    elseif (WIN32)
+    else ()
+    endif ()
+endif ()
+
+if (LLVM_URL)
+    message(STATUS "Fetching prebuild LLVM version...")
+    FetchContent_Declare(LLVM
+        URL ${LLVM_URL}
+    )
+
+    FetchContent_MakeAvailable(LLVM)
+    set(LLVM_ROOT_DIR ${llvm_SOURCE_DIR})
+endif ()
+
+if (LLVM_ROOT_DIR AND NOT LLVN_DIR)
+    set(LLVM_DIR ${LLVM_ROOT_DIR}/lib/cmake/llvm)
+endif ()
+find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
+if (LLVM_ROOT_DIR AND NOT Clang_DIR)
+    set(Clang_DIR ${LLVM_ROOT_DIR}/lib/cmake/clang)
+endif ()
 find_package(Clang REQUIRED CONFIG)
 message(STATUS "Using ClangConfig.cmake in: ${Clang_DIR}")
 
@@ -16,12 +43,12 @@ separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
 
 llvm_map_components_to_libnames(llvm_libs
-        passes
-        support
-        core
-        executionengine
-        mcjit
-        orcjit
+    passes
+    support
+    core
+    executionengine
+    mcjit
+    orcjit
 )
 
 foreach(target ${LLVM_TARGETS_TO_BUILD})
