@@ -9,6 +9,9 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 add_executable(AScriptTest
+    core_compile_test.cpp
+    core_test.cpp
+
     features_test_fixture.cpp
     features_test_fixture.h
 
@@ -21,8 +24,8 @@ add_executable(AScriptTest
     includes/integer.h
     includes/double.h
     includes/set_get.h
-        core_compile_test.cpp
-        core_test.cpp
+        ir_language.cpp
+        ir_language.h
 )
 
 target_link_libraries(AScriptTest

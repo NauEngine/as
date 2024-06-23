@@ -112,8 +112,10 @@ std::shared_ptr<ScriptModuleRuntime> Core::getCompiledModule(const ScriptInterfa
 {
     auto module_compile = m_compile.newScriptModule(interface, filename, language_name);
     auto init_func = module_compile->materialize(m_compile.getJit(), m_compile.getContext());
-    init_func(this);
+    if (!init_func)
+        return nullptr;
 
+    init_func(this);
     return getCachedModule(filename);
 }
 

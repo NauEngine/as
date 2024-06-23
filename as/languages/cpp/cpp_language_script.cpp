@@ -215,16 +215,16 @@ llvm::Function* CppLanguageScript::buildModule(const std::string& init_name,
 }
 
 llvm::Function* CppLanguageScript::buildFunction(const std::string& name,
-                                                 llvm::FunctionType* signature,
-                                                 llvm::Module& module,
-                                                 llvm::LLVMContext& context)
+    llvm::FunctionType* signature,
+    llvm::Module& module,
+    llvm::LLVMContext& context)
 {
     return module.getFunction(m_func_names[name]);
 }
 
 void CppLanguageScript::materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
-                                    llvm::orc::JITDylib& lib,
-                                    llvm::Module& module, llvm::LLVMContext& context)
+    llvm::orc::JITDylib& lib,
+    llvm::Module& module, llvm::LLVMContext& context)
 {
 }
 } // as

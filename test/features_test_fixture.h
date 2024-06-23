@@ -43,6 +43,7 @@ protected:
     void doHotReloadTest();
 
     void doCompileStaticInitTest();
+    void doCompileLinkTest();
     void doCompileDebugInfoTest(const std::string& func_pattern);
 
 private:
@@ -50,10 +51,10 @@ private:
     std::unique_ptr<as::CoreCompile> m_core_compile;
     std::unordered_set<std::filesystem::path> m_temp_files;
 
-    as::Core& ensureCore();
+    as::Core& ensureCore(bool register_language);
     as::CoreCompile& ensureCompile();
 
-    std::string compile(const std::string file_name);
+    std::string compile(const std::string& file_name, const std::string& interface = "");
 
     bool writeFile(const std::string& file_name, const std::string& content);
     std::string writeCode(const std::string& file_name, const std::string& code);

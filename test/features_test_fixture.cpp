@@ -11,6 +11,7 @@
 
 #include "features_test_fixture.h"
 
+#include "ir_language.h"
 #include "includes/simple.h"
 #include "includes/integer.h"
 #include "includes/double.h"
@@ -113,7 +114,7 @@ FeaturesTestFixture::~FeaturesTestFixture()
     m_temp_files.clear();
 }
 
-as::Core& FeaturesTestFixture::ensureCore()
+as::Core& FeaturesTestFixture::ensureCore(bool register_language)
 {
     if (m_core)
         return *m_core;
@@ -138,9 +139,9 @@ as::CoreCompile& FeaturesTestFixture::ensureCompile()
     return *m_core_compile;
 }
 
-std::string FeaturesTestFixture::compile(const std::string file_name)
+std::string FeaturesTestFixture::compile(const std::string& file_name, const std::string& interface)
 {
-    auto module = ensureCompile().newScriptModule(file_name);
+    auto module = interface.empty() ? ensureCompile().newScriptModule(file_name) : ensureCompile().newScriptModule(interface, file_name);
     std::string result;
     llvm::raw_string_ostream stream(result);
     module->dump(stream);
@@ -184,7 +185,7 @@ void FeaturesTestFixture::doSimpleTest()
     auto script_name = writeCode("test_simple", getSimpleScript42());
     ASSERT_FALSE(script_name.empty());
 
-    auto module = ensureCore().newScriptModule<SimpleScript>(script_name);
+    auto module = ensureCore(true).newScriptModule<SimpleScript>(script_name);
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -201,7 +202,7 @@ void FeaturesTestFixture::doIntegerTest()
     auto script_name = writeCode("test_integer", getIntegerScript());
     ASSERT_FALSE(script_name.empty());
 
-    auto module = ensureCore().newScriptModule<IntegerScript>(script_name);
+    auto module = ensureCore(true).newScriptModule<IntegerScript>(script_name);
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -225,7 +226,7 @@ void FeaturesTestFixture::doDoubleTest(TreatDouble treat_as)
     auto script_name = writeCode("test_double", getDoubleScript());
     ASSERT_FALSE(script_name.empty());
 
-    auto module = ensureCore().newScriptModule<DoubleScript>(script_name);
+    auto module = ensureCore(true).newScriptModule<DoubleScript>(script_name);
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -280,10 +281,10 @@ void FeaturesTestFixture::doModulesTest()
     auto script_name2 = writeCode("test_simple2", getSimpleScript4242());
     ASSERT_FALSE(script_name2.empty());
 
-    auto module1 = ensureCore().newScriptModule<SimpleScript>(script_name1);
+    auto module1 = ensureCore(true).newScriptModule<SimpleScript>(script_name1);
     ASSERT_NE(module1, nullptr);
 
-    auto module2 = ensureCore().newScriptModule<SimpleScript>(script_name2);
+    auto module2 = ensureCore(true).newScriptModule<SimpleScript>(script_name2);
     ASSERT_NE(module2, nullptr);
 
     auto instance1 = module1->newInstance();
@@ -301,13 +302,13 @@ void FeaturesTestFixture::doExternalObjTest()
     ASSERT_NE(getSimpleExternalScript(), nullptr);
 
     MockExternalObj external;
-    ensureCore().registerInstance<SetGetScript>(&external, "external");
+    ensureCore(true).registerInstance<SetGetScript>(&external, "external");
 
     ASSERT_TRUE(writeHeader<SimpleScript>());
     auto script_name = writeCode("test_external_obj", getSimpleExternalScript());
     ASSERT_FALSE(script_name.empty());
 
-    auto module = ensureCore().newScriptModule<SimpleScript>(script_name);
+    auto module = ensureCore(true).newScriptModule<SimpleScript>(script_name);
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -327,7 +328,7 @@ void FeaturesTestFixture::doGlobalVarTest()
     auto script_name = writeCode("test_global_var", getSetGetGlobalScript());
     ASSERT_FALSE(script_name.empty());
 
-    auto module = ensureCore().newScriptModule<SetGetScript>(script_name);
+    auto module = ensureCore(true).newScriptModule<SetGetScript>(script_name);
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -352,7 +353,7 @@ void FeaturesTestFixture::doHotReloadTest()
     auto script_name = writeCode("test_simple", getSimpleScript42());
     ASSERT_FALSE(script_name.empty());
 
-    auto module = ensureCore().newScriptModule<SimpleScript>(script_name);
+    auto module = ensureCore(true).newScriptModule<SimpleScript>(script_name);
     ASSERT_NE(module, nullptr);
 
     auto instance = module->newInstance();
@@ -361,7 +362,7 @@ void FeaturesTestFixture::doHotReloadTest()
     EXPECT_EQ(instance->foo(), 42);
 
     ASSERT_FALSE(writeCode("test_simple", getSimpleScript4242()).empty());
-    ensureCore().reload(script_name);
+    ensureCore(true).reload(script_name);
 
     EXPECT_EQ(instance->foo(), 4242);
 }
@@ -390,6 +391,34 @@ void FeaturesTestFixture::doCompileStaticInitTest()
     ASSERT_FALSE(init_func_body.empty());
 
     ASSERT_FALSE(findFunctionCallArgument(init_func_body, "@__asRegisterVTable", -1).empty());
+}
+
+void FeaturesTestFixture::doCompileLinkTest()
+{
+    ASSERT_NE(getSimpleScript42(), nullptr);
+
+    ASSERT_TRUE(writeHeader<SimpleScript>());
+    auto script_name = writeCode("some_unique_name", getSimpleScript42());
+    ASSERT_FALSE(script_name.empty());
+
+    auto ll_code = compile(script_name);
+    EXPECT_FALSE(ll_code.empty());
+
+    ASSERT_FALSE(writeCode("some_unique_name", ll_code).empty());
+
+    auto& core = ensureCore(false);
+    core.registerLanguage(getLanguageName(), std::make_shared<IRLanguage>());
+
+    auto module = ensureCore(true).newScriptModule<SimpleScript>(script_name);
+    ASSERT_EQ(module, nullptr);
+
+    auto module2 = ensureCore(true).newScriptModule<SimpleScript>(script_name);
+    ASSERT_NE(module2, nullptr);
+
+    auto instance = module2->newInstance();
+    ASSERT_NE(instance, nullptr);
+
+    EXPECT_EQ(instance->foo(), 42);
 }
 
 void FeaturesTestFixture::doCompileDebugInfoTest(const std::string& func_pattern)

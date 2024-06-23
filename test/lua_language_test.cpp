@@ -145,3 +145,9 @@ TEST_F(LuaLanguageTest, CompileStaticInitTest)
 {
     doCompileStaticInitTest();
 }
+
+TEST_F(LuaLanguageTest, CompileLinkTest)
+{
+    GTEST_SKIP() << "LuaLanguage doen't support AOT yet";
+    doCompileLinkTest();
+}
