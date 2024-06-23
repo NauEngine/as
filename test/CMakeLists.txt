@@ -22,6 +22,7 @@ add_executable(AScriptTest
     includes/double.h
     includes/set_get.h
         core_compile_test.cpp
+        core_test.cpp
 )
 
 target_link_libraries(AScriptTest
