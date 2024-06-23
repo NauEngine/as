@@ -20,7 +20,11 @@ if (LLVM_URL)
     set(LLVM_ROOT_DIR ${llvm_SOURCE_DIR})
 endif ()
 
-if (LLVM_ROOT_DIR AND NOT LLVN_DIR)
+if (NOT LLVM_ROOT_DIR)
+    message(WARNING "LLVM_ROOT_DIR variable not set and there is no prebuild binaries for current platform")
+endif()
+
+if (LLVM_ROOT_DIR AND NOT LLVM_DIR)
     set(LLVM_DIR ${LLVM_ROOT_DIR}/lib/cmake/llvm)
 endif ()
 find_package(LLVM REQUIRED CONFIG)
