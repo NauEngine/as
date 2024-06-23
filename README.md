@@ -26,3 +26,4 @@ cmake --build ./build --target AScriptTest -j 8
 ```
 
 #### Сборка из CLion
+Просто открыть проект с CLion и прописать переменную окружения `LLVM_ROOT_DIR`
