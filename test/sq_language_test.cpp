@@ -140,3 +140,9 @@ TEST_F(SquirrelLanguageTest, CompileStaticInitTest)
 {
     doCompileStaticInitTest();
 }
+
+TEST_F(SquirrelLanguageTest, CompileLinkTest)
+{
+    GTEST_SKIP() << "SquirrelLanguage doen't support AOT yet";
+    doCompileLinkTest();
+}

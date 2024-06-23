@@ -50,6 +50,8 @@ public:
         // TODO [AZ] временно вставил разыменование
         assert(getInterface<Interface>());
         const auto compiled_module =  getCompiledModule(*getInterface<Interface>(), filename, language_name);
+        if (!compiled_module)
+            return nullptr;
         return std::make_shared<ScriptModule<Interface>>(compiled_module);
     }
 

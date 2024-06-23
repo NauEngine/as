@@ -121,3 +121,8 @@ TEST_F(IvnScriptLanguageTest, CompileStaticInitTest)
 {
     doCompileStaticInitTest();
 }
+
+TEST_F(IvnScriptLanguageTest, CompileLinkTest)
+{
+    doCompileLinkTest();
+}
