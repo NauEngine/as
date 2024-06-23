@@ -5,6 +5,7 @@
 #include "as/core/core.h"
 #include "as/core/script_module.h"
 #include "as/core/cpp_interface_parser.h"
+#include "as/languages/cpp/cpp_language.h"
 
 #include "as/languages/lua/lua_language.h"
 #include "as/languages/squirrel/sq_language.h"
@@ -43,11 +44,13 @@ int main()
   auto squirrel_language = std::make_shared<as::SquirrelLanguage>();
   auto ivnscript_language = std::make_shared<as::IvnScriptLanguage>();
   auto typescript_language = std::make_shared<as::TypeScriptLanguage>();
+  auto cpp_language = std::make_shared<as::CppLanguage>();
 
   script_core->registerLanguage("lua", std::move(lua_language));
   script_core->registerLanguage("nut", std::move(squirrel_language));
   script_core->registerLanguage("is", std::move(ivnscript_language));
   script_core->registerLanguage("ts", std::move(typescript_language));
+  script_core->registerLanguage("cpp", std::move(cpp_language));
   script_core->registerRuntime(std::move(ivnscript_runtime));
 
   LoggerImpl logger;
@@ -64,6 +67,9 @@ int main()
 
   // auto test_1_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.ts");
   // auto test_2_ts = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.ts");
+
+  auto test_1_cpp = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.cpp");
+  auto test_2_cpp = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.cpp");
 
 // *********************************************************************************************************************
 
@@ -153,6 +159,33 @@ int main()
   assert(test_1_is_instance2->bar(20) == 200);
   assert(test_2_is_instance2->bar(10) == 1000);
   assert(test_2_is_instance2->bar(20) == 2000);
+
+// *********************************************************************************************************************
+
+  auto test_1_cpp_instance1(test_1_cpp->newInstance());
+  auto test_2_cpp_instance1(test_2_cpp->newInstance());
+  auto test_1_cpp_instance2(test_1_cpp->newInstance());
+  auto test_2_cpp_instance2(test_2_cpp->newInstance());
+
+  assert(test_1_cpp_instance1->foo(10, 20) == 30);
+  assert(test_1_cpp_instance1->foo(10, 20) == 30);
+  assert(test_2_cpp_instance1->foo(10, 20) == 31);
+  assert(test_2_cpp_instance1->foo(10, 20) == 31);
+
+  assert(test_1_cpp_instance1->bar(10) == 100);
+  assert(test_1_cpp_instance1->bar(20) == 200);
+  assert(test_2_cpp_instance1->bar(10) == 1000);
+  assert(test_2_cpp_instance1->bar(20) == 2000);
+
+  assert(test_1_cpp_instance2->foo(10, 20) == 30);
+  assert(test_1_cpp_instance2->foo(10, 20) == 30);
+  assert(test_2_cpp_instance2->foo(10, 20) == 31);
+  assert(test_2_cpp_instance2->foo(10, 20) == 31);
+
+  assert(test_1_cpp_instance2->bar(10) == 100);
+  assert(test_1_cpp_instance2->bar(20) == 200);
+  assert(test_2_cpp_instance2->bar(10) == 1000);
+  assert(test_2_cpp_instance2->bar(20) == 2000);
 
   return 0;
 }
