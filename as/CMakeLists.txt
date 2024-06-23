@@ -1,4 +1,3 @@
-
 add_library(AScript STATIC
     core/as.h
     core/core.cpp
@@ -32,11 +31,11 @@ add_library(AScript STATIC
 target_include_directories(AScript PUBLIC "${CMAKE_SOURCE_DIR}")
 target_compile_options(AScript PUBLIC -fno-rtti)
 target_link_libraries(AScript
-        ${llvm_libs}
-        clangBasic
-        clangFrontend
-        clangCodeGen
-        clangAST
+    ${llvm_libs}
+    clangBasic
+    clangFrontend
+    clangCodeGen
+    clangAST
 )
 
 add_executable(bin2c tools/bin2c.c)

@@ -24,6 +24,7 @@ target_link_libraries(SandboxTests
     LuaIntegration
     SquirrelIntegration
     IvnScriptIntegration
+    CppScriptIntegration
     TypeScriptIntegration
 )
 
