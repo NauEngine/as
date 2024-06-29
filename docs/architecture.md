@@ -135,12 +135,12 @@ std::shared_ptr<ScriptModule<Interface>> newScriptModule(const std::string& file
 регистрируется таблица функций для данного модуля, создается и кешируется
 фабрика
 
-#### `registerInstance`, `registerRuntime`
+#### `registerLanguage`, `registerInstance`
 ```c++
 template<typename Interface>
-void registerInstance(Interface* instance, const std::string& instance_name);
+void registerLanguage(const std::string& language_name, const std::shared_ptr<ILanguage>& language)
 
-void registerRuntime(std::shared_ptr<ILanguageRuntime> runtime);
+void registerInstance(Interface* instance, const std::string& instance_name);
 ```
 Методы для вызова соотв. методов внутреннего `CoreCompile`
 
@@ -154,5 +154,37 @@ void registerRuntime(std::shared_ptr<ILanguageRuntime> runtime);
 Дальнешее развитие
 ------------------
 
+### Рефакторинг
 
+#### Разделение `Core` и `CoreCompile`
+
+Связью с инфраструктурой LLVM является объект `CoreCompile`. При этом поддержка
+AOT скомпилированных модулей есть в `Core`. Если разнести `Core` и `CoreCompile`
+на две библиотеки, для релиза возможно использование исключительно библиотеки с
+`Core`, что крайне положительно скажется на размере сборки.
+
+- Сделать интерфейс для `CoreCompile`, вероятно с единственной функцией
+`newScriptModule`
+- В конструкторе `Core` передавать ссылку (`shared_ptr`) на этот интерфейс. Если
+JIT компиляций не поддерживается - передавать `nullptr`
+- В реализации `Core` можно удалить методы для вызова методов `CoreCompile`.
+Теперь внешний код создает `CoreCompile` и регистриурет необходимые языки
+- Разнести `Core` и `CoreCompile` на две библиотеки (`as` и `as_compile`). И
+только вторая зависит от LLVM
+
+#### Упрощение интерфейсов `ILanguage` и `ILanguageScript`
+
+На текущий момент пришли к пониманию что достаточно одного интерфейса с
+функциями `compile` и `materialize`
+
+```c++
+std::unique_ptr<llvm::Module> compile(const std::string& filename /* ... */);
+void materialize(/* jit, lib, etc ... */);
+```
+
+### Развитие функционала
+
+#### Поддержка горячей перезагрузки
+
+###
 
