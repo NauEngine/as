@@ -1,8 +1,5 @@
-Описание существующих тестов
-============================
-
-Тестирование различного функционала в реализациях языков
---------------------------------------------------------
+Тестирование реализации языков
+==============================
 
 Для создания тестов для реализации языка, надо сделать следующее:
 - Создать наследника класса `FeaturesTestFixture`
@@ -18,9 +15,10 @@
 - Вызвать тесты на поддерживаемый функционал
 
 
-### Варианты кода для реализации
+Варианты кода для реализации
+----------------------------
 
-#### `getSimpleScript42()`
+### `getSimpleScript42()`
 Реализация интерфейса `SimpleScript`, функция `foo` возвращает `42`.
 ```c++
 static const char* CODE_SIMPLE_42 = R"(
@@ -34,7 +32,7 @@ end
 const char* getSimpleScript42() const override { return CODE_SIMPLE_42; }
 ```
 
-#### `getSimpleScript4242()`
+### `getSimpleScript4242()`
 Реализация интерфейса `SimpleScript`, функция `foo` возвращает `4242`.
 ```c++
 static const char* CODE_SIMPLE_42 = R"(
@@ -48,7 +46,7 @@ end
 const char* getSimpleScript4242() const override { return CODE_SIMPLE_4242; }
 ```
 
-#### `getSimpleExternalScript()`
+### `getSimpleExternalScript()`
 Реализация интерфейса `SimpleScript`, функция `foo` сначала вызывает метод `set` с параметром `42` у внешнего объекта
 `external`, который реализует интерфейс `SetGetScript`, потом вызывает метод `get` и возвращает полученный результат
 ```c++
@@ -64,7 +62,7 @@ end
 const char* getSimpleExternalScript() const override { return CODE_SIMPLE_EXTERNAL; }
 ```
 
-#### `getIntegerScript()`
+### `getIntegerScript()`
 Реализация интерфейса `IntegerScript`. Функция `pass` возвращает переданный параметр, функция `mul` возвращает 
 произведение переданных параметров. Функция `add` возвращает сумма переданных параметров
 ```c++
@@ -87,7 +85,7 @@ end
 const char* getIntegerScript() const override { return CODE_INTEGER; }
 ```
 
-#### `getDoubleScript()`
+### `getDoubleScript()`
 Реализация интерфейса `DoubleScript`. Функция `pass` возвращает переданный параметр, функция `mul` возвращает
 произведение переданных параметров. Функция `add` возвращает сумма переданных параметров
 ```c++
@@ -110,7 +108,7 @@ end
 const char* getDoubleScript() const override { return CODE_DOUBLE; }
 ```
 
-#### `getSetGetGlobalScript()`
+### `getSetGetGlobalScript()`
 Реализация интерфейса `SetGetScript`. Функция `set` устанавливает глобальную переменную, функция `get` возвращает
 значение глобальной переменной
 ```c++
@@ -132,9 +130,10 @@ const char* getSetGetGlobalScript() const override { return CODE_SET_GET_GLOBAL;
 ```
 
 
-### Тесты на поддерживаемый функционал
+Тесты на поддерживаемый функционал
+----------------------------------
 
-#### `SimpleTest`
+### `SimpleTest`
 Проверка что скрипт вообще компилируется. Требует наличие скрипта `getSimpleScript42()`
 ```c++
 TEST_F(LuaLanguageTest, SimpleTest)
@@ -143,7 +142,7 @@ TEST_F(LuaLanguageTest, SimpleTest)
 }
 ```
 
-#### `IntegerTest`
+### `IntegerTest`
 Проверка что поддерживается передача значения типа `int`. Требует наличие скрипта `getIntegerScript()`
 ```c++
 TEST_F(LuaLanguageTest, IntegerTest)
@@ -152,7 +151,7 @@ TEST_F(LuaLanguageTest, IntegerTest)
 }
 ```
 
-#### `DoubleTest`
+### `DoubleTest`
 Проверка что поддерживается передача значения типа `double`. Требует наличие скрипта `getDobuleScript()`. В качестве
 параметра в функцию `doDoubleTest` передается как трактуется `double` в реализации данного скрипта. Возможны следующие
 варианты: `TreatDouble::AsDouble` - как `double`, `TreatDouble::AsFloat` - как `float` и `TreatDouble::AsInteger` - как
@@ -164,7 +163,7 @@ TEST_F(LuaLanguageTest, DoubleTest)
 }
 ```
 
-#### `ExternalObjTest`
+### `ExternalObjTest`
 Проверка что поддерживается доступ к внешним объектам. Требует наличие скрипта `getSimpleExternalScript()`
 ```c++
 TEST_F(LuaLanguageTest, ExternalObjTest)
@@ -173,7 +172,7 @@ TEST_F(LuaLanguageTest, ExternalObjTest)
 }
 ```
 
-#### `GlobalVarTest`
+### `GlobalVarTest`
 Проверка что поддерживаются глобальные переменные на все инстансы скрипта. Требует наличие скрипта `getSetGetGlobalScript()`
 ```c++
 TEST_F(LuaLanguageTest, GlobalVarTest)
@@ -182,7 +181,7 @@ TEST_F(LuaLanguageTest, GlobalVarTest)
 }
 ```
 
-#### `ModulesTest`
+### `ModulesTest`
 Проверка что может быть несколько реализаций одного интерфейса. Требует наличие скриптов `getSimpleScript42()` и
 `getSimpleScript4242()`
 ```c++
@@ -192,7 +191,7 @@ TEST_F(LuaLanguageTest, ModulesTest)
 }
 ```
 
-#### `HotReloadTest`
+### `HotReloadTest`
 Проверка что работает перезагрузка скрипта. Требует наличие скриптов `getSimpleScript42()` и `getSimpleScript4242()`
 ```c++
 TEST_F(LuaLanguageTest, HotReloadTest)
@@ -201,7 +200,7 @@ TEST_F(LuaLanguageTest, HotReloadTest)
 }
 ```
 
-#### `CompileStaticInitTest`
+### `CompileStaticInitTest`
 Проверка что скрипт компилируется в IR код. Проверяется что регистрируется статический конструктор, в котором
 вызывается функция регистрации `init`, а также что в `init` вызывается регистрация vtable. Требует наличие скрипта
 `getSimpleScript42()`
@@ -212,7 +211,7 @@ TEST_F(LuaLanguageTest, CompileStaticInitTest)
 }
 ```
 
-#### `CompileLinkTest`
+### `CompileLinkTest`
 Проверка что сгенерированный IR код может быть загружен без использования реализации языка. Таким образом опосредованно
 проверяется что для данного языка поддерживается AOT компиляция. Логика теста следующая:
 - Создается компилятор, с поддержкой языка
@@ -231,7 +230,7 @@ TEST_F(CppLanguageTest, CompileLinkTest)
 ```
 
 
-#### `CompileDebugInfoTest`
+### `CompileDebugInfoTest`
 Проверка что в сгенерированном IR коде есть отладочная информация. Требует наличие скрипта `getSimpleScript42()`. В
 качестве параметра в функцию `doCompileDebugInfoTest` передается регулярное выражения для поиска функции `foo` по имени
 ```c++
