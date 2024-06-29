@@ -56,13 +56,6 @@ int main()
 Отвечает за представление скриптовых модулей как С++ объектов. Так же внутри
 себя содержит экземпляр `CoreCompile` и методы для вызова методов `CoreCompile`.
 
-#### `newScriptModule`
-```c++
-template<typename Interface>
-std::shared_ptr<ScriptModule<Interface>> newScriptModule(const std::string& filename,
-    const std::string& language_name = "")
-```
-
 Собственно `Core` создает фабрики объектов в соотв. по указанному имени файла.
 Каждая фабрика хранит указатель на таблицу функций (собственно virtual table),
 описанных в данном модуле и реализующие указанные интерфейс. Дальше фабрика
@@ -78,6 +71,25 @@ std::shared_ptr<ScriptModule<Interface>> newScriptModule(const std::string& file
 - Во время компиляции, когда каждый модуль скомпилирован в байт код,
 генерируется секция статической инициализации, которая собственно и регистрирует
 `init`-функцию модуля
+
+#### Конструктор `Core`
+```c++
+explicit Core(const std::string& base_path = "");
+```
+
+#### `newScriptModule`
+```c++
+template<typename Interface>
+std::shared_ptr<ScriptModule<Interface>> newScriptModule(const std::string& filename,
+    const std::string& language_name = "")
+```
+
+Создание фабрики для объектов скриптового модуля.
+- `filename` - имя файла со скриптом
+- `language_name` - язык для данного модуля. Если не указан, используемый язык
+определяется по расширению файла
+- *Возвращаемое значение* - Указатель на фабрику, или `nullptr` если для данного имени файла не
+может быть создано фабрики. Фабриками владеет `Core`
 
 Логика создания фабрики слелующая. 
 - Все созданные фабрики кешируются, поэтому первым делом ищется уже готовая
