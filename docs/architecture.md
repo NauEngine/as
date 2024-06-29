@@ -158,4 +158,47 @@ void registerInstance(Interface* instance, const std::string& instance_name);
 ```
 Методы для вызова соотв. методов внутреннего `CoreCompile`
 
+#### `registerRuntime`
+```c++
+void registerRuntime(std::shared_ptr<ILanguageRuntime> runtime);
+```
+
+Регистрация runtime библиотеки для поддержки языка.
+- **`runtime`** — собственно экземпляр библиотеки.
+
+#### `reload`
+
+```c++
+void reload(const std::string& filename);
+```
+
+Перезагрузка указанного модуля
+- **`filename`** - имя файла модуля
+
+#### `registerVTable`, `requireRuntime`
+```c++
+void registerVTable(const char* name, ScriptModuleRuntime::FunctionPtr* vtable, int vtable_size);
+
+const void* requireRuntime(const char* name);
+```
+
+Внутренние функции для вызова в `init`-функциях модулей. `registerVTable` -
+регистрирует (или обновляет) таблицу виртуальных методов модуля.
+`requireRuntime` - получает runtime библиотеку по имени.
+
+Для вызова функций используются обертки в виде `extern "C"`функций, таким
+образом их проще вызывать из модулей:
+
+```c++
+extern "C" void __asRegisterVTable(as::Core* core, const char* name, as::ScriptModuleRuntime::FunctionPtr* vtable, int vtable_size)
+{
+    core->registerVTable(name, vtable, vtable_size);
+}
+
+extern "C" const void* __asRequireRuntime(as::Core* core, const char* name)
+{
+    return core->requireRuntime(name);
+}
+```
+
 ### `CoreCompile`
