@@ -201,4 +201,8 @@ extern "C" const void* __asRequireRuntime(as::Core* core, const char* name)
 }
 ```
 
+### `ScriptModule<Interface>`
+
+#### `newInstance`
+
 ### `CoreCompile`

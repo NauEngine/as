@@ -37,8 +37,6 @@ public:
 
     const std::shared_ptr<ScriptInterface>& getInterface(const std::string& source_code) const;
 
-    const std::unordered_map<std::string, std::shared_ptr<ILanguage>>& getLanguages() const;
-
     llvm::orc::ThreadSafeContext getContext() const
     {
         return m_ts_context;
