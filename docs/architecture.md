@@ -206,3 +206,15 @@ extern "C" const void* __asRequireRuntime(as::Core* core, const char* name)
 #### `newInstance`
 
 ### `CoreCompile`
+
+#### `registerLanguage`
+
+#### `registerInstance`
+
+#### `newScriptModule`
+
+### `ScriptModuleCompile`
+
+#### `dump`
+
+#### `materialize`
