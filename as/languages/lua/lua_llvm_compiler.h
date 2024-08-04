@@ -104,9 +104,16 @@ private:
 
 	void prepareOpcodeData(int code_len);
     llvm::Value* getProtoConstant(llvm::LLVMContext& context, TValue* constant);
-    std::string generateFunctionName(Proto* p);
+    std::string generateFunctionName(const Proto* p);
 	void findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRBuilder<>& builder, BuildContext& bcontext);
 	void preCreateBasicBlocks(llvm::LLVMContext& context, llvm::Function* func, BuildContext& bcontext);
+
+    void buildFuncDecls(
+        llvm::Module* module,
+        const std::shared_ptr<LuaIR>& lua_ir,
+        Proto* proto,
+        std::unordered_map<Proto*, std::string>& func_names,
+        std::unordered_map<Proto*, llvm::Function*>& funcs);
 
     static void buildLocalVars(
         llvm::LLVMContext& context,
@@ -143,7 +150,7 @@ private:
         const std::shared_ptr<LLVMOptimizer>& optimizer,
         lua_State* L,
         Proto* p,
-        std::unordered_map<Proto*, std::string>& func_names);
+        std::unordered_map<Proto*, llvm::Function*> funcs);
 
 	void сompileSingleProto(
 		llvm::LLVMContext& context,
@@ -152,7 +159,7 @@ private:
         const std::shared_ptr<LLVMOptimizer>& optimizer,
 		lua_State* L,
 		Proto* p,
-		const std::string& func_name);
+		std::unordered_map<Proto*, llvm::Function*> funcs);
 };
 
 } // namespace as

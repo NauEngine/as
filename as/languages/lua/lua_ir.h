@@ -86,7 +86,6 @@ public:
     llvm::Function* luaL_checkudata_f = nullptr;
 
     // lua vm functions
-    llvm::Function* vm_mini_vm_f = nullptr;
     llvm::Function* vm_get_current_closure_f = nullptr;
     llvm::Function* vm_get_current_base_f = nullptr;
     llvm::Function* vm_get_current_constants_f = nullptr;

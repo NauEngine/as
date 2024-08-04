@@ -3,6 +3,7 @@
 //
 
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/TypeFinder.h"
 #include "llvm/Linker/Linker.h"
 
 #include "as/core/core_utils.h"
@@ -30,10 +31,6 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     auto lauxlibModule = utils::loadEmbeddedBitcode(context, "lauxlib_bc", lauxlib_bc, sizeof(lauxlib_bc));
     auto luaVMModule = utils::loadEmbeddedBitcode(context, "lua_vm_ops_bc", lua_vm_ops_bc, sizeof(lua_vm_ops_bc));
 
-    llvm::Linker linker(*m_lapiModule);
-    linker.linkInModule(std::move(lauxlibModule));
-    linker.linkInModule(std::move(luaVMModule));
-
     // parse types & functions
     int8_t = llvm::Type::getInt8Ty(context);
     int16_t = llvm::Type::getInt16Ty(context);
@@ -57,10 +54,14 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     lua_State_ptr_t = llvm::PointerType::getUnqual(lua_State_t);
     TValue_ptr_t = llvm::PointerType::getUnqual(TValue_t);
     LClosure_ptr_t = llvm::PointerType::getUnqual(LClosure_t);
-//    FunctionTree_ptr_t = llvm::PointerType::getUnqual(FunctionTree_t);
+    FunctionTree_ptr_t = llvm::PointerType::getUnqual(FunctionTree_t);
 
     lua_func_t = llvm::FunctionType::get(int32_t, {lua_State_ptr_t}, false);
     lua_func_ptr_t = llvm::PointerType::get(lua_func_t, 0);
+
+    llvm::Linker linker(*m_lapiModule);
+    linker.linkInModule(std::move(lauxlibModule));
+    linker.linkInModule(std::move(luaVMModule));
 
     // lapi functions
     lua_rawgeti_f = m_lapiModule->getFunction("lua_rawgeti");
@@ -81,8 +82,6 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     luaL_checkudata_f = m_lapiModule->getFunction("luaL_checkudata");
 
     // lua vm functions
-    vm_mini_vm_f = ir::сreateFunctionDecl(m_lapiModule.get(), void_t,
-        {lua_State_ptr_t, LClosure_ptr_t, int32_t, int32_t}, "vm_mini_vm");
     vm_get_current_closure_f = m_lapiModule->getFunction("vm_get_current_closure");
     vm_get_current_base_f = m_lapiModule->getFunction("vm_get_current_base");
     vm_get_current_constants_f = m_lapiModule->getFunction("vm_get_current_constants");
@@ -167,17 +166,12 @@ llvm::Type* LuaIR::getVarType(llvm::LLVMContext& context, val_t type, hint_t hin
         case VAR_T_ARG_B:
         case VAR_T_ARG_BK:
         case VAR_T_ARG_Bx:
-        case VAR_T_ARG_Bx_NUM_CONSTANT:
         case VAR_T_ARG_B_FB2INT:
         case VAR_T_ARG_sBx:
         case VAR_T_ARG_C:
-        case VAR_T_ARG_CK:
         case VAR_T_ARG_C_NUM_CONSTANT:
         case VAR_T_ARG_C_NEXT_INSTRUCTION:
         case VAR_T_ARG_C_FB2INT:
-        case VAR_T_PC_OFFSET:
-        case VAR_T_INSTRUCTION:
-        case VAR_T_NEXT_INSTRUCTION:
           return int32_t;
         case VAR_T_LUA_STATE_PTR:
             return lua_State_ptr_t;

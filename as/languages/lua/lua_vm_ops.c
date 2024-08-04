@@ -36,6 +36,7 @@ void vm_OP_MOVE(TValue *ra, TValue *rb)
   setobj_VM(ra, rb);
 }
 
+//	A Bx	R(A) := Kst(Bx)
 void vm_OP_LOADK(TValue *var, TValue *value) {
   setobj_VM(var, value);
 }
@@ -54,12 +55,11 @@ void vm_OP_LOADNIL(TValue *base, int a, int b) {
 }
 
 /*	A B	R(A) := UpValue[B]				*/
-void vm_OP_GETUPVAL(lua_State *L, LClosure *cl, int a, int b) {
-  TValue *base = L->base;
-  TValue *ra = base + a;
-  setobj2s(L, ra, cl->upvals[b]->v);
+void vm_OP_GETUPVAL(LClosure *cl, TValue *ra, int b) {
+  setobj_VM(ra, cl->upvals[b]->v);
 }
 
+/*	A Bx	R(A) := Gbl[Kst(Bx)]		*/
 void vm_OP_GETGLOBAL(lua_State *L, TValue *k, LClosure *cl, int a, int bx) {
   TValue *base = L->base;
   TValue *ra = base + a;
@@ -416,7 +416,7 @@ void vm_set_number(TValue *value, lua_Number num)
     value->tt=LUA_TNUMBER;
 }
 
-FunctionTree* __stub_for_types(FunctionTree* ftree)
+struct FunctionTree* __stub_for_types(struct FunctionTree* ftree)
 {
     return ftree->children[0];
 }

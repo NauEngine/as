@@ -121,7 +121,7 @@ void LuaLLVMCompiler::prepareOpcodeData(int codeLen)
 	}
 }
 
-std::string LuaLLVMCompiler::generateFunctionName(Proto *p)
+std::string LuaLLVMCompiler::generateFunctionName(const Proto *p)
 {
 	std::string filename = getstr(p->source);
 
@@ -322,7 +322,6 @@ void LuaLLVMCompiler::findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRB
 				break;
 		}
 		// update local variable type hints.
-		//vm_op_hint_locals(locals, p->maxstacksize, k, op_intr);
 	}
 }
 
@@ -400,9 +399,6 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 			case VAR_T_ARG_C_FB2INT:
 				val = llvm::ConstantInt::get(context, llvm::APInt(32, luaO_fb2int(GETARG_C(instruction))));
 				break;
-			case VAR_T_ARG_Bx_NUM_CONSTANT:
-				val = getProtoConstant(context, bcontext.k + INDEXK(GETARG_Bx(instruction)));
-				break;
 			case VAR_T_ARG_C_NUM_CONSTANT:
 				val = getProtoConstant(context, bcontext.k + INDEXK(GETARG_C(instruction)));
 				break;
@@ -430,15 +426,6 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 				break;
 			case VAR_T_ARG_sBx:
 				val = llvm::ConstantInt::get(context, llvm::APInt(32, GETARG_sBx(instruction)));
-				break;
-			case VAR_T_PC_OFFSET:
-				val = llvm::ConstantInt::get(context, llvm::APInt(32, i + 1));
-				break;
-			case VAR_T_INSTRUCTION:
-				val = llvm::ConstantInt::get(context, llvm::APInt(32,instruction));
-				break;
-			case VAR_T_NEXT_INSTRUCTION:
-				val = llvm::ConstantInt::get(context, llvm::APInt(32, bcontext.code[i+1]));
 				break;
 			case VAR_T_LUA_STATE_PTR:
 				val = bcontext.func_L;
@@ -496,8 +483,11 @@ void LuaLLVMCompiler::compile(
     auto optimizer = std::make_shared<LLVMOptimizer>(module.get());
 
     std::unordered_map<Proto*, std::string> func_names;
+    std::unordered_map<Proto*, llvm::Function*> funcs;
 
-    сompileAllProtos(context, lua_ir, module.get(), optimizer, L, p, func_names);
+    buildFuncDecls(module.get(), lua_ir, p, func_names, funcs);
+
+    сompileAllProtos(context, lua_ir, module.get(), optimizer, L, p, funcs);
 
 	if (m_dumpCompiled)
 	{
@@ -508,10 +498,28 @@ void LuaLLVMCompiler::compile(
 
     llvm::cantFail(jit->addIRModule({std::move(module), ts_context}));
 
-    for (auto [proto, func_name] : func_names)
+    for (const auto [proto, func_name] : func_names)
     {
         auto func_addr = llvm::cantFail(jit->lookup(func_name));
         proto->jit_func = func_addr.toPtr<lua_CFunction>();
+    }
+}
+
+void LuaLLVMCompiler::buildFuncDecls(
+    llvm::Module* module,
+    const std::shared_ptr<LuaIR>& lua_ir,
+    Proto* proto,
+    std::unordered_map<Proto*, std::string>& func_names,
+    std::unordered_map<Proto*, llvm::Function*>& funcs)
+{
+    const auto func_name = generateFunctionName(proto);
+    func_names[proto] = func_name;
+    llvm::Function* func = llvm::Function::Create(lua_ir->lua_func_t, llvm::Function::ExternalLinkage, func_name, module);
+    funcs[proto] = func;
+
+    for (int i = 0; i < proto->sizep; ++i)
+    {
+        buildFuncDecls(module, lua_ir, proto->p[i], func_names, funcs);
     }
 }
 
@@ -522,15 +530,13 @@ void LuaLLVMCompiler::сompileAllProtos(
     const std::shared_ptr<LLVMOptimizer>& optimizer,
     lua_State* L,
     Proto* p,
-    std::unordered_map<Proto*, std::string>& func_names)
+    std::unordered_map<Proto*, llvm::Function*> funcs)
 {
-    const auto func_name = generateFunctionName(p);
-    func_names[p] = func_name;
-    сompileSingleProto(context, lua_ir, module, optimizer, L, p, func_name);
+    сompileSingleProto(context, lua_ir, module, optimizer, L, p, funcs);
 
     for (int i = 0; i < p->sizep; ++i)
     {
-        сompileAllProtos(context, lua_ir, module, optimizer, L, p->p[i], func_names);
+        сompileAllProtos(context, lua_ir, module, optimizer, L, p->p[i], funcs);
     }
 }
 
@@ -619,6 +625,7 @@ void LuaLLVMCompiler::buildLocalVars(
     for (int i = 0; i < proto->maxstacksize; ++i)
     {
         const auto shift = llvm::ConstantInt::get(lua_ir->int64_t, llvm::APInt(64, i));
+
         if (i  < proto->sizelocvars)
         {
             const auto varName = getstr(proto->locvars[i].varname);
@@ -655,7 +662,7 @@ void LuaLLVMCompiler::сompileSingleProto(
     const std::shared_ptr<LLVMOptimizer>& optimizer,
     lua_State* L,
 	Proto* p,
-	const std::string& func_name)
+	std::unordered_map<Proto*, llvm::Function*> funcs)
 {
 	BuildContext bcontext;
 
@@ -672,7 +679,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 
 	prepareOpcodeData(bcontext.code_len);
 
-	llvm::Function* func = llvm::Function::Create(lua_ir->lua_func_t, llvm::Function::ExternalLinkage, func_name, module);
+	llvm::Function* func = funcs[p];
 	// name arg1 = "L"
 	bcontext.func_L = func->arg_begin();
 	bcontext.func_L->setName("L");
