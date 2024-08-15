@@ -8,6 +8,8 @@
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "as/core/language.h"
 
+#include "squirrel/include/squirrel.h"
+
 struct SQVM;
 
 namespace as
@@ -38,8 +40,7 @@ private:
     SQVM* m_sq_vm = nullptr;
     std::shared_ptr<SquirrelIR> m_sq_ir;
 
-    //std::shared_ptr<LuaLLVMCompiler> m_llvmCompiler;
-    std::set<std::string> m_createdMetatables;
+    std::map<std::string, HSQOBJECT> m_createdMetatables;
 
     std::shared_ptr<llvm::orc::LLJIT> m_jit;
     llvm::orc::ThreadSafeContext m_ts_context;

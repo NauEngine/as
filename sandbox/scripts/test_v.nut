@@ -1,4 +1,3 @@
-/*
 function a(a, b, c) {
     if (a) {
         return b;
@@ -17,30 +16,37 @@ function c(a) {
 
 function d() {
     iface.a("Hello");
-    print("PRINT: " + iface.b(42.42));
+    print("PRINT: " + iface.b());
 }
 
 function e(a) {
     print("e.a: " + a.tostring() + "\n");
-    //printGlobals();
-    iface.c(42);
-}
-*/
-
-class intface {
-    function a(a) {
-        print("intface.a: " + a + "\n")
-    }
 }
 
 function f(a) {
-    print("f.a: " + a + "\n");
     //printGlobals();
-    intface.a("Test");
-    //iface.a("Test");
+    printObjectMethods(iface, "iface");
+    printObjectMethods(yaiface, "yaiface");
+
+    //callMethodA();
+    callMethodC();
 }
 
 // ----------
+
+function callMethodA() {
+    iface.a("Hello from Squirrel");
+}
+
+function callMethodC() {
+    print("callMethodC()\n");
+    iface.a("Hello");
+    iface.c(123, 123.123, "HELLO");
+    print("D: " + iface.d("This is Sparta!!!") + "\n");
+    print("E: " + iface.e(1.2, 2.3) + "\n");
+    print("F: " + iface.f("Hello, ", "Vovumba!") + "\n");
+    yaiface.a();
+}
 
 function printGlobals() {
     print("\nGLOBALS:\n");
@@ -48,6 +54,46 @@ function printGlobals() {
     foreach (key, value in root) {
         local typeStr = typeof value;
         print("  " + typeStr + ": " + key + "\n");
+    }
+    print("\n");
+}
+
+function printClassMethods() {
+    local function iterateTable(tbl) {
+        foreach (key, value in tbl) {
+            local typeStr = typeof value;
+            print("  " + typeStr + ": " + key + "\n");
+        }
+    }
+
+    print("\niface methods:\n");
+    iterateTable(iface);
+
+    local delegate = iface.getdelegate();
+    if (delegate) {
+        print("  (from delegate)\n");
+        iterateTable(delegate);
+    }
+    print("\n");
+}
+
+function printObjectMethods(obj, objName) {
+    function iterateTable(tbl) {
+        foreach (key, value in tbl) {
+            local typeStr = typeof value;
+            print("  " + typeStr + ": " + key + "\n");
+        }
+    }
+
+    print("\n" + objName + " methods and properties:\n");
+    iterateTable(obj);
+
+    if (typeof obj.getdelegate == "function") {
+        local delegate = obj.getdelegate();
+        if (delegate) {
+            print("  (from delegate)\n");
+            iterateTable(delegate);
+        }
     }
     print("\n");
 }

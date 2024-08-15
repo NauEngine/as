@@ -51,10 +51,24 @@ public:
     llvm::Function* sq_pushstring_f = nullptr;
     llvm::Function* sq_getstring_f = nullptr;
     llvm::Function* sq_getinstanceup_f = nullptr;
+    llvm::Function* sq_gettop_f = nullptr;
+    llvm::Function* sq_get_f = nullptr;
+    llvm::Function* sq_pop_f = nullptr;
+    llvm::Function* sq_gettype_f = nullptr;
+    llvm::Function* sq_newtable_f = nullptr;
+    llvm::Function* sq_pushnull_f = nullptr;
+    llvm::Function* sq_next_f = nullptr;
+    llvm::Function* sq_getsize_f = nullptr;
+    llvm::Function* sq_getdelegate_f = nullptr;
+    llvm::Function* sq_getuserpointer_f = nullptr;
+    llvm::Function* sq_throwerror_f = nullptr;
 
     llvm::Function* sq_pushobject_apapter_f = nullptr;
 
     void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context, SQVM* sq_vm);
+
+    llvm::Value* buildPopValue(llvm::IRBuilder<>& builder, llvm::Value* sq_vm_var, const llvm::Type* type, int stackPos) const;
+    void buildPushValue(llvm::IRBuilder<>& builder, llvm::Value* sq_vm_var, const llvm::Type* type, llvm::Value* value) const;
 
 private:
     std::unique_ptr<llvm::Module> m_api_module;
