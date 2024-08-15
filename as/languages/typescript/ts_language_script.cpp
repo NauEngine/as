@@ -69,7 +69,7 @@ TypeScriptLanguageScript::TypeScriptLanguageScript(mlir::MLIRContext& context):
 {
 }
 
-void TypeScriptLanguageScript::load(const std::string& filename)
+void TypeScriptLanguageScript::load(const std::string& filename, llvm::LLVMContext& context)
 {
     llvm::SourceMgr source_mgr;
     auto compile_options = prepareOptions();

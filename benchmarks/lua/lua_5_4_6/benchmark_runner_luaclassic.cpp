@@ -71,4 +71,30 @@ void BenchmarkRunnerLuaClassic::shutdown()
     state = nullptr;
 }
 
+void BenchmarkRunnerLuaClassic::prepare_calls(const std::string& filename)
+{
+    prepare(filename);
+}
+
+double BenchmarkRunnerLuaClassic::run_add(double a, double b)
+{
+    lua_getglobal(state, "call_add");
+    lua_pushnumber(state, a);
+    lua_pushnumber(state, b);
+    lua_call(state, 2, 1);
+    auto result = lua_tonumber(state, -1);
+    lua_pop(state, 1);
+    return result;
+}
+
+bool BenchmarkRunnerLuaClassic::run_not(bool a)
+{
+    lua_getglobal(state, "call_not");
+    lua_pushboolean(state, a);
+    lua_call(state, 1, 1);
+    auto result = lua_toboolean(state, -1);
+    lua_pop(state, 1);
+    return result;
+}
+
 } // namespace as::benchmark

@@ -49,15 +49,15 @@ macro(target_link_scripts target)
         add_custom_command(OUTPUT ${bc_target_header}
             OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            COMMAND asc ${source} -h ${CMAKE_CURRENT_SOURCE_DIR}/${source_file_path}/${source_file_name}.h -o ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll
+            COMMAND asc ${source} -o ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll
             DEPENDS asc ${CMAKE_CURRENT_SOURCE_DIR}/${source}
             VERBATIM
         )
 
-        set(OUT ${CMAKE_CURRENT_BINARY_DIR}/${source_file_name}.o)
+        set(OUT ${CMAKE_CURRENT_BINARY_DIR}/${source}.o)
         add_custom_command(
             OUTPUT ${OUT}
-            COMMAND ${LLVM_CC} -c ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll -o ${CMAKE_CURRENT_BINARY_DIR}/${source_file_name}.o
+            COMMAND ${LLVM_CC} -c ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll -o ${OUT}
             DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${source}.ll
             VERBATIM
         )

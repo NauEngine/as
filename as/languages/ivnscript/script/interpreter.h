@@ -30,6 +30,8 @@ public:
   virtual llvm::Value* getGlobalVariable(const std::string& self, const std::string& name, unsigned index) = 0;
 
   virtual llvm::Value* getConstant(int value) = 0;
+
+  virtual bool needConvertReturn() const = 0;
 };
 
 // class Interpreter {

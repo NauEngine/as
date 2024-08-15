@@ -146,8 +146,16 @@ namespace as::ir
                                    const std::string& export_name,
                                    const std::string& module_name,
                                    llvm::GlobalVariable* vtable,
-                                   llvm::GlobalVariable* runtime,
-                                   const std::string& runtime_name);
+                                   llvm::GlobalVariable* runtime = nullptr,
+                                   const std::string& runtime_name = "");
+
+    std::string getImplements(const std::string& filepath, const std::string& pattern);
+
+    std::string getRelativeFileName(const std::string& base_filename, const std::string& filename);
+
+    std::shared_ptr<ScriptInterface> getInterface(const std::string& filename,
+        const std::string& interface_filename,
+        CPPParser& cpp_parser);
 
     void addMissingDeclarations(llvm::Module& module);
 } // namespace as

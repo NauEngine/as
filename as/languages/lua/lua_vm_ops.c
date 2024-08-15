@@ -36,6 +36,7 @@ void vm_OP_MOVE(TValue *ra, TValue *rb)
   setobj_VM(ra, rb);
 }
 
+//	A Bx	R(A) := Kst(Bx)
 void vm_OP_LOADK(TValue *var, TValue *value) {
   setobj_VM(var, value);
 }
@@ -53,12 +54,12 @@ void vm_OP_LOADNIL(TValue *base, int a, int b) {
   } while (rb >= ra);
 }
 
-void vm_OP_GETUPVAL(lua_State *L, LClosure *cl, int a, int b) {
-  TValue *base = L->base;
-  TValue *ra = base + a;
-  setobj2s(L, ra, cl->upvals[b]->v);
+/*	A B	R(A) := UpValue[B]				*/
+void vm_OP_GETUPVAL(LClosure *cl, TValue *ra, int b) {
+  setobj_VM(ra, cl->upvals[b]->v);
 }
 
+/*	A Bx	R(A) := Gbl[Kst(Bx)]		*/
 void vm_OP_GETGLOBAL(lua_State *L, TValue *k, LClosure *cl, int a, int bx) {
   TValue *base = L->base;
   TValue *ra = base + a;
@@ -131,6 +132,7 @@ void vm_OP_SETTABLE(lua_State *L, TValue *ra, TValue *rb, TValue *rc)
     luaV_settable(L, ra, rb, rc);
 }
 
+//	A Bx	Gbl[Kst(Bx)] := R(A)
 void vm_OP_SETGLOBAL(lua_State *L, TValue *k, LClosure *cl, int a, int bx) {
   TValue *base = L->base;
   TValue *ra = base + a;
@@ -356,6 +358,36 @@ void vm_OP_CLOSE(lua_State *L, int a) {
   luaF_close(L, L->base + a);
 }
 
+/*	A B C	R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1)) */
+int vm_OP_CALL(lua_State *L, int a, int b, int c)
+{
+    TValue* base = L->base;
+    TValue* ra = base + a;
+
+    const int nresults = c - 1;
+    if (b != 0) L->top = ra+b;  /* else previous instruction set top */
+    const int ret = luaD_precall(L, ra, nresults);
+
+    switch (ret)
+    {
+        case PCRC:
+        {
+            /* it was a C function (`precall' called it); adjust results */
+            if (nresults >= 0)
+                L->top = L->ci->top;
+            break;
+        }
+        default:
+        {
+            /* TODO: fix yielding from C funtions, right now we can't resume a JIT with using COCO. */
+            return PCRYIELD;
+        }
+    }
+    return 0;
+}
+
+
+
 TValue *vm_get_current_base(lua_State *L)
 {
     return L->base;
@@ -382,6 +414,11 @@ void vm_set_number(TValue *value, lua_Number num)
 {
     *(lua_Number*)value = num;
     value->tt=LUA_TNUMBER;
+}
+
+struct FunctionTree* __stub_for_types(struct FunctionTree* ftree)
+{
+    return ftree->children[0];
 }
 
 #ifdef __cplusplus

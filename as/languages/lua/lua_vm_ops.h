@@ -39,18 +39,13 @@ typedef enum {
 	VAR_T_ARG_A,
 	VAR_T_ARG_B,
 	VAR_T_ARG_BK,
-	VAR_T_ARG_Bx_NUM_CONSTANT,
 	VAR_T_ARG_B_FB2INT,
 	VAR_T_ARG_Bx,
 	VAR_T_ARG_sBx,
 	VAR_T_ARG_C,
-	VAR_T_ARG_CK,
 	VAR_T_ARG_C_NUM_CONSTANT,
 	VAR_T_ARG_C_NEXT_INSTRUCTION,
 	VAR_T_ARG_C_FB2INT,
-	VAR_T_PC_OFFSET,
-	VAR_T_INSTRUCTION,
-	VAR_T_NEXT_INSTRUCTION,
 	VAR_T_LUA_STATE_PTR,
 	VAR_T_BASE,
 	VAR_T_K,
@@ -65,6 +60,8 @@ typedef enum {
 	VAR_T_RK_B,
 	VAR_T_RK_C,
 	VAR_T_CONST_Bx,
+
+	VAR_T_FUNCITON_TREE
 } val_t;
 
 typedef struct
@@ -74,9 +71,15 @@ typedef struct
 	val_t ret_type; /* return type */
 	const char *name; /* function name */
 	val_t params[10]; /* an 'VOID' type ends the parameter list */
-} vm_func_info;
+} VmFuncInfo;
 
-extern const vm_func_info vm_op_functions[];
+typedef struct FunctionTree
+{
+	lua_CFunction* func;
+	struct FunctionTree** children;  /* functions defined inside the function */
+} FunctionTree;
+
+extern const VmFuncInfo vm_op_functions[];
 
 extern void vm_OP_MOVE(TValue *ra, TValue *rb);
 
@@ -86,7 +89,7 @@ extern void vm_OP_LOADBOOL(TValue *base, int a, int b, int c);
 
 extern void vm_OP_LOADNIL(TValue *base, int a, int b);
 
-extern void vm_OP_GETUPVAL(lua_State *L, LClosure *cl, int a, int b);
+extern void vm_OP_GETUPVAL(LClosure *cl, TValue *ra, int b);
 
 extern void vm_OP_GETGLOBAL(lua_State *L, TValue *k, LClosure *cl, int a, int bx);
 
@@ -143,14 +146,9 @@ extern void vm_OP_SETLIST(lua_State *L, int a, int b, int c);
 
 extern void vm_OP_CLOSE(lua_State *L, int a);
 
-extern void vm_OP_CLOSURE(lua_State *L, LClosure *cl, int a, int bx, int pseudo_ops_offset);
+extern void vm_OP_CLOSURE(lua_State *L, LClosure *cl, FunctionTree* ftree, int a, int bx);
 
 extern void vm_OP_VARARG(lua_State *L, LClosure *cl, int a, int b);
-
-extern int is_mini_vm_op(int opcode);
-extern void vm_mini_vm(lua_State *L, LClosure *cl, int count, int pseudo_ops_offset);
-
-extern void vm_op_hint_locals(char *locals, int stacksize, TValue *k, const Instruction i);
 
 extern lua_Number vm_NUM_ADD(lua_Number a, lua_Number b);
 extern lua_Number vm_NUM_SUB(lua_Number a, lua_Number b);

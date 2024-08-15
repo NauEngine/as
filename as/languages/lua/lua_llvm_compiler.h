@@ -39,8 +39,6 @@ public:
 
 	~LuaLLVMCompiler();
 
-	void setStripCode(bool strip) { m_stripCode = strip; }
-
     void setDumpCompiled(bool dump) { m_dumpCompiled = dump; }
     bool getDumpCompiled() const { return m_dumpCompiled; }
 
@@ -81,7 +79,6 @@ private:
 		Instruction* code = nullptr;
 		TValue* k = nullptr;
 		int code_len = 0;
-		int strip_ops = 0;
 
 		llvm::Value* func_L = nullptr;
 	    llvm::Value* base = nullptr;
@@ -92,7 +89,6 @@ private:
 	    std::vector<llvm::Value*> constants;
 	};
 
-	bool m_stripCode = false;
 	bool m_dumpCompiled = false;
 
 	// opcode hints/values/blocks/need_block arrays used in compile() method.
@@ -108,9 +104,16 @@ private:
 
 	void prepareOpcodeData(int code_len);
     llvm::Value* getProtoConstant(llvm::LLVMContext& context, TValue* constant);
-    std::string generateFunctionName(Proto* p);
+    std::string generateFunctionName(const Proto* p);
 	void findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRBuilder<>& builder, BuildContext& bcontext);
 	void preCreateBasicBlocks(llvm::LLVMContext& context, llvm::Function* func, BuildContext& bcontext);
+
+    void buildFuncDecls(
+        llvm::Module* module,
+        const std::shared_ptr<LuaIR>& lua_ir,
+        Proto* proto,
+        std::unordered_map<Proto*, std::string>& func_names,
+        std::unordered_map<Proto*, llvm::Function*>& funcs);
 
     static void buildLocalVars(
         llvm::LLVMContext& context,
@@ -136,7 +139,7 @@ private:
 
     std::vector<llvm::Value*> getOpCallArgs(
         llvm::LLVMContext& context,
-        const vm_func_info* func_info,
+        const VmFuncInfo* func_info,
         BuildContext& bcontext,
         int i);
 
@@ -147,7 +150,7 @@ private:
         const std::shared_ptr<LLVMOptimizer>& optimizer,
         lua_State* L,
         Proto* p,
-        std::unordered_map<Proto*, std::string>& func_names);
+        std::unordered_map<Proto*, llvm::Function*> funcs);
 
 	void сompileSingleProto(
 		llvm::LLVMContext& context,
@@ -156,7 +159,7 @@ private:
         const std::shared_ptr<LLVMOptimizer>& optimizer,
 		lua_State* L,
 		Proto* p,
-		const std::string& func_name);
+		std::unordered_map<Proto*, llvm::Function*> funcs);
 };
 
 } // namespace as

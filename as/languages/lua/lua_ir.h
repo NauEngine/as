@@ -25,10 +25,10 @@ namespace as
 
 struct OPFunctionVariant
 {
-  const vm_func_info* info;
+  const VmFuncInfo* info;
   llvm::Function* func = nullptr;
 
-  explicit OPFunctionVariant(const vm_func_info* info) :
+  explicit OPFunctionVariant(const VmFuncInfo* info) :
       info(info)
   {}
 };
@@ -58,10 +58,12 @@ public:
     llvm::Type* lua_State_t = nullptr;
     llvm::Type* TValue_t = nullptr;
     llvm::Type* LClosure_t = nullptr;
+    llvm::Type* FunctionTree_t = nullptr;
 
     llvm::Type* lua_State_ptr_t = nullptr;
     llvm::Type* TValue_ptr_t = nullptr;
     llvm::Type* LClosure_ptr_t = nullptr;
+    llvm::Type* FunctionTree_ptr_t = nullptr;
 
     llvm::FunctionType* lua_func_t = nullptr;
     llvm::Type* lua_func_ptr_t = nullptr;
@@ -84,7 +86,6 @@ public:
     llvm::Function* luaL_checkudata_f = nullptr;
 
     // lua vm functions
-    llvm::Function* vm_mini_vm_f = nullptr;
     llvm::Function* vm_get_current_closure_f = nullptr;
     llvm::Function* vm_get_current_base_f = nullptr;
     llvm::Function* vm_get_current_constants_f = nullptr;
@@ -105,8 +106,8 @@ public:
 
 private:
     std::unique_ptr<llvm::Module> m_lapiModule;
-    std::unique_ptr<llvm::Module> m_lauxlibModule;
-    std::unique_ptr<llvm::Module> m_luaVMModule;
+    // std::unique_ptr<llvm::Module> m_lauxlibModule;
+    // std::unique_ptr<llvm::Module> m_luaVMModule;
 
     // lua vm opcode functions
     OPFunction op_functions[NUM_OPCODES];

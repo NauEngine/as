@@ -14,7 +14,12 @@ public:
     explicit TypeScriptLanguageScript(mlir::MLIRContext& context);
     ~TypeScriptLanguageScript() override = default;
 
-    void load(const std::string& filename) override;
+    void load(const std::string& filename, llvm::LLVMContext& context) override;
+
+    std::shared_ptr<ScriptInterface> getInterface(const std::string& filename, CPPParser& cpp_paser) override
+    {
+        return nullptr;
+    }
 
     std::unique_ptr<llvm::Module> createModule(llvm::LLVMContext& context) override;
 

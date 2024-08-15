@@ -139,6 +139,10 @@ llvm::Value* ReturnExpression::codegen(InterpreterContext& interpreter, std::vec
   if (!value)
     return nullptr;
 
+  if (interpreter.needConvertReturn()) {
+    llvm::Value *doubleValue = interpreter.getBuilder()->CreateSIToFP(value, interpreter.getBuilder()->getDoubleTy(), "d_ret");
+    return interpreter.getBuilder()->CreateRet(doubleValue);
+  }
   return interpreter.getBuilder()->CreateRet(value);
 }
 

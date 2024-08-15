@@ -43,7 +43,7 @@ namespace script {
 
 class ModuleContext: public InterpreterContext {
 public:
-  explicit ModuleContext(llvm::LLVMContext& llvmContext, llvm::Module& llvmModule): context(llvmContext), module(llvmModule)
+  explicit ModuleContext(llvm::LLVMContext& llvmContext, llvm::Module& llvmModule): context(llvmContext), module(llvmModule), covertReturn(false)
   {
     builder = std::make_unique<llvm::IRBuilder<>>(llvmContext);
 
@@ -187,7 +187,22 @@ public:
 
     variables.clear();
     for (auto &arg: func->args())
-      variables[std::string(arg.getName())] = &arg;
+    {
+      if (arg.getType()->isIntegerTy() || arg.getType()->isPointerTy())
+      {
+        variables[std::string(arg.getName())] = &arg;
+      }
+      else
+      {
+        variables[std::string(arg.getName())] = builder->CreateFPToSI(&arg, builder->getInt32Ty(), "i_" + arg.getName());
+      }
+    }
+
+    covertReturn = !func->getReturnType()->isIntegerTy() && !func->getReturnType()->isVoidTy();
+  }
+
+  bool needConvertReturn() const override {
+    return covertReturn;
   }
 
 private:
@@ -200,6 +215,8 @@ private:
   std::map<std::string, llvm::Constant *> globals;
   std::map<std::string, llvm::AllocaInst *> locals;
   llvm::StructType* structType;
+
+  bool covertReturn;
 };
 
 void callRuntimeFunction(ModuleContext& c,

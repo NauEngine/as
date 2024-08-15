@@ -26,7 +26,7 @@ static std::string getSafeName(const std::string& filename)
 
 namespace as
 {
-void SquirrelLanguageScript::load(const std::string& filename)
+void SquirrelLanguageScript::load(const std::string& filename, llvm::LLVMContext& context)
 {
     if (SQ_SUCCEEDED(sqstd_loadfile(m_sq_vm, filename.c_str(), SQTrue)))
     {

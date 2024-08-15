@@ -16,6 +16,7 @@
 #include "as/languages/lua/lua_language.h"
 #include "as/languages/squirrel/sq_language.h"
 #include "as/languages/ivnscript/is_language.h"
+#include "as/languages/cpp/cpp_language.h"
 
 #define PROGRAM_NAME "AScript Compiler"
 #define PROGRAM_VERSION "0.0.1"
@@ -23,7 +24,7 @@
 llvm::cl::OptionCategory CompilerOptions("Compiler Options");
 
 llvm::cl::opt<std::string> inputFilename(llvm::cl::Positional, llvm::cl::desc("<input_filename>"), llvm::cl::Required, llvm::cl::value_desc("filename"), llvm::cl::cat(CompilerOptions));
-llvm::cl::opt<std::string> headerFilename("h", llvm::cl::desc("Header filename"), llvm::cl::value_desc("filename"), llvm::cl::cat(CompilerOptions));
+// llvm::cl::opt<std::string> headerFilename("h", llvm::cl::desc("Header filename"), llvm::cl::value_desc("filename"), llvm::cl::cat(CompilerOptions));
 llvm::cl::opt<std::string> outputFilename("o", llvm::cl::desc("Output filename"), llvm::cl::value_desc("filename"), llvm::cl::cat(CompilerOptions));
 
 static void printVersion(llvm::raw_ostream &out) {
@@ -60,10 +61,12 @@ int main(int argc, char **argv)
     auto lua_language = std::make_shared<as::LuaLanguage>();
     auto squirrel_language = std::make_shared<as::SquirrelLanguage>();
     auto ivnscript_language = std::make_shared<as::IvnScriptLanguage>();
+    auto cpp_language = std::make_shared<as::CppLanguage>();
 
     script_core->registerLanguage("lua", std::move(lua_language));
     script_core->registerLanguage("nut", std::move(squirrel_language));
     script_core->registerLanguage("is", std::move(ivnscript_language));
+    script_core->registerLanguage("cpp", std::move(cpp_language));
 
     llvm::cl::ParseCommandLineOptions(argc, argv, PROGRAM_NAME"\n");
 
@@ -72,20 +75,13 @@ int main(int argc, char **argv)
     // llvm::outs() << "Header file: " << headerFilename << "\n";
     // llvm::outs() << "Output file: " << outputFilename << "\n";
 
-    std::ifstream ifs(headerFilename);
-    const std::string headerContent{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
+    // std::ifstream ifs(headerFilename);
+    // const std::string headerContent{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
+    //
+    // const auto interface = script_core->getInterface("TestScript", headerContent);
+    const auto module = script_core->newScriptModule(inputFilename);
 
-    const auto interface = script_core->getInterface("", headerContent);
-
-    if (interface)
-    {
-        const auto module = script_core->newScriptModule(*interface, inputFilename);
-        dumpFile(module.get(), outputFilename.getValue());
-    }
-    else
-    {
-        llvm::errs() << "Script compilation failed\n";
-    }
+    dumpFile(module.get(), outputFilename.getValue());
 
     return 0;
 }
