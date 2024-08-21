@@ -86,7 +86,8 @@ std::unique_ptr<llvm::Module> LuaLanguageScript::createModule(
     }
 
     m_func_names.clear();
-    m_llvmCompiler->compile(context, *module, m_lua_ir, m_lua_state, closure->l.p, m_func_names);
+    m_funcs.clear();
+    m_llvmCompiler->compile(context, *module, m_lua_ir, m_lua_state, closure->l.p, m_func_names, m_funcs);
 
     m_registry_index = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
     m_lua_state_extern = new llvm::GlobalVariable(*module, m_lua_ir->lua_State_ptr_t, false, llvm::GlobalValue::ExternalLinkage,

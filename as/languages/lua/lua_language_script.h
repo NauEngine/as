@@ -56,6 +56,7 @@ private:
 
     llvm::Value* m_lua_state_extern = nullptr;
     std::unordered_map<Proto*, std::string> m_func_names;
+    std::unordered_map<Proto*, llvm::Function*> m_funcs;
 
     llvm::Function* buildFunction(const std::string& bare_name,
             llvm::FunctionType* signature,

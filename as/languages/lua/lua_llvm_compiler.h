@@ -48,7 +48,8 @@ public:
 	    const std::shared_ptr<LuaIR>& lua_ir,
 	    lua_State* L,
 	    Proto* p,
-	    std::unordered_map<Proto*, std::string>& func_names);
+	    std::unordered_map<Proto*, std::string>& func_names,
+	    std::unordered_map<Proto*, llvm::Function*>& funcs);
 
     void materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
         llvm::orc::JITDylib& lib,
@@ -114,7 +115,7 @@ private:
 	void preCreateBasicBlocks(llvm::LLVMContext& context, llvm::Function* func, BuildContext& bcontext);
 
     void buildFuncDecls(
-        llvm::Module* module,
+        llvm::Module& module,
         const std::shared_ptr<LuaIR>& lua_ir,
         Proto* proto,
         std::unordered_map<Proto*, std::string>& func_names,
