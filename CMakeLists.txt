@@ -14,3 +14,4 @@ set(LLVM_DIS "llvm-dis" CACHE STRING "Command to decompile LLVM bitcode into IR 
 add_subdirectory(as)
 add_subdirectory(benchmarks)
 add_subdirectory(sandbox)
+add_subdirectory(test)

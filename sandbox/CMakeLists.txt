@@ -24,6 +24,7 @@ target_link_libraries(SandboxTests
     LuaIntegration
     SquirrelIntegration
     IvnScriptIntegration
+    CppScriptIntegration
     TypeScriptIntegration
 )
 
@@ -48,3 +49,12 @@ target_link_libraries(SandboxCpp
     CppScriptIntegration
 )
 
+add_executable(SandboxHotReload
+    main_hot.cpp)
+
+target_link_libraries(SandboxHotReload
+    LuaIntegration
+    SquirrelIntegration
+    IvnScriptIntegration
+    CppScriptIntegration
+)

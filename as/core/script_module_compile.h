@@ -6,6 +6,7 @@
 
 #include <memory>
 
+#include <llvm/ExecutionEngine/Orc/LLJIT.h>
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 
 namespace as {
@@ -15,6 +16,8 @@ struct ILanguageScript;
 
 struct ScriptInterface;
 
+typedef void (*InitFunction)(void*);
+
 class ScriptModuleCompile {
 public:
     explicit ScriptModuleCompile(const std::string& export_name,
@@ -23,15 +26,9 @@ public:
         llvm::LLVMContext& context,
         bool add_init);
 
-    void dump(llvm::raw_fd_ostream& stream) const;
+    void dump(llvm::raw_ostream& stream) const;
 
-    void materialize(std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::orc::ThreadSafeContext ts_context);
-
-    // TODO [Ivn] Hack to hold somewhere instance of ILanguageScript. Actually it shoud be runtime part of each module
-    std::shared_ptr<ILanguageScript> getLanguageScript()
-    {
-        return std::move(m_language_script);
-    }
+    InitFunction materialize(std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::orc::ThreadSafeContext ts_context);
 
 private:
     std::string m_export_name;
@@ -39,7 +36,7 @@ private:
     std::shared_ptr<ILanguageScript> m_language_script;
 
     void compile(const ScriptInterface& interface, llvm::LLVMContext& context, bool add_init);
-    // std::vector<llvm::Constant*> compileFunctions(const ScriptInterface& interface, llvm::LLVMContext& context) const;
+    llvm::orc::JITDylib* getModuleLib(std::shared_ptr<llvm::orc::LLJIT>& jit);
 };
 
 } // as

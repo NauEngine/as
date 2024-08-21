@@ -43,11 +43,17 @@ public:
     bool getDumpCompiled() const { return m_dumpCompiled; }
 
 	void compile(
-	    llvm::orc::ThreadSafeContext ts_context,
-	    const std::shared_ptr<llvm::orc::LLJIT>& jit,
+	    llvm::LLVMContext& context,
+	    llvm::Module& module,
 	    const std::shared_ptr<LuaIR>& lua_ir,
 	    lua_State* L,
-	    Proto* p);
+	    Proto* p,
+	    std::unordered_map<Proto*, std::string>& func_names,
+	    std::unordered_map<Proto*, llvm::Function*>& funcs);
+
+    void materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
+        llvm::orc::JITDylib& lib,
+        const std::unordered_map<Proto*, std::string>& func_names);
 
 private:
 	class OPValues
@@ -109,7 +115,7 @@ private:
 	void preCreateBasicBlocks(llvm::LLVMContext& context, llvm::Function* func, BuildContext& bcontext);
 
     void buildFuncDecls(
-        llvm::Module* module,
+        llvm::Module& module,
         const std::shared_ptr<LuaIR>& lua_ir,
         Proto* proto,
         std::unordered_map<Proto*, std::string>& func_names,
@@ -146,7 +152,7 @@ private:
     void сompileAllProtos(
         llvm::LLVMContext& context,
         const std::shared_ptr<LuaIR>& lua_ir,
-        llvm::Module* module,
+        llvm::Module& module,
         const std::shared_ptr<LLVMOptimizer>& optimizer,
         lua_State* L,
         Proto* p,
@@ -155,7 +161,7 @@ private:
 	void сompileSingleProto(
 		llvm::LLVMContext& context,
 		const std::shared_ptr<LuaIR>& lua_ir,
-		llvm::Module* module,
+		llvm::Module& module,
         const std::shared_ptr<LLVMOptimizer>& optimizer,
 		lua_State* L,
 		Proto* p,

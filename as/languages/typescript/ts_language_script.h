@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include <llvm/ExecutionEngine/Orc/Core.h>
 #include <llvm/IR/GlobalVariable.h>
 
 #include "as/core/language_script.h"
@@ -29,8 +30,8 @@ public:
         llvm::Module& module) override;
 
     void materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
-        llvm::Module& module,
-        llvm::LLVMContext& context) override;
+                     llvm::orc::JITDylib& lib,
+                     llvm::Module& module, llvm::LLVMContext& context) override;
 
 private:
     mlir::MLIRContext& m_context;

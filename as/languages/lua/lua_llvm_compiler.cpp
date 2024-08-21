@@ -470,43 +470,38 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 }
 
 void LuaLLVMCompiler::compile(
-    llvm::orc::ThreadSafeContext ts_context,
-    const std::shared_ptr<llvm::orc::LLJIT>& jit,
+    llvm::LLVMContext& context,
+    llvm::Module& module,
     const std::shared_ptr<LuaIR>& lua_ir,
     lua_State *L,
-    Proto *p)
+    Proto *p,
+	std::unordered_map<Proto*, std::string>& func_names,
+	std::unordered_map<Proto*, llvm::Function*>& funcs)
 {
-    llvm::LLVMContext& context = *ts_context.getContext();
-	auto module_name = utils::generateModuleName(getstr(p->source));
-	auto module = std::make_unique<llvm::Module>(module_name, context);
+    auto optimizer = std::make_shared<LLVMOptimizer>(&module);
 
-    auto optimizer = std::make_shared<LLVMOptimizer>(module.get());
-
-    std::unordered_map<Proto*, std::string> func_names;
-    std::unordered_map<Proto*, llvm::Function*> funcs;
-
-    buildFuncDecls(module.get(), lua_ir, p, func_names, funcs);
-
-    сompileAllProtos(context, lua_ir, module.get(), optimizer, L, p, funcs);
+    buildFuncDecls(module, lua_ir, p, func_names, funcs);
+    сompileAllProtos(context, lua_ir, module, optimizer, L, p, funcs);
 
 	if (m_dumpCompiled)
 	{
-		llvm::errs() << *module;
+		llvm::errs() << module;
 	}
+}
 
-    llvm::verifyModule(*module);
-
-    llvm::cantFail(jit->addIRModule({std::move(module), ts_context}));
-
-    for (const auto [proto, func_name] : func_names)
+void LuaLLVMCompiler::materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
+    llvm::orc::JITDylib& lib,
+    const std::unordered_map<Proto*, std::string>& func_names)
+{
+    for (auto [proto, func_name] : func_names)
     {
-        auto func_addr = llvm::cantFail(jit->lookup(func_name));
+        auto func_addr = llvm::cantFail(jit->lookup(lib, func_name));
         proto->jit_func = func_addr.toPtr<lua_CFunction>();
     }
 }
 
 void LuaLLVMCompiler::buildFuncDecls(
-    llvm::Module* module,
+    llvm::Module& module,
     const std::shared_ptr<LuaIR>& lua_ir,
     Proto* proto,
     std::unordered_map<Proto*, std::string>& func_names,
@@ -526,7 +521,7 @@ void LuaLLVMCompiler::buildFuncDecls(
 void LuaLLVMCompiler::сompileAllProtos(
     llvm::LLVMContext& context,
     const std::shared_ptr<LuaIR>& lua_ir,
-    llvm::Module* module,
+    llvm::Module& module,
     const std::shared_ptr<LLVMOptimizer>& optimizer,
     lua_State* L,
     Proto* p,
@@ -658,7 +653,7 @@ void LuaLLVMCompiler::buildConstants(
 void LuaLLVMCompiler::сompileSingleProto(
 	llvm::LLVMContext& context,
 	const std::shared_ptr<LuaIR>& lua_ir,
-	llvm::Module* module,
+	llvm::Module& module,
     const std::shared_ptr<LLVMOptimizer>& optimizer,
     lua_State* L,
 	Proto* p,

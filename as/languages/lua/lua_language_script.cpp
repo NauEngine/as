@@ -27,15 +27,11 @@ namespace as
 LuaLanguageScript::LuaLanguageScript(
     lua_State* state,
     const std::shared_ptr<LuaIR>& lua_ir,
-    const std::shared_ptr<LuaLLVMCompiler>& llvmCompiler,
-    const std::shared_ptr<llvm::orc::LLJIT>& jit,
-    llvm::orc::ThreadSafeContext ts_context):
+    const std::shared_ptr<LuaLLVMCompiler>& llvmCompiler):
     m_lua_state(state),
     m_lua_ir(lua_ir),
     m_llvmCompiler(llvmCompiler),
-    m_jit(jit),
-    m_registry_index(LUA_NOREF),
-    m_ts_context(std::move(ts_context))
+    m_registry_index(LUA_NOREF)
 {
 
 }
@@ -62,6 +58,24 @@ void LuaLanguageScript::load(const std::string& filename, llvm::LLVMContext& con
         llvm::errs() << "Failed to load script file: " << lua_tostring(m_lua_state, -1) << "\n";
         exit(1);
     }
+}
+
+std::shared_ptr<ScriptInterface> LuaLanguageScript::getInterface(const std::string& filename, CPPParser& cpp_paser)
+{
+    auto interface_filename = ir::getImplements(filename, "--");
+    if (interface_filename.empty())
+    {
+        llvm::errs() << "Cannot find implementation for script " << filename << "\n";
+        return nullptr;
+    }
+
+    return ir::getInterface(filename, interface_filename, cpp_paser);
+}
+
+std::unique_ptr<llvm::Module> LuaLanguageScript::createModule(
+        llvm::LLVMContext& context)
+{
+    auto module = std::make_unique<llvm::Module>("lua_module", context);
 
     Closure* closure = clvalue(m_lua_state->top - 1);
 
@@ -71,18 +85,15 @@ void LuaLanguageScript::load(const std::string& filename, llvm::LLVMContext& con
         printLuaFunction(closure->l.p, true);
     }
 
-    m_llvmCompiler->compile(m_ts_context, m_jit, m_lua_ir, m_lua_state, closure->l.p);
+    m_func_names.clear();
+    m_funcs.clear();
+    m_llvmCompiler->compile(context, *module, m_lua_ir, m_lua_state, closure->l.p, m_func_names, m_funcs);
+
     m_registry_index = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
-}
-
-std::unique_ptr<llvm::Module> LuaLanguageScript::createModule(
-        llvm::LLVMContext& context)
-{
-    auto module = std::make_unique<llvm::Module>("lua_module", context);
-
     m_lua_state_extern = new llvm::GlobalVariable(*module, m_lua_ir->lua_State_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
                                                       nullptr,
                                                       LuaIR::LUA_STATE_GLOBAL_VAR);
+
     // TODO [AZ] check if registry_index exists
     lua_rawgeti(m_lua_state, LUA_REGISTRYINDEX, m_registry_index);
     lua_call(m_lua_state, 0, LUA_MULTRET);
@@ -161,6 +172,12 @@ llvm::Function* LuaLanguageScript::buildFunction(
     optimizer.runOptimizationPasses(func);
 
     return func;
+}
+
+void LuaLanguageScript::materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::orc::JITDylib& lib,
+        llvm::Module& module, llvm::LLVMContext& context)
+{
+    m_llvmCompiler->materialize(jit, lib, m_func_names);
 }
 
 } // namespace as

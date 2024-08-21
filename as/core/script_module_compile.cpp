@@ -28,23 +28,80 @@ ScriptModuleCompile::ScriptModuleCompile(const std::string& export_name,
     compile(interface, context, add_init);
 }
 
-void ScriptModuleCompile::dump(llvm::raw_fd_ostream& stream) const
+void ScriptModuleCompile::dump(llvm::raw_ostream& stream) const
 {
     stream << *m_module;
 }
 
-void ScriptModuleCompile::materialize(std::shared_ptr<llvm::orc::LLJIT>& jit,
+llvm::orc::JITDylib* ScriptModuleCompile::getModuleLib(std::shared_ptr<llvm::orc::LLJIT>& jit)
+{
+    auto jd = jit->getJITDylibByName(m_export_name);
+    if (!jd)
+    {
+        auto error_jd = jit->createJITDylib(m_export_name);
+        if (!error_jd)
+        {
+            llvm::errs() << "Cannot create new library. " << error_jd.takeError() << "\n";
+            return nullptr;
+        }
+
+        error_jd.get().addToLinkOrder(jit->getMainJITDylib());
+        return &(error_jd.get());
+    }
+
+    auto error_jd_clear = jd->clear();
+    if (error_jd_clear)
+    {
+        llvm::errs() << "Cannot clear existing library. " << error_jd_clear << "\n";
+        return nullptr;
+    }
+
+    auto error_remove = jit->getExecutionSession().removeJITDylib(*jd);
+    if (error_remove)
+    {
+        llvm::errs() << "Cannot remove existing library. " << error_remove << "\n";
+        return nullptr;
+    }
+
+    auto error_jd2 = jit->createJITDylib(m_export_name);
+    if (!error_jd2)
+    {
+        llvm::errs() << "Cannot create new library to replace. " << error_jd2.takeError() << "\n";
+        return nullptr;
+    }
+
+    error_jd2.get().addToLinkOrder(jit->getMainJITDylib());
+    return &(error_jd2.get());
+}
+
+InitFunction ScriptModuleCompile::materialize(std::shared_ptr<llvm::orc::LLJIT>& jit,
     llvm::orc::ThreadSafeContext ts_context)
 {
+    auto lib = getModuleLib(jit);
+    if (!lib)
+    {
+        return nullptr;
+    }
+
     auto& context = *ts_context.getContext();
-    m_language_script->materialize(jit, *m_module, context);
+    auto error_add = jit->addIRModule(*lib, llvm::orc::ThreadSafeModule(std::move(m_module), ts_context));
+    if (error_add)
+    {
+        llvm::errs() << "Cannot add module. " << error_add << "\n";
+        return nullptr;
+    }
 
-    // llvm::errs() << "\nINTERFACE MODULE: \n" << *m_module << "\n";
-    llvm::cantFail(jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(m_module), ts_context)));
+    m_language_script->materialize(jit, *lib, *m_module, context);
 
-    const auto init_func_addr = llvm::cantFail(jit->lookup("init_" + m_export_name));
-    const auto init_func = init_func_addr.toPtr<void*()>();
-    init_func();
+    const auto init_name = "init_" + m_export_name;
+    auto init_func_addr = jit->lookup(*lib, init_name);
+    if (!init_func_addr)
+    {
+        llvm::errs() << "Cannot get init function (" << init_name << "). " << init_func_addr.takeError() << "\n";
+        return nullptr;
+    }
+
+    return init_func_addr.get().toPtr<void(void*)>();
 }
 
 void ScriptModuleCompile::compile(const ScriptInterface& interface,

@@ -47,15 +47,16 @@ llvm::Function* сreateFunctionDecl(
     return llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, name, module);
 }
 
-llvm::Function* createRegisterModuleDecl(llvm::Module& module)
+llvm::Function* createRegisterVTableDecl(llvm::Module& module)
 {
     llvm::LLVMContext& context = module.getContext();
 
     const auto void_t = llvm::Type::getVoidTy(context);
     const auto char_ptr_t = llvm::Type::getInt8PtrTy(context);
     const auto void_ptr_t = llvm::Type::getInt8PtrTy(context);
-    const auto func_t = llvm::FunctionType::get(void_t, { char_ptr_t, void_ptr_t }, false);
-    return llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, "__asRegisterModule", module);
+    const auto int_t = llvm::Type::getInt32Ty(context);
+    const auto func_t = llvm::FunctionType::get(void_t, { void_ptr_t, char_ptr_t, void_ptr_t, int_t }, false);
+    return llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, "__asRegisterVTable", module);
 }
 
 llvm::Function* createRequireRuntimeDecl(llvm::Module& module)
@@ -64,7 +65,7 @@ llvm::Function* createRequireRuntimeDecl(llvm::Module& module)
 
     const auto void_ptr_t = llvm::Type::getInt8PtrTy(context);
     const auto char_ptr_t = llvm::Type::getInt8PtrTy(context);
-    const auto func_t = llvm::FunctionType::get(void_ptr_t, { char_ptr_t }, false);
+    const auto func_t = llvm::FunctionType::get(void_ptr_t, { void_ptr_t, char_ptr_t }, false);
     return llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, "__asRequireRuntime", module);
 }
 
@@ -135,27 +136,37 @@ llvm::Function* createInitFunc(llvm::Module& module,
     llvm::LLVMContext& context = module.getContext();
     llvm::IRBuilder<> builder(context);
 
-    const auto regsiter_module_func = vtable ? createRegisterModuleDecl(module) : nullptr;
+    const auto regsiter_vtable_func = vtable ? createRegisterVTableDecl(module) : nullptr;
     const auto require_runtime_func = runtime && !runtime_name.empty() ? createRequireRuntimeDecl(module) : nullptr;
     const auto register_init_func = init_name.empty() ? createRegisterInitDecl(module) : nullptr;
     const auto module_name_var = vtable || init_name.empty() ? builder.CreateGlobalStringPtr(module_name, ".module_name", 0, &module) : nullptr;
 
     const auto void_t = llvm::Type::getVoidTy(context);
-    llvm::FunctionType* init_func_t = llvm::FunctionType::get(void_t, {}, false);
+    const auto void_ptr_t = llvm::Type::getInt8PtrTy(context);
+    llvm::FunctionType* init_func_t = llvm::FunctionType::get(void_t, { void_ptr_t }, false);
     const auto linkage = init_name.empty() ? llvm::Function::InternalLinkage : llvm::Function::ExternalLinkage;
     const auto name = init_name.empty() ? ".init_" + module_name : init_name;
     llvm::Function* init_func = llvm::Function::Create(init_func_t, linkage, name, module);
     builder.SetInsertPoint(llvm::BasicBlock::Create(context, "entry", init_func));
+    const auto core_arg = init_func->arg_begin();
 
     if (vtable)
     {
-        builder.CreateCall(regsiter_module_func, { module_name_var, vtable });
+        int vtable_size = -1;
+        if (vtable->getValueType()->isStructTy())
+        {
+            const auto vtable_type = static_cast<llvm::StructType*>(vtable->getValueType());
+            vtable_size = vtable_type->elements().size();
+        }
+
+        auto vtable_size_var = llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), vtable_size);
+        builder.CreateCall(regsiter_vtable_func, { core_arg, module_name_var, vtable, vtable_size_var });
     }
 
     if (runtime && !runtime_name.empty())
     {
         const auto runtime_name_var = builder.CreateGlobalStringPtr(runtime_name, ".runtime_name");
-        const auto runtime_value = builder.CreateCall(require_runtime_func, { runtime_name_var });
+        const auto runtime_value = builder.CreateCall(require_runtime_func, { core_arg, runtime_name_var });
         builder.CreateStore(runtime_value, runtime);
     }
 
@@ -181,6 +192,7 @@ std::string getImplements(const std::string& filepath, const std::string& patter
     std::ifstream file(filepath);
     if (!file.is_open())
     {
+        llvm::errs() << "Cannot open file \"" << filepath << "\"\n";
         return "";
     }
 
@@ -206,6 +218,7 @@ std::string getImplements(const std::string& filepath, const std::string& patter
         return matches[1].str();
     }
 
+    llvm::errs() << "Cannot find implements signature in file \"" << filepath << "\"\n";
     return "";
 }
 
@@ -226,7 +239,7 @@ std::shared_ptr<ScriptInterface> getInterface(const std::string& filename,
 {
     std::ifstream ifs(getRelativeFileName(filename, interface_filename));
     std::string interface_content{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
-    interface_content = "#define DEFINE_SCRIPT_INTERFACE(Type, I) I\n" + interface_content;
+    interface_content = "#define DEFINE_SCRIPT_INTERFACE(Type, I) struct Type { I };\n" + interface_content;
 
     return cpp_parser.getInterface(interface_content);
 }

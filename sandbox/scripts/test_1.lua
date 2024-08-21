@@ -1,3 +1,4 @@
+-- implements "test_script.h"
 
 function foo(a, b)
     logger:warn(100, 200)

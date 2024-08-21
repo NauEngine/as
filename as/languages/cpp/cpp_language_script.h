@@ -3,6 +3,8 @@
 //
 
 #pragma once
+#include <llvm/ExecutionEngine/Orc/Core.h>
+
 #include "as/core/language_script.h"
 #include "clang/Frontend/CompilerInstance.h"
 
@@ -25,8 +27,8 @@ public:
         llvm::Module& module) override;
 
     void materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
-        llvm::Module& module,
-        llvm::LLVMContext& context) override;
+                     llvm::orc::JITDylib& lib,
+                     llvm::Module& module, llvm::LLVMContext& context) override;
 
 private:
     std::string m_content;
@@ -34,7 +36,7 @@ private:
     std::shared_ptr<ScriptInterface> m_script_interface;
     std::unordered_map<std::string, std::string> m_func_names;
 
-    void createCompiler(const std::string& base_path);
+    void createCompiler(const std::string& filename, const std::string& base_path);
 
     llvm::Function* buildFunction(const std::string& name,
         llvm::FunctionType* signature,

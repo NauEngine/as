@@ -37,8 +37,6 @@ public:
 
     const std::shared_ptr<ScriptInterface>& getInterface(const std::string& source_code) const;
 
-    const std::unordered_map<std::string, std::shared_ptr<ILanguage>>& getLanguages() const;
-
     llvm::orc::ThreadSafeContext getContext() const
     {
         return m_ts_context;
@@ -51,6 +49,7 @@ public:
 
 private:
     std::unordered_map<std::string, std::shared_ptr<ILanguage>> m_languages;
+    std::unordered_map<std::string, std::shared_ptr<ScriptModuleCompile>> m_modules;
     std::unique_ptr<CPPParser> m_cpp_parser;
     llvm::orc::ThreadSafeContext m_ts_context;
     std::shared_ptr<llvm::orc::LLJIT> m_jit;
@@ -59,6 +58,10 @@ private:
 
     [[nodiscard]]
     ILanguage* getLanguage(const std::string& language_name) const;
+
+    std::shared_ptr<ScriptModuleCompile> createScriptModule(const std::string& export_name,
+        const ScriptInterface& interface,
+        std::shared_ptr<ILanguageScript> language_script);
 };
 
 } // as

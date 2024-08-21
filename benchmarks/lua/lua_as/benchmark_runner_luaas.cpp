@@ -10,18 +10,12 @@
 #include "benchmark_runner_luaas.h"
 
 DEFINE_SCRIPT_INTERFACE(TestCase,
-struct TestCase
-{
   virtual double test() = 0;
-};
 )
 
 DEFINE_SCRIPT_INTERFACE(TestCalls,
-struct TestCalls
-{
   virtual double call_add(double a, double b) = 0;
   virtual bool call_not(bool a) = 0;
-};
 )
 
 namespace as::benchmark

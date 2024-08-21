@@ -50,6 +50,8 @@ public:
         // TODO [AZ] временно вставил разыменование
         assert(getInterface<Interface>());
         const auto compiled_module =  getCompiledModule(*getInterface<Interface>(), filename, language_name);
+        if (!compiled_module)
+            return nullptr;
         return std::make_shared<ScriptModule<Interface>>(compiled_module);
     }
 
@@ -61,17 +63,21 @@ public:
 
     void registerRuntime(std::shared_ptr<ILanguageRuntime> runtime);
 
+    void reload(const std::string& filename);
+
+    void registerVTable(const char* name, ScriptModuleRuntime::FunctionPtr* vtable, int vtable_size);
+
+    const void* requireRuntime(const char* name);
+
 private:
     CoreCompile m_compile;
+    std::unordered_map<std::string, std::shared_ptr<ILanguageRuntime>> m_runtimes;
     std::unordered_map<std::string, std::shared_ptr<ScriptModuleRuntime>> m_modules;
-
-    // TODO [Ivn] Hack to hold somewhere instance of ILanguageScript. Actually it shoud be runtime part of each module
-    std::vector<std::shared_ptr<ILanguageScript>> m_scripts;
 
     template<typename Interface>
     const std::shared_ptr<ScriptInterface>& getInterface() const
     {
-        const char* source_code = getSourceCode<Interface>();
+        const char* source_code = Interface::getSourceCode();
         return m_compile.getInterface(source_code);
     }
 

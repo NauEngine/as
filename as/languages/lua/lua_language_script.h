@@ -9,6 +9,7 @@
 #include "as/core/language_script.h"
 
 struct lua_State;
+struct Proto;
 
 namespace as::orc
 {
@@ -27,17 +28,12 @@ public:
     explicit LuaLanguageScript(
         lua_State* state,
         const std::shared_ptr<LuaIR>& lua_ir,
-        const std::shared_ptr<LuaLLVMCompiler>& llvmCompiler,
-        const std::shared_ptr<llvm::orc::LLJIT>& jit,
-        llvm::orc::ThreadSafeContext ts_context);
+        const std::shared_ptr<LuaLLVMCompiler>& llvmCompiler);
     ~LuaLanguageScript() override;
 
     void load(const std::string& filename, llvm::LLVMContext& context) override;
 
-    std::shared_ptr<ScriptInterface> getInterface(const std::string& filename, CPPParser& cpp_paser) override
-    {
-        return nullptr;
-    }
+    std::shared_ptr<ScriptInterface> getInterface(const std::string& filename, CPPParser& cpp_paser) override;
 
     std::unique_ptr<llvm::Module> createModule(llvm::LLVMContext& context) override;
 
@@ -47,9 +43,9 @@ public:
         llvm::Module& module) override;
 
     void materialize(
-        const std::shared_ptr<llvm::orc::LLJIT>& jit,
-        llvm::Module& module,
-        llvm::LLVMContext& context) override {}
+            const std::shared_ptr<llvm::orc::LLJIT>& jit,
+            llvm::orc::JITDylib& lib,
+            llvm::Module& module, llvm::LLVMContext& context) override;
 
 private:
     lua_State* m_lua_state = nullptr;
@@ -57,10 +53,10 @@ private:
     std::unordered_map<std::string, int> m_func_registry_ids;
     const std::shared_ptr<LuaIR>& m_lua_ir;
     std::shared_ptr<LuaLLVMCompiler> m_llvmCompiler;
-    std::shared_ptr<llvm::orc::LLJIT> m_jit;
-    llvm::orc::ThreadSafeContext m_ts_context;
 
     llvm::Value* m_lua_state_extern = nullptr;
+    std::unordered_map<Proto*, std::string> m_func_names;
+    std::unordered_map<Proto*, llvm::Function*> m_funcs;
 
     llvm::Function* buildFunction(const std::string& bare_name,
             llvm::FunctionType* signature,

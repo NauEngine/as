@@ -20,57 +20,28 @@
 #include "language_script.h"
 #include "script_module_compile.h"
 
-namespace
-{
-    llvm::ExitOnError ExitOnErr;
-}
+typedef void (*InitFunction)(as::Core* core);
 
-typedef void (*FunctionPtr)();
-
-std::unordered_map<std::string, FunctionPtr>& getInits()
+std::unordered_map<std::string, InitFunction>& getInits()
 {
-    static std::unordered_map<std::string, FunctionPtr> inits;
+    static std::unordered_map<std::string, InitFunction> inits;
     return inits;
 }
 
-std::unordered_map<std::string, void*>& getVtables()
-{
-    static std::unordered_map<std::string, void*> vtables;
-    return vtables;
-}
-
-std::unordered_map<std::string, std::shared_ptr<as::ILanguageRuntime>>& getRuntimes()
-{
-    static std::unordered_map<std::string, std::shared_ptr<as::ILanguageRuntime>> runtimes;
-    return runtimes;
-}
-
-extern "C" void __asRegisterInit(const char* name, FunctionPtr ptr)
+extern "C" void __asRegisterInit(const char* name, InitFunction ptr)
 {
     std::cout << "__asRegisterInit(" << name << ", ...)" << std::endl;
     getInits()[name] = ptr;
 }
 
-extern "C" void __asRegisterModule(const char* name, void* ptr)
+extern "C" void __asRegisterVTable(as::Core* core, const char* name, as::ScriptModuleRuntime::FunctionPtr* vtable, int vtable_size)
 {
-    //std::cout << "__asRegisterModule(" << name << ", ...)" << std::endl;
-    getVtables()[name] = ptr;
+    core->registerVTable(name, vtable, vtable_size);
 }
 
-extern "C" const void* __asRequireRuntime(const char* name)
+extern "C" const void* __asRequireRuntime(as::Core* core, const char* name)
 {
-    const auto& runtimes = getRuntimes();
-    const auto runtime = runtimes.find(name);
-    if (runtime == runtimes.end())
-    {
-        std::cout << "__asRequireRuntime(" << name << ") -> not found" << std::endl;
-        return nullptr;
-    }
-
-    const auto result = runtime->second.get()->ptr();
-    std::cout << "__asRequireRuntime(" << name << ") -> " << result << std::endl;
-
-    return result;
+    return core->requireRuntime(name);
 }
 
 namespace as
@@ -87,12 +58,40 @@ Core::~Core()
 
 void Core::registerRuntime(std::shared_ptr<ILanguageRuntime> runtime)
 {
-    getRuntimes()[runtime->name()] = std::move(runtime);
+    m_runtimes[runtime->name()] = std::move(runtime);
+}
+
+void Core::registerVTable(const char* safe_name, ScriptModuleRuntime::FunctionPtr* vtable, int vtable_size)
+{
+    const auto &module = m_modules.find(safe_name);
+    if (module == m_modules.end())
+    {
+        m_modules[safe_name] = std::make_shared<ScriptModuleRuntime>(vtable, vtable_size);
+    }
+    else
+    {
+        module->second->replaceVtable(vtable, vtable_size);
+    }
+}
+
+const void* Core::requireRuntime(const char* name)
+{
+    const auto runtime = m_runtimes.find(name);
+    if (runtime == m_runtimes.end())
+    {
+        std::cout << "__asRequireRuntime(" << name << ") -> not found" << std::endl;
+        return nullptr;
+    }
+
+    const auto result = runtime->second->ptr();
+    std::cout << "__asRequireRuntime(" << name << ") -> " << result << std::endl;
+
+    return result;
 }
 
 std::shared_ptr<ScriptModuleRuntime> Core::getCachedModule(const std::string& filename) const
 {
-    const auto module = m_modules.find(filename);
+    const auto module = m_modules.find(ir::safe_name(filename));
     return module != m_modules.end() ? module->second : nullptr;
 }
 
@@ -103,32 +102,28 @@ std::shared_ptr<ScriptModuleRuntime> Core::getLinkedModule(const std::string& fi
         return nullptr;
 
     std::cout << "Call init from linked module \"" << filename << "\"..." << std::endl;
-    (init_func_it->second)();
+    (init_func_it->second)(this);
 
-    const auto vtable = getVtables().find(ir::safe_name(filename));
-    if (vtable == getVtables().end())
-        return nullptr;
-
-    auto module = std::make_shared<ScriptModuleRuntime>(vtable->second);
-    m_modules[filename] = module;
-    return module;
+    return getCachedModule(filename);
 }
 
 std::shared_ptr<ScriptModuleRuntime> Core::getCompiledModule(const ScriptInterface& interface,
         const std::string& filename, const std::string& language_name)
 {
     auto module_compile = m_compile.newScriptModule(interface, filename, language_name);
-    module_compile->materialize(m_compile.getJit(), m_compile.getContext());
-    auto script = module_compile->getLanguageScript();
-    m_scripts.emplace_back(script);
-
-    const auto vtable = getVtables().find(ir::safe_name(filename));
-    if (vtable == getVtables().end())
+    auto init_func = module_compile->materialize(m_compile.getJit(), m_compile.getContext());
+    if (!init_func)
         return nullptr;
 
-    auto module = std::make_shared<ScriptModuleRuntime>(vtable->second);
-    m_modules[filename] = module;
-    return module;
+    init_func(this);
+    return getCachedModule(filename);
+}
+
+void Core::reload(const std::string& filename)
+{
+    auto module_compile = m_compile.newScriptModule(filename);
+    auto init_func = module_compile->materialize(m_compile.getJit(), m_compile.getContext());
+    init_func(this);
 }
 
 } // as
