@@ -73,12 +73,6 @@ typedef struct
 	val_t params[10]; /* an 'VOID' type ends the parameter list */
 } VmFuncInfo;
 
-typedef struct FunctionTree
-{
-	lua_CFunction* func;
-	struct FunctionTree** children;  /* functions defined inside the function */
-} FunctionTree;
-
 extern const VmFuncInfo vm_op_functions[];
 
 extern void vm_OP_MOVE(TValue *ra, TValue *rb);

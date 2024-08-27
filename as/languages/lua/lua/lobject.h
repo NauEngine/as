@@ -256,6 +256,14 @@ typedef struct Proto {
   JIT_PROTO_STATE
 } Proto;
 
+typedef struct FunctionTree {
+  lua_CFunction func;
+  int size_func;  /* size of func */
+  lu_byte nups;  /* number of upvalues */
+  lu_byte *upvalue_types; // 0 - local, 1 - inherit upvalue
+  int *upvalue_indices;
+  struct FunctionTree** children;  /* functions defined inside the function */
+} FunctionTree;
 
 /* masks for new-style vararg */
 #define VARARG_HASARG		1
@@ -292,8 +300,12 @@ typedef struct UpVal {
 ** Closures
 */
 
+#define CLOSURE_L 0
+#define CLOSURE_C 1
+#define CLOSURE_J 2
+
 #define ClosureHeader \
-	CommonHeader; lu_byte isC; lu_byte nupvalues; GCObject *gclist; \
+	CommonHeader; lu_byte cl_type; lu_byte nupvalues; GCObject *gclist; \
 	struct Table *env; lua_precall precall
 
 typedef struct CClosure {
@@ -309,15 +321,22 @@ typedef struct LClosure {
   UpVal *upvals[1];
 } LClosure;
 
+typedef struct JClosure {
+  ClosureHeader;
+  struct FunctionTree *func;
+  UpVal *upvals[1];
+} JClosure;
 
 typedef union Closure {
   CClosure c;
   LClosure l;
+  JClosure j;
 } Closure;
 
 
-#define iscfunction(o)	(ttype(o) == LUA_TFUNCTION && clvalue(o)->c.isC)
-#define isLfunction(o)	(ttype(o) == LUA_TFUNCTION && !clvalue(o)->c.isC)
+#define iscfunction(o)	(ttype(o) == LUA_TFUNCTION && clvalue(o)->c.cl_type == CLOSURE_C)
+#define isLfunction(o)	(ttype(o) == LUA_TFUNCTION && clvalue(o)->c.cl_type == CLOSURE_L)
+#define isJfunction(o)	(ttype(o) == LUA_TFUNCTION && clvalue(o)->c.cl_type == CLOSURE_J)
 
 
 /*

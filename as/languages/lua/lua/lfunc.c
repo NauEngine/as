@@ -25,7 +25,7 @@ Closure *luaF_newCclosure (lua_State *L, int nelems, Table *e) {
   Closure *c = cast(Closure *, luaM_malloc(L, sizeCclosure(nelems)));
   luaC_link(L, obj2gco(c), LUA_TFUNCTION);
   c->c.precall = luaD_precall_c;
-  c->c.isC = 1;
+  c->c.cl_type = CLOSURE_C;
   c->c.env = e;
   c->c.nupvalues = cast_byte(nelems);
   return c;
@@ -36,9 +36,20 @@ Closure *luaF_newLclosure (lua_State *L, int nelems, Table *e) {
   Closure *c = cast(Closure *, luaM_malloc(L, sizeLclosure(nelems)));
   luaC_link(L, obj2gco(c), LUA_TFUNCTION);
   c->l.precall = JIT_PRECALL;
-  c->l.isC = 0;
+  c->l.cl_type = CLOSURE_L;
   c->l.env = e;
   c->l.nupvalues = cast_byte(nelems);
+  while (nelems--) c->l.upvals[nelems] = NULL;
+  return c;
+}
+
+Closure *luaF_newJclosure (lua_State *L, int nelems, Table *e) {
+  Closure *c = cast(Closure *, luaM_malloc(L, sizeJclosure(nelems)));
+  luaC_link(L, obj2gco(c), LUA_TFUNCTION);
+  c->j.precall = JIT_PRECALL;
+  c->j.cl_type = CLOSURE_J;
+  c->j.env = e;
+  c->j.nupvalues = cast_byte(nelems);
   while (nelems--) c->l.upvals[nelems] = NULL;
   return c;
 }
@@ -155,8 +166,9 @@ void luaF_freeproto (lua_State *L, Proto *f) {
 
 
 void luaF_freeclosure (lua_State *L, Closure *c) {
-  int size = (cl_isC(c)) ? sizeCclosure(c->c.nupvalues) :
-                          sizeLclosure(c->l.nupvalues);
+  int size = (c->c.cl_type == CLOSURE_C)  ? sizeCclosure(c->c.nupvalues) :
+             ((c->c.cl_type == CLOSURE_L) ? sizeLclosure(c->l.nupvalues) :
+                                            sizeJclosure(c->l.nupvalues));
   luaM_freemem(L, c, size);
 }
 

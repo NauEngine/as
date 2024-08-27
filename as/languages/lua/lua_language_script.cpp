@@ -19,6 +19,51 @@ extern "C"
 #include "lua/lobject.h"
 #include "lua/lauxlib.h"
 #include "lua/lstate.h"
+#include "lua/lparser.h"
+}
+
+namespace
+{
+
+typedef struct {
+    FILE *file;
+    char buffer[LUAL_BUFFERSIZE];
+} FileReaderData;
+
+const char *file_reader(lua_State *L, void *data, size_t *size)
+{
+    FileReaderData *reader = (FileReaderData *)data;
+    if (feof(reader->file)) return NULL;
+    *size = fread(reader->buffer, 1, sizeof(reader->buffer), reader->file);
+    return reader->buffer;
+}
+
+Proto* load_lua_source(lua_State *L, const char *filename)
+{
+    FILE *f = fopen(filename, "r");
+    if (f == NULL)
+    {
+        luaL_error(L, "Cannot open file: %s", filename);
+        return NULL;
+    }
+
+    FileReaderData reader;
+    reader.file = f;
+
+    ZIO zio;
+    luaZ_init(L, &zio, file_reader, &reader);
+
+    Mbuffer buff;
+    luaZ_initbuffer(L, &buff);
+
+    const char *source_name = lua_pushfstring(L, "@%s", filename);
+    Proto *proto = luaY_parser(L, &zio, &buff, source_name);
+
+    fclose(f);
+    luaZ_freebuffer(L, &buff);
+    return proto;
+}
+
 }
 
 namespace as
@@ -53,10 +98,22 @@ void LuaLanguageScript::load(const std::string& filename, llvm::LLVMContext& con
 {
     const int result = luaL_loadfile(m_lua_state, filename.c_str());
 
-    if (result != 0)
+
+    const Closure* closure = clvalue(m_lua_state->top - 1);
+    m_proto = closure->l.p;
+
+//    m_proto = load_lua_source(m_lua_state, filename.c_str());
+
+    if (!m_proto)
     {
         llvm::errs() << "Failed to load script file: " << lua_tostring(m_lua_state, -1) << "\n";
         exit(1);
+    }
+
+    if (m_llvmCompiler->getDumpCompiled())
+    {
+        llvm::errs() << "OPCODES: \n";
+        printLuaFunction(m_proto, true);
     }
 }
 
@@ -77,17 +134,9 @@ std::unique_ptr<llvm::Module> LuaLanguageScript::createModule(
 {
     auto module = std::make_unique<llvm::Module>("lua_module", context);
 
-    Closure* closure = clvalue(m_lua_state->top - 1);
-
-    if (m_llvmCompiler->getDumpCompiled())
-    {
-        llvm::errs() << "OPCODES: \n";
-        printLuaFunction(closure->l.p, true);
-    }
-
     m_func_names.clear();
     m_funcs.clear();
-    m_llvmCompiler->compile(context, *module, m_lua_ir, m_lua_state, closure->l.p, m_func_names, m_funcs);
+    m_llvmCompiler->compile(context, *module, m_lua_ir, m_lua_state, m_proto, m_func_names, m_funcs);
 
     m_registry_index = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
     m_lua_state_extern = new llvm::GlobalVariable(*module, m_lua_ir->lua_State_ptr_t, false, llvm::GlobalValue::ExternalLinkage,

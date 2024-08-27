@@ -183,7 +183,7 @@ int vm_OP_TAILCALL(lua_State *L, int a, int b) {
       func = luaD_tryfuncTM(L, func);  /* check the `function' tag method */
     cl = clvalue(func);
 #ifndef NDEBUG
-    if(cl->l.isC) { /* can't tailcall into C functions.  Causes problems with getfenv() */
+    if(cl->l.cl_type == CLOSURE_C) { /* can't tailcall into C functions.  Causes problems with getfenv() */
       luaD_precall(L, func, LUA_MULTRET);
       vm_OP_RETURN(L, a, 0);
       return PCRC;
