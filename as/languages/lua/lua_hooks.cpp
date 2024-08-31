@@ -44,7 +44,7 @@ int llvm_precall_jit_vararg (lua_State *L, StkId func, int nresults) {
   luaD_checkstack(L, p->maxstacksize);
   func = restorestack(L, funcr);
   nargs = cast_int(L->top - func) - 1;
-  base = adjust_varargs(L, p, nargs);
+  base = adjust_varargs(L, p->numparams, nargs);
   func = restorestack(L, funcr);  /* previous call may change the stack */
   ci = L->ci;  /* now `enter' new function */
   ci->func = func;

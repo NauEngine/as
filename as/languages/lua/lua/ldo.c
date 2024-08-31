@@ -209,9 +209,9 @@ void luaD_callhook (lua_State *L, int event, int line) {
 }
 
 
-static StkId adjust_varargs (lua_State *L, Proto *p, int actual) {
+static StkId adjust_varargs (lua_State *L, lu_byte numparams, int actual) {
   int i;
-  int nfixargs = p->numparams;
+  int nfixargs = numparams;
 #if defined(LUA_COMPAT_VARARG)
   Table *htab = NULL;
 #endif
@@ -293,7 +293,7 @@ int luaD_precall_lua (lua_State *L, StkId func, int nresults) {
   }
   else {  /* vararg function */
     int nargs = cast_int(L->top - func) - 1;
-    base = adjust_varargs(L, p, nargs);
+    base = adjust_varargs(L, p->numparams, nargs);
     func = restorestack(L, funcr);  /* previous call may change the stack */
   }
   ci = L->ci;  /* now `enter' new function */
@@ -312,6 +312,46 @@ int luaD_precall_lua (lua_State *L, StkId func, int nresults) {
     L->savedpc--;  /* correct 'pc' */
   }
   return PCRLUA;
+}
+
+int luaD_precall_j (lua_State *L, StkId func, int nresults) {
+  Closure *cl;
+  ptrdiff_t funcr;
+  CallInfo *ci;
+  StkId st, base;
+  FunctionTree *frtee;
+  int nargs;
+
+  funcr = savestack(L, func);
+  cl = clvalue(func);
+  frtee = cl->j.func;
+  luaD_checkstack(L, frtee->maxstacksize);
+  func = restorestack(L, funcr);
+
+  if (!frtee->is_vararg)
+  {
+    /* no varargs? */
+    base = func + 1;
+    if (L->top > base + frtee->numparams)
+      L->top = base + frtee->numparams;
+  }
+  else
+  {
+    nargs = cast_int(L->top - func) - 1;
+    base = adjust_varargs(L, frtee->numparams, nargs);
+    func = restorestack(L, funcr);  /* previous call may change the stack */
+  }
+
+  ci = L->ci;  /* now `enter' new function */
+  ci->func = func;
+  L->base = ci->base = base;
+  ci->top = L->base + frtee->maxstacksize;
+  lua_assert(ci->top <= L->stack_last);
+  ci->nresults = nresults;
+  for (st = L->top; st < ci->top; st++)
+    setnilvalue(st);
+  L->top = ci->top;
+  return (frtee->func)(L); /* do the actual call */
 }
 
 int luaD_precall_c (lua_State *L, StkId func, int nresults) {

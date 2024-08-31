@@ -12,6 +12,7 @@
 #include "lua_llvm_compiler.h"
 #include "lua_ir.h"
 #include "lua_utils.h"
+#include "lua_ftree.h"
 #include "as/core/ir.h"
 
 extern "C"
@@ -20,6 +21,8 @@ extern "C"
 #include "lua/lauxlib.h"
 #include "lua/lstate.h"
 #include "lua/lparser.h"
+#include "lua/lfunc.h"
+#include "lua/ldo.h"
 }
 
 namespace
@@ -110,7 +113,7 @@ void LuaLanguageScript::load(const std::string& filename, llvm::LLVMContext& con
         exit(1);
     }
 
-    if (m_llvmCompiler->getDumpCompiled())
+    if (m_dumpCompiled)
     {
         llvm::errs() << "OPCODES: \n";
         printLuaFunction(m_proto, true);
@@ -134,9 +137,25 @@ std::unique_ptr<llvm::Module> LuaLanguageScript::createModule(
 {
     auto module = std::make_unique<llvm::Module>("lua_module", context);
 
-    m_func_names.clear();
-    m_funcs.clear();
-    m_llvmCompiler->compile(context, *module, m_lua_ir, m_lua_state, m_proto, m_func_names, m_funcs);
+    m_functionTree = m_llvmCompiler->compile(context, *module, m_lua_ir, m_lua_state, m_proto);
+    const auto ftree_const = buildFunctionTreeIR(m_functionTree, m_lua_ir, context);
+    auto ftree_global = new llvm::GlobalVariable(*module, ftree_const->getType(), false,
+        llvm::GlobalValue::InternalLinkage, ftree_const, ".func_tree");
+
+
+    m_lua_state_extern = new llvm::GlobalVariable(*module, m_lua_ir->FunctionTree_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
+                                                      nullptr,
+                                                      LuaIR::LUA_STATE_GLOBAL_VAR);
+
+    // Closure* closure = luaF_newJclosure(m_lua_state, m_proto->nups, hvalue(gt(m_lua_state)));
+    // closure->j.func = ftree;
+    // for (int i = 0; i < m_proto->nups; ++i)
+    // {
+    //     closure->l.upvals[i] = luaF_newupval(m_lua_state);
+    // }
+    // setclvalue(m_lua_state, m_lua_state->top, closure);
+    // incr_top(m_lua_state);
+
 
     m_registry_index = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
     m_lua_state_extern = new llvm::GlobalVariable(*module, m_lua_ir->lua_State_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
@@ -157,7 +176,14 @@ llvm::Function* LuaLanguageScript::buildModule(const std::string& init_name,
 {
     const auto vtable = ir::buildVTable(module_name, interface, module, &LuaLanguageScript::buildFunction, this);
     ir::addMissingDeclarations(module);
-    return ir::createInitFunc(module, init_name, module_name, vtable, nullptr, "");
+    const auto init_func =  ir::createInitFunc(module, init_name, module_name, vtable, nullptr, "");
+
+    if (m_dumpCompiled)
+    {
+        llvm::errs() << module;
+    }
+
+    return init_func;
 }
 
 llvm::Function* LuaLanguageScript::buildFunction(
@@ -226,7 +252,7 @@ llvm::Function* LuaLanguageScript::buildFunction(
 void LuaLanguageScript::materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::orc::JITDylib& lib,
         llvm::Module& module, llvm::LLVMContext& context)
 {
-    m_llvmCompiler->materialize(jit, lib, m_func_names);
+//    m_llvmCompiler->materialize(jit, lib, m_func_names);
 }
 
 } // namespace as

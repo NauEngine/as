@@ -6,6 +6,7 @@
 #define LUA_IR_H
 
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
+#include "llvm/IR/IRBuilder.h"
 
 extern "C"
 {
@@ -58,7 +59,7 @@ public:
     llvm::Type* lua_State_t = nullptr;
     llvm::Type* TValue_t = nullptr;
     llvm::Type* LClosure_t = nullptr;
-    llvm::Type* FunctionTree_t = nullptr;
+    llvm::StructType* FunctionTree_t = nullptr;
 
     llvm::Type* lua_State_ptr_t = nullptr;
     llvm::Type* TValue_ptr_t = nullptr;

@@ -8,6 +8,8 @@ add_library(LuaIntegration STATIC
     lua_language_script.h
     lua_core.cpp
     lua_core.h
+    lua_ftree.cpp
+    lua_ftree.h
     lua_utils.cpp
     lua_bytecode_printer.cpp
     lua_utils.h

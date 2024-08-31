@@ -43,7 +43,6 @@ void LuaLanguage::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadS
     m_ts_context = std::move(ts_context);
 
     m_llvmCompiler = std::make_shared<LuaLLVMCompiler>();
-    m_llvmCompiler->setDumpCompiled(true);
 
     m_lua_ir = std::make_shared<LuaIR>();
     m_lua_ir->init(m_jit, m_ts_context, m_lua_state);

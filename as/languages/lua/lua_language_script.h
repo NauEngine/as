@@ -21,6 +21,7 @@ namespace as
 
 class LuaIR;
 class LuaLLVMCompiler;
+struct FunctionTreeNode;
 
 class LuaLanguageScript final : public ILanguageScript
 {
@@ -48,16 +49,16 @@ public:
             llvm::Module& module, llvm::LLVMContext& context) override;
 
 private:
+    bool m_dumpCompiled = true;
     lua_State* m_lua_state = nullptr;
     Proto* m_proto = nullptr;
     int m_registry_index;
     std::unordered_map<std::string, int> m_func_registry_ids;
     const std::shared_ptr<LuaIR>& m_lua_ir;
     std::shared_ptr<LuaLLVMCompiler> m_llvmCompiler;
+    std::shared_ptr<FunctionTreeNode> m_functionTree;
 
     llvm::Value* m_lua_state_extern = nullptr;
-    std::unordered_map<Proto*, std::string> m_func_names;
-    std::unordered_map<Proto*, llvm::Function*> m_funcs;
 
     llvm::Function* buildFunction(const std::string& bare_name,
             llvm::FunctionType* signature,

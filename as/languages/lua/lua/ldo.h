@@ -45,6 +45,7 @@ LUAI_FUNC StkId luaD_tryfuncTM (lua_State *L, StkId func);
 LUAI_FUNC int luaD_precall (lua_State *L, StkId func, int nresults);
 LUAI_FUNC int luaD_precall_lua (lua_State *L, StkId func, int nresults);
 LUAI_FUNC int luaD_precall_c (lua_State *L, StkId func, int nresults);
+LUAI_FUNC int luaD_precall_j (lua_State *L, StkId func, int nresults);
 LUAI_FUNC void luaD_call (lua_State *L, StkId func, int nResults);
 LUAI_FUNC int luaD_pcall (lua_State *L, Pfunc func, void *u,
                                         ptrdiff_t oldtop, ptrdiff_t ef);

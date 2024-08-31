@@ -42,8 +42,8 @@
 #include "lua_llvm_compiler.h"
 #include "lua_ir.h"
 #include "lua_core.h"
+#include "lua_ftree.h"
 
-#include "as/core/core_utils.h"
 #include "as/core/llvm_optimizer.h"
 
 #ifdef __cplusplus
@@ -119,23 +119,6 @@ void LuaLLVMCompiler::prepareOpcodeData(int codeLen)
 		op_blocks[i] = nullptr;
 		need_op_block[i] = false;
 	}
-}
-
-std::string LuaLLVMCompiler::generateFunctionName(const Proto *p)
-{
-	std::string filename = getstr(p->source);
-
-	std::string name = utils::generateModuleName(filename);
-
-	char name_buf[128];
-	snprintf(name_buf, 128, "_%d_%d", p->linedefined, p->lastlinedefined);
-	name += name_buf;
-
-	char name_buf_2[128];
-	memset(name_buf_2, 0, 128);
-	luaO_chunkid(name_buf_2, getstr(p->source), 128);
-
-	return name;
 }
 
 llvm::Constant* LuaLLVMCompiler::findConstantInCodeAbove(llvm::LLVMContext& context, BuildContext& bcontext, int fromInstruction, int reg)
@@ -469,24 +452,21 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 	return args;
 }
 
-void LuaLLVMCompiler::compile(
+std::shared_ptr<FunctionTreeNode>  LuaLLVMCompiler::compile(
     llvm::LLVMContext& context,
     llvm::Module& module,
     const std::shared_ptr<LuaIR>& lua_ir,
     lua_State *L,
-    Proto *p,
-	std::unordered_map<Proto*, std::string>& func_names,
-	std::unordered_map<Proto*, llvm::Function*>& funcs)
+    Proto *proto)
 {
-    auto optimizer = std::make_shared<LLVMOptimizer>(&module);
+    const auto optimizer = std::make_shared<LLVMOptimizer>(&module);
+    auto ftree = buildFunctionTree(proto, lua_ir, module);
 
-    buildFuncDecls(module, lua_ir, p, func_names, funcs);
-    сompileAllProtos(context, lua_ir, module, optimizer, L, p, funcs);
+    сompileAllProtos(context, lua_ir, module, optimizer, L, ftree);
 
-	if (m_dumpCompiled)
-	{
-		llvm::errs() << module;
-	}
+//    dumpFunctionTree(ftree, 0);
+
+    return ftree;
 }
 
 void LuaLLVMCompiler::materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
@@ -500,38 +480,19 @@ void LuaLLVMCompiler::materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
     }
 }
 
-void LuaLLVMCompiler::buildFuncDecls(
-    llvm::Module& module,
-    const std::shared_ptr<LuaIR>& lua_ir,
-    Proto* proto,
-    std::unordered_map<Proto*, std::string>& func_names,
-    std::unordered_map<Proto*, llvm::Function*>& funcs)
-{
-    const auto func_name = generateFunctionName(proto);
-    func_names[proto] = func_name;
-    llvm::Function* func = llvm::Function::Create(lua_ir->lua_func_t, llvm::Function::ExternalLinkage, func_name, module);
-    funcs[proto] = func;
-
-    for (int i = 0; i < proto->sizep; ++i)
-    {
-        buildFuncDecls(module, lua_ir, proto->p[i], func_names, funcs);
-    }
-}
-
 void LuaLLVMCompiler::сompileAllProtos(
     llvm::LLVMContext& context,
     const std::shared_ptr<LuaIR>& lua_ir,
     llvm::Module& module,
     const std::shared_ptr<LLVMOptimizer>& optimizer,
     lua_State* L,
-    Proto* p,
-    std::unordered_map<Proto*, llvm::Function*> funcs)
+    const std::shared_ptr<FunctionTreeNode>& node)
 {
-    сompileSingleProto(context, lua_ir, module, optimizer, L, p, funcs);
+    сompileSingleProto(context, lua_ir, module, optimizer, L, node);
 
-    for (int i = 0; i < p->sizep; ++i)
+    for (int i = 0; i < node->num_children; ++i)
     {
-        сompileAllProtos(context, lua_ir, module, optimizer, L, p->p[i], funcs);
+        сompileAllProtos(context, lua_ir, module, optimizer, L, node->children[i]);
     }
 }
 
@@ -656,14 +617,13 @@ void LuaLLVMCompiler::сompileSingleProto(
 	llvm::Module& module,
     const std::shared_ptr<LLVMOptimizer>& optimizer,
     lua_State* L,
-	Proto* p,
-	std::unordered_map<Proto*, llvm::Function*> funcs)
+    const std::shared_ptr<FunctionTreeNode>& node)
 {
 	BuildContext bcontext;
 
-	bcontext.code = p->code;
-	bcontext.k = p->k;
-	bcontext.code_len = p->sizecode;
+	bcontext.code = node->proto->code;
+	bcontext.k = node->proto->k;
+	bcontext.code_len = node->proto->sizecode;
 
 	llvm::BasicBlock *true_block = nullptr;
 	llvm::BasicBlock *false_block = nullptr;
@@ -674,13 +634,12 @@ void LuaLLVMCompiler::сompileSingleProto(
 
 	prepareOpcodeData(bcontext.code_len);
 
-	llvm::Function* func = funcs[p];
 	// name arg1 = "L"
-	bcontext.func_L = func->arg_begin();
+	bcontext.func_L = node->function->arg_begin();
 	bcontext.func_L->setName("L");
 
 	// entry block
-	llvm::BasicBlock* entry_block = llvm::BasicBlock::Create(context,"entry", func);
+	llvm::BasicBlock* entry_block = llvm::BasicBlock::Create(context,"entry", node->function);
 	builder.SetInsertPoint(entry_block);
 
 	// get LClosure & constants.
@@ -689,15 +648,15 @@ void LuaLLVMCompiler::сompileSingleProto(
 	bcontext.func_cl = builder.CreateCall(lua_ir->vm_get_current_closure_f, bcontext.func_L);
 	bcontext.func_k = builder.CreateCall(lua_ir->vm_get_current_constants_f, bcontext.func_cl);
 
-    buildLocalVars(context, bcontext, builder, lua_ir, p);
-    buildConstants(context, bcontext, builder, lua_ir, p);
+    buildLocalVars(context, bcontext, builder, lua_ir, node->proto);
+    buildConstants(context, bcontext, builder, lua_ir, node->proto);
 
 	// find all jump/branch destinations and create a new basic block at that opcode.
 	// also build hints for some opcodes.
 	findBasicBlockPoints(context, builder, bcontext);
 
 	// pre-create basic blocks.
-	preCreateBasicBlocks(context, func, bcontext);
+	preCreateBasicBlocks(context, node->function, bcontext);
 
 	// branch "entry" to first block.
 	if (need_op_block[0])
@@ -779,7 +738,7 @@ void LuaLLVMCompiler::сompileSingleProto(
             case OP_MOD:
             case OP_POW:
 		        {
-		            buildArithOp(context, bcontext, builder, lua_ir, func, i);
+		            buildArithOp(context, bcontext, builder, lua_ir, node->function, i);
     		        branch = BRANCH_NONE;
 		        }
 		        break;
@@ -863,8 +822,13 @@ void LuaLLVMCompiler::сompileSingleProto(
 				branch = BRANCH_NONE;
 				break;
 			case OP_CLOSURE: {
-				Proto *p2 = p->p[GETARG_Bx(instruction)];
-				int nups = p2->nups;
+			    int child_id = GETARG_Bx(instruction);
+
+			    Proto *p2 = node->proto->p[child_id];
+			    int nups = p2->nups;
+
+			    fillUpValues(node, child_id, bcontext.code + i);
+
 				i += nups;
 				branch = BRANCH_NONE;
 				break;
@@ -892,8 +856,8 @@ void LuaLLVMCompiler::сompileSingleProto(
 		}
 	}
 
-    optimizer->inlineAll(func);
-    optimizer->runOptimizationPasses(func);
+    optimizer->inlineAll(node->function);
+    //optimizer->runOptimizationPasses(func);
 }
 
 }	// namespace as

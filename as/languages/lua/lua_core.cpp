@@ -72,3 +72,4 @@ void llvm_freeproto (lua_State *L, Proto *f) {
 #ifdef __cplusplus
 }
 #endif
+

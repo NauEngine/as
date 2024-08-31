@@ -31,6 +31,7 @@ namespace as
 
 class LuaIR;
 class LLVMOptimizer;
+struct FunctionTreeNode;
 
 class LuaLLVMCompiler
 {
@@ -39,17 +40,12 @@ public:
 
 	~LuaLLVMCompiler();
 
-    void setDumpCompiled(bool dump) { m_dumpCompiled = dump; }
-    bool getDumpCompiled() const { return m_dumpCompiled; }
-
-	void compile(
+	std::shared_ptr<FunctionTreeNode> compile(
 	    llvm::LLVMContext& context,
 	    llvm::Module& module,
 	    const std::shared_ptr<LuaIR>& lua_ir,
 	    lua_State* L,
-	    Proto* p,
-	    std::unordered_map<Proto*, std::string>& func_names,
-	    std::unordered_map<Proto*, llvm::Function*>& funcs);
+	    Proto* p);
 
     void materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
         llvm::orc::JITDylib& lib,
@@ -95,8 +91,6 @@ private:
 	    std::vector<llvm::Value*> constants;
 	};
 
-	bool m_dumpCompiled = false;
-
 	// opcode hints/values/blocks/need_block arrays used in compile() method.
 	std::vector<hint_t> op_hints;
 	std::vector<std::unique_ptr<OPValues>> op_values;
@@ -110,16 +104,8 @@ private:
 
 	void prepareOpcodeData(int code_len);
     llvm::Value* getProtoConstant(llvm::LLVMContext& context, TValue* constant);
-    std::string generateFunctionName(const Proto* p);
 	void findBasicBlockPoints(llvm::LLVMContext& context, llvm::IRBuilder<>& builder, BuildContext& bcontext);
 	void preCreateBasicBlocks(llvm::LLVMContext& context, llvm::Function* func, BuildContext& bcontext);
-
-    void buildFuncDecls(
-        llvm::Module& module,
-        const std::shared_ptr<LuaIR>& lua_ir,
-        Proto* proto,
-        std::unordered_map<Proto*, std::string>& func_names,
-        std::unordered_map<Proto*, llvm::Function*>& funcs);
 
     static void buildLocalVars(
         llvm::LLVMContext& context,
@@ -155,17 +141,15 @@ private:
         llvm::Module& module,
         const std::shared_ptr<LLVMOptimizer>& optimizer,
         lua_State* L,
-        Proto* p,
-        std::unordered_map<Proto*, llvm::Function*> funcs);
+        const std::shared_ptr<FunctionTreeNode>& node);
 
 	void сompileSingleProto(
 		llvm::LLVMContext& context,
 		const std::shared_ptr<LuaIR>& lua_ir,
 		llvm::Module& module,
         const std::shared_ptr<LLVMOptimizer>& optimizer,
-		lua_State* L,
-		Proto* p,
-		std::unordered_map<Proto*, llvm::Function*> funcs);
+        lua_State* L,
+        const std::shared_ptr<FunctionTreeNode>& node);
 };
 
 } // namespace as

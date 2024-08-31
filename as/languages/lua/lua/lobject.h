@@ -256,13 +256,22 @@ typedef struct Proto {
   JIT_PROTO_STATE
 } Proto;
 
+#define UPVAL_LOCAL 0
+#define UPVAL_INHERITED 1
+
 typedef struct FunctionTree {
   lua_CFunction func;
-  int size_func;  /* size of func */
-  lu_byte nups;  /* number of upvalues */
+
+  lu_byte numparams;
+  lu_byte is_vararg;
+  lu_byte maxstacksize;
+
+  lu_byte num_upvalues;  /* number of upvalues */
   lu_byte *upvalue_types; // 0 - local, 1 - inherit upvalue
   int *upvalue_indices;
-  struct FunctionTree** children;  /* functions defined inside the function */
+
+  int num_children;  /* size of func */
+  struct FunctionTree* children;  /* functions defined inside the function */
 } FunctionTree;
 
 /* masks for new-style vararg */
