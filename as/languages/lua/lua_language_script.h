@@ -57,8 +57,8 @@ private:
     std::shared_ptr<LuaLLVMCompiler> m_llvmCompiler;
     std::shared_ptr<FunctionTreeNode> m_functionTree;
 
-    llvm::Value* m_lua_state_global = nullptr;
-    llvm::Value* m_ftree_root_ptr = nullptr;
+    llvm::Value* m_luaStateGlobal = nullptr;
+    llvm::Value* m_ftreeRootGlobal = nullptr;
 
     llvm::Function* buildCustomInitFunction(llvm::Module& module);
 

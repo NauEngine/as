@@ -339,11 +339,6 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 	{
 		llvm::Value* val = nullptr;
 
-	    if (func_info->params[x] == VAR_T_FUNCITON_TREE)
-	    {
-	        int y = 9;
-	    }
-
 		switch(func_info->params[x])
 		{
 		    case VAR_T_R_A:
@@ -370,9 +365,6 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 		    case VAR_T_CONST_Bx:
 		        val = bcontext.constants[INDEXK(GETARG_Bx(instruction))];
     		    break;
-		    case VAR_T_FUNCITON_TREE:
-		        val = llvm::Constant::getNullValue(llvm::PointerType::get(context, 0));
-		        break;
 			case VAR_T_ARG_A:
 				val = llvm::ConstantInt::get(context, llvm::APInt(32, GETARG_A(instruction)));
 				break;
@@ -419,7 +411,7 @@ std::vector<llvm::Value*> LuaLLVMCompiler::getOpCallArgs(llvm::LLVMContext& cont
 		    case VAR_T_K:
 				val = bcontext.func_k;
 				break;
-			case VAR_T_CL:
+			case VAR_T_JCLOSURE:
 				val = bcontext.func_cl;
 				break;
 			case VAR_T_OP_VALUE_0:

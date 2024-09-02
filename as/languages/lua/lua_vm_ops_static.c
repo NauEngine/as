@@ -45,19 +45,19 @@ const VmFuncInfo vm_op_functions[] = {
     {VAR_T_BASE, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
   },
   { OP_GETUPVAL, HINT_NONE, VAR_T_VOID, "vm_OP_GETUPVAL",
-    {VAR_T_CL, VAR_T_R_A, VAR_T_ARG_B, VAR_T_VOID},
+    {VAR_T_JCLOSURE, VAR_T_R_A, VAR_T_ARG_B, VAR_T_VOID},
   },
   { OP_GETGLOBAL, HINT_NONE, VAR_T_VOID, "vm_OP_GETGLOBAL",
-    {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_CL, VAR_T_ARG_A, VAR_T_ARG_Bx, VAR_T_VOID},
+    {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_JCLOSURE, VAR_T_ARG_A, VAR_T_ARG_Bx, VAR_T_VOID},
   },
   { OP_GETTABLE, HINT_NONE, VAR_T_VOID, "vm_OP_GETTABLE",
     {VAR_T_LUA_STATE_PTR, VAR_T_R_A, VAR_T_R_B, VAR_T_RK_C, VAR_T_VOID},
   },
   { OP_SETGLOBAL, HINT_NONE, VAR_T_VOID, "vm_OP_SETGLOBAL",
-    {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_CL, VAR_T_ARG_A, VAR_T_ARG_Bx, VAR_T_VOID},
+    {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_JCLOSURE, VAR_T_ARG_A, VAR_T_ARG_Bx, VAR_T_VOID},
   },
   { OP_SETUPVAL, HINT_NONE, VAR_T_VOID, "vm_OP_SETUPVAL",
-    {VAR_T_LUA_STATE_PTR, VAR_T_CL, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
+    {VAR_T_LUA_STATE_PTR, VAR_T_JCLOSURE, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
   },
   { OP_SETTABLE, HINT_NONE, VAR_T_VOID, "vm_OP_SETTABLE",
     {VAR_T_LUA_STATE_PTR, VAR_T_R_A, VAR_T_RK_B, VAR_T_RK_C, VAR_T_VOID},
@@ -138,10 +138,10 @@ const VmFuncInfo vm_op_functions[] = {
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_VOID},
   },
   { OP_CLOSURE, HINT_NONE, VAR_T_VOID, "vm_OP_CLOSURE",
-    {VAR_T_LUA_STATE_PTR, VAR_T_CL, VAR_T_FUNCITON_TREE, VAR_T_ARG_A, VAR_T_ARG_Bx, VAR_T_VOID},
+    {VAR_T_LUA_STATE_PTR, VAR_T_JCLOSURE, VAR_T_ARG_A, VAR_T_ARG_Bx, VAR_T_VOID},
   },
   { OP_VARARG, HINT_NONE, VAR_T_VOID, "vm_OP_VARARG",
-    {VAR_T_LUA_STATE_PTR, VAR_T_CL, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
+    {VAR_T_LUA_STATE_PTR, VAR_T_JCLOSURE, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
   },
   { -1, HINT_NONE, VAR_T_VOID, NULL, {VAR_T_VOID} }
 };
@@ -269,37 +269,39 @@ void vm_OP_SETLIST(lua_State *L, int a, int b, int c) {
 }
 
 /*	A Bx	R(A) := closure(KPROTO[Bx], R(A), ... ,R(A+n))	*/
-void vm_OP_CLOSURE(lua_State *L, LClosure *cl, FunctionTree* ftree, int a, int bx)
+void vm_OP_CLOSURE(lua_State *L, JClosure *cl, int a, int bx)
 {
     TValue *base = L->base;
     TValue *ra = base + a;
 
-    Proto* proto = cl->p->p[bx];
-    const Instruction* pc = cl->p->code;
-    int nup = proto->nups;
+    FunctionTree* child_func = cl->func->children + bx;
+    const int nup = child_func->num_upvalues;
     fixedstack(L);
-    Closure* ncl = luaF_newLclosure(L, nup, cl->env);
+    Closure* ncl = luaF_newJclosure(L, nup, cl->env);
     setclvalue(L, ra, ncl);
-    ncl->l.p = proto;
-    for (int j = 0; j < nup; ++j, ++pc)
+    ncl->j.func = child_func;
+    for (int j = 0; j < nup; ++j)
     {
-        if (GET_OPCODE(*pc) == OP_GETUPVAL)
-            ncl->l.upvals[j] = cl->upvals[GETARG_B(*pc)];
+        if (child_func->upvalue_types[j] == UPVAL_LOCAL)
+            ncl->l.upvals[j] = cl->upvals[child_func->upvalue_indices[j]];
         else {
-            lua_assert(GET_OPCODE(*pc) == OP_MOVE);
-            ncl->l.upvals[j] = luaF_findupval(L, base + GETARG_B(*pc));
+            ncl->l.upvals[j] = luaF_findupval(L, base + child_func->upvalue_indices[j]);
         }
+    }
+    if (cl->func->copy_closure[bx])
+    {
+        cl->func->closures[bx] = *ncl;
     }
     unfixedstack(L);
     luaC_checkGC(L);
 }
 
-void vm_OP_VARARG(lua_State *L, LClosure *cl, int a, int b) {
+void vm_OP_VARARG(lua_State *L, JClosure *cl, int a, int b) {
   TValue *base = L->base;
   TValue *ra = base + a;
   int j;
   CallInfo *ci = L->ci;
-  int n = cast_int(ci->base - ci->func) - cl->p->numparams - 1;
+  int n = cast_int(ci->base - ci->func) - cl->func->numparams - 1;
   b -= 1;
   if (b == LUA_MULTRET) {
     Protect(luaD_checkstack(L, n));

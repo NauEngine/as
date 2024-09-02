@@ -55,12 +55,12 @@ void vm_OP_LOADNIL(TValue *base, int a, int b) {
 }
 
 /*	A B	R(A) := UpValue[B]				*/
-void vm_OP_GETUPVAL(LClosure *cl, TValue *ra, int b) {
+void vm_OP_GETUPVAL(JClosure *cl, TValue *ra, int b) {
   setobj_VM(ra, cl->upvals[b]->v);
 }
 
 /*	A Bx	R(A) := Gbl[Kst(Bx)]		*/
-void vm_OP_GETGLOBAL(lua_State *L, TValue *k, LClosure *cl, int a, int bx) {
+void vm_OP_GETGLOBAL(lua_State *L, TValue *k, JClosure *cl, int a, int bx) {
   TValue *base = L->base;
   TValue *ra = base + a;
   TValue *rb = k + bx;
@@ -133,7 +133,7 @@ void vm_OP_SETTABLE(lua_State *L, TValue *ra, TValue *rb, TValue *rc)
 }
 
 //	A Bx	Gbl[Kst(Bx)] := R(A)
-void vm_OP_SETGLOBAL(lua_State *L, TValue *k, LClosure *cl, int a, int bx) {
+void vm_OP_SETGLOBAL(lua_State *L, TValue *k, JClosure *cl, int a, int bx) {
   TValue *base = L->base;
   TValue *ra = base + a;
   TValue g;
@@ -142,7 +142,7 @@ void vm_OP_SETGLOBAL(lua_State *L, TValue *k, LClosure *cl, int a, int bx) {
   luaV_settable(L, &g, k + bx, ra);
 }
 
-void vm_OP_SETUPVAL(lua_State *L, LClosure *cl, int a, int b) {
+void vm_OP_SETUPVAL(lua_State *L, JClosure *cl, int a, int b) {
   TValue *base = L->base;
   TValue *ra = base + a;
   UpVal *uv = cl->upvals[b];
@@ -393,8 +393,8 @@ TValue *vm_get_current_base(lua_State *L)
     return L->base;
 }
 
-LClosure *vm_get_current_closure(lua_State *L) {
-  return &clvalue(L->ci->func)->l;
+JClosure *vm_get_current_closure(lua_State *L) {
+  return &clvalue(L->ci->func)->j;
 }
 
 TValue *vm_get_current_constants(LClosure *cl) {

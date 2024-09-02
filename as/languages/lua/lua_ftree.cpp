@@ -195,7 +195,7 @@ llvm::Constant* buildFunctionTreeIR(
 
     // union Closure* closures;
     // We take LClosure here and its unsafe. But it has same size as union Closure
-    const auto closure_array_t = llvm::ArrayType::get(lua_ir->LClosure_t, node->num_children);
+    const auto closure_array_t = llvm::ArrayType::get(lua_ir->JClosure_t, node->num_children);
     const auto closure_array_const = llvm::Constant::getNullValue(closure_array_t);
     ftree_fields.push_back(wrapArrayIntoGlobal(closure_array_const, "__closures__", module));
 

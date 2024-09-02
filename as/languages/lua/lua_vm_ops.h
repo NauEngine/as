@@ -49,7 +49,6 @@ typedef enum {
 	VAR_T_LUA_STATE_PTR,
 	VAR_T_BASE,
 	VAR_T_K,
-	VAR_T_CL,
 	VAR_T_OP_VALUE_0,
 	VAR_T_OP_VALUE_1,
 	VAR_T_OP_VALUE_2,
@@ -61,7 +60,7 @@ typedef enum {
 	VAR_T_RK_C,
 	VAR_T_CONST_Bx,
 
-	VAR_T_FUNCITON_TREE
+	VAR_T_JCLOSURE,
 } val_t;
 
 typedef struct
@@ -83,15 +82,15 @@ extern void vm_OP_LOADBOOL(TValue *base, int a, int b, int c);
 
 extern void vm_OP_LOADNIL(TValue *base, int a, int b);
 
-extern void vm_OP_GETUPVAL(LClosure *cl, TValue *ra, int b);
+extern void vm_OP_GETUPVAL(JClosure *cl, TValue *ra, int b);
 
-extern void vm_OP_GETGLOBAL(lua_State *L, TValue *k, LClosure *cl, int a, int bx);
+extern void vm_OP_GETGLOBAL(lua_State *L, TValue *k, JClosure *cl, int a, int bx);
 
 extern void vm_OP_GETTABLE(lua_State *L, TValue* ra, TValue* rb, TValue* rc);
 
-extern void vm_OP_SETGLOBAL(lua_State *L, TValue *k, LClosure *cl, int a, int bx);
+extern void vm_OP_SETGLOBAL(lua_State *L, TValue *k, JClosure *cl, int a, int bx);
 
-extern void vm_OP_SETUPVAL(lua_State *L, LClosure *cl, int a, int b);
+extern void vm_OP_SETUPVAL(lua_State *L, JClosure *cl, int a, int b);
 
 extern void vm_OP_SETTABLE(lua_State *L, TValue *ra, TValue *rb, TValue *rc);
 
@@ -140,9 +139,9 @@ extern void vm_OP_SETLIST(lua_State *L, int a, int b, int c);
 
 extern void vm_OP_CLOSE(lua_State *L, int a);
 
-extern void vm_OP_CLOSURE(lua_State *L, LClosure *cl, FunctionTree* ftree, int a, int bx);
+extern void vm_OP_CLOSURE(lua_State *L, JClosure *cl, int a, int bx);
 
-extern void vm_OP_VARARG(lua_State *L, LClosure *cl, int a, int b);
+extern void vm_OP_VARARG(lua_State *L, JClosure *cl, int a, int b);
 
 extern lua_Number vm_NUM_ADD(lua_Number a, lua_Number b);
 extern lua_Number vm_NUM_SUB(lua_Number a, lua_Number b);
@@ -153,7 +152,7 @@ extern lua_Number vm_NUM_POW(lua_Number a, lua_Number b);
 
 extern void vm_arith(lua_State *L, TValue* base, TValue* k, TValue* ra, int b, int c, TMS op);
 
-extern LClosure *vm_get_current_closure(lua_State *L);
+extern JClosure *vm_get_current_closure(lua_State *L);
 extern TValue *vm_get_current_base(lua_State *L);
 extern TValue *vm_get_current_constants(LClosure *cl);
 

@@ -58,12 +58,12 @@ public:
 
     llvm::Type* lua_State_t = nullptr;
     llvm::Type* TValue_t = nullptr;
-    llvm::Type* LClosure_t = nullptr;
+    llvm::Type* JClosure_t = nullptr;
     llvm::StructType* FunctionTree_t = nullptr;
 
     llvm::Type* lua_State_ptr_t = nullptr;
     llvm::Type* TValue_ptr_t = nullptr;
-    llvm::Type* LClosure_ptr_t = nullptr;
+    llvm::Type* JClosure_ptr_t = nullptr;
     llvm::Type* FunctionTree_ptr_t = nullptr;
 
     llvm::FunctionType* lua_func_t = nullptr;
