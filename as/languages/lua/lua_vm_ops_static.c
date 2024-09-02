@@ -317,6 +317,26 @@ void vm_OP_VARARG(lua_State *L, LClosure *cl, int a, int b) {
   }
 }
 
+void module_entry_point(lua_State *L, FunctionTree* ftree_root)
+{
+    Closure* closure = luaF_newJclosure(L, ftree_root->num_upvalues, hvalue(gt(L)));
+    closure->j.func = ftree_root;
+    for (int i = 0; i < ftree_root->num_upvalues; ++i)
+    {
+        closure->l.upvals[i] = luaF_newupval(L);
+    }
+    setclvalue(L, L->top, closure);
+    incr_top(L);
+    lua_call(L, 0, LUA_MULTRET);
+}
+
+void push_global_closure(lua_State *L, FunctionTree* ftree_root, int closure_id)
+{
+    Closure* cl = ftree_root->closures + closure_id;
+    setclvalue(L, L->top, cl);
+    incr_top(L);
+}
+
 #ifdef __cplusplus
 }
 #endif

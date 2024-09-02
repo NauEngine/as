@@ -140,6 +140,7 @@ namespace as::ir
      * @param vtable - Переменная, в которой хранится vtable, может быть null, тогда vtable не будет регистрироваться
      * @param runtime - Переменная, куда класть runtime, может быть null, тогда runtime не нужен
      * @param runtime_name - Имя рантайма, может быть пустой строкой, тогда runtime не нужен
+     * @param custom_init - Функция для кастомной инициализации с сигнатурой void f(void)
      * @return - init функция для данного модуля
      */
     llvm::Function* createInitFunc(llvm::Module& module,
@@ -147,7 +148,8 @@ namespace as::ir
                                    const std::string& module_name,
                                    llvm::GlobalVariable* vtable,
                                    llvm::GlobalVariable* runtime = nullptr,
-                                   const std::string& runtime_name = "");
+                                   const std::string& runtime_name = "",
+                                   llvm::Function* custom_init = nullptr);
 
     std::string getImplements(const std::string& filepath, const std::string& pattern);
 

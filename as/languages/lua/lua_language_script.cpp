@@ -3,6 +3,7 @@
 //
 
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Verifier.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 
 #include "as/core/core_utils.h"
@@ -78,23 +79,14 @@ LuaLanguageScript::LuaLanguageScript(
     const std::shared_ptr<LuaLLVMCompiler>& llvmCompiler):
     m_lua_state(state),
     m_lua_ir(lua_ir),
-    m_llvmCompiler(llvmCompiler),
-    m_registry_index(LUA_NOREF)
+    m_llvmCompiler(llvmCompiler)
 {
 
 }
 
 LuaLanguageScript::~LuaLanguageScript()
 {
-    if (m_registry_index != LUA_NOREF)
-    {
-        luaL_unref(m_lua_state, LUA_REGISTRYINDEX, m_registry_index);
-    }
 
-    for (const auto& [name, ref] : m_func_registry_ids)
-    {
-        luaL_unref(m_lua_state, LUA_REGISTRYINDEX, ref);
-    }
 }
 
 void LuaLanguageScript::load(const std::string& filename, llvm::LLVMContext& context)
@@ -135,38 +127,25 @@ std::shared_ptr<ScriptInterface> LuaLanguageScript::getInterface(const std::stri
 std::unique_ptr<llvm::Module> LuaLanguageScript::createModule(
         llvm::LLVMContext& context)
 {
-    auto module = std::make_unique<llvm::Module>("lua_module", context);
+    return std::make_unique<llvm::Module>("lua_module", context);
+}
 
-    m_functionTree = m_llvmCompiler->compile(context, *module, m_lua_ir, m_lua_state, m_proto);
-    const auto ftree_const = buildFunctionTreeIR(m_functionTree, m_lua_ir, context);
-    auto ftree_global = new llvm::GlobalVariable(*module, ftree_const->getType(), false,
-        llvm::GlobalValue::InternalLinkage, ftree_const, ".func_tree");
+llvm::Function* LuaLanguageScript::buildCustomInitFunction(llvm::Module& module)
+{
+    auto& context = module.getContext();
+    llvm::IRBuilder<> builder(context);
 
+    const auto initFunction_t = llvm::FunctionType::get(m_lua_ir->void_t, {}, false);
+    llvm::Function* func = llvm::Function::Create(initFunction_t, llvm::Function::InternalLinkage,
+                                  "__custom_init__", module);
 
-    m_lua_state_extern = new llvm::GlobalVariable(*module, m_lua_ir->FunctionTree_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
-                                                      nullptr,
-                                                      LuaIR::LUA_STATE_GLOBAL_VAR);
+    llvm::BasicBlock* block = llvm::BasicBlock::Create(context, "entry", func);
+    builder.SetInsertPoint(block);
 
-    // Closure* closure = luaF_newJclosure(m_lua_state, m_proto->nups, hvalue(gt(m_lua_state)));
-    // closure->j.func = ftree;
-    // for (int i = 0; i < m_proto->nups; ++i)
-    // {
-    //     closure->l.upvals[i] = luaF_newupval(m_lua_state);
-    // }
-    // setclvalue(m_lua_state, m_lua_state->top, closure);
-    // incr_top(m_lua_state);
+    builder.CreateCall(m_lua_ir->module_entry_point_f, {m_lua_state_global, m_ftree_root_ptr});
+    builder.CreateRetVoid();
 
-
-    m_registry_index = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
-    m_lua_state_extern = new llvm::GlobalVariable(*module, m_lua_ir->lua_State_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
-                                                      nullptr,
-                                                      LuaIR::LUA_STATE_GLOBAL_VAR);
-
-    // TODO [AZ] check if registry_index exists
-    lua_rawgeti(m_lua_state, LUA_REGISTRYINDEX, m_registry_index);
-    lua_call(m_lua_state, 0, LUA_MULTRET);
-
-    return module;
+    return func;
 }
 
 llvm::Function* LuaLanguageScript::buildModule(const std::string& init_name,
@@ -174,14 +153,31 @@ llvm::Function* LuaLanguageScript::buildModule(const std::string& init_name,
     const ScriptInterface& interface,
     llvm::Module& module)
 {
+    auto& context = module.getContext();
+
+    m_functionTree = m_llvmCompiler->compile(context, module, m_lua_ir, m_lua_state, m_proto);
+    const auto ftree_const = buildFunctionTreeIR(m_functionTree, m_lua_ir, module);
+    const auto m_ftree_root = new llvm::GlobalVariable(module, m_lua_ir->FunctionTree_t, false,
+        llvm::GlobalValue::InternalLinkage, ftree_const, "__func_tree__");
+    m_ftree_root_ptr = new llvm::GlobalVariable(module, m_lua_ir->FunctionTree_ptr_t, false,
+        llvm::GlobalValue::InternalLinkage, llvm::ConstantExpr::getBitCast(m_ftree_root, m_lua_ir->FunctionTree_ptr_t), "__func_tree_ptr__");
+
+    m_lua_state_global = new llvm::GlobalVariable(module, m_lua_ir->lua_State_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
+                                                      nullptr,
+                                                      LuaIR::LUA_STATE_GLOBAL_VAR);
+
+    const auto customInitFunction = buildCustomInitFunction(module);
+
     const auto vtable = ir::buildVTable(module_name, interface, module, &LuaLanguageScript::buildFunction, this);
     ir::addMissingDeclarations(module);
-    const auto init_func =  ir::createInitFunc(module, init_name, module_name, vtable, nullptr, "");
+    const auto init_func =  ir::createInitFunc(module, init_name, module_name, vtable, nullptr, "", customInitFunction);
 
     if (m_dumpCompiled)
     {
         llvm::errs() << module;
     }
+
+//    llvm::verifyModule(module, &llvm::errs());
 
     return init_func;
 }
@@ -195,48 +191,41 @@ llvm::Function* LuaLanguageScript::buildFunction(
     LuaStackGuard stack_guard(m_lua_state);
     const LLVMOptimizer optimizer(&module);
 
-    lua_getglobal(m_lua_state, bare_name.c_str());
-    int func_ref = LUA_NOREF;
-    if (lua_type(m_lua_state, -1) == LUA_TFUNCTION)
+    if (!m_functionTree->global_func_map.contains(bare_name))
     {
-        func_ref = luaL_ref(m_lua_state, LUA_REGISTRYINDEX);
-        m_func_registry_ids[bare_name] = func_ref;
+        fprintf(stderr, "Error: global function for interface not found!\n");
+        exit(1);
     }
-    else
-    {
-        // TODO [AZ] handle error
-        assert(false);
-        return nullptr;
-    }
+
+    const int closure_id = m_functionTree->global_func_map[bare_name];
 
     llvm::IRBuilder<> builder(context);
     llvm::Function* func = llvm::Function::Create(signature, llvm::Function::InternalLinkage, bare_name, module);
     llvm::BasicBlock* block = llvm::BasicBlock::Create(context, "entry", func);
     builder.SetInsertPoint(block);
 
-    llvm::Value* func_ref_val = builder.getInt32(func_ref);
-    llvm::Value* LUA_REGISTRYINDEX_val = builder.getInt32(LUA_REGISTRYINDEX);
+    llvm::Value* closure_id_val = builder.getInt32(closure_id);
 
-    builder.CreateCall(m_lua_ir->lua_rawgeti_f, {m_lua_state_extern, LUA_REGISTRYINDEX_val, func_ref_val});
+    builder.CreateCall(m_lua_ir->push_global_closure_f, {m_lua_state_global, m_ftree_root_ptr, closure_id_val});
 
     // 0 arg is pointer to structure, skip it
     for (int i = 1; i < signature->getNumParams(); ++i)
     {
         llvm::Value* arg = func->getArg(i);
-        m_lua_ir->buildPushValue(builder, m_lua_state_extern, arg->getType(), arg);
+        m_lua_ir->buildPushValue(builder, m_lua_state_global, arg->getType(), arg);
     }
 
     llvm::Constant* num_args = builder.getInt32(signature->getNumParams() - 1);
     llvm::Constant* num_rets = builder.getInt32(1);
 
 //    builder.CreateCall(m_lua_ir->lua_call_f, {m_lua_state_extern, num_args, num_rets});
-    builder.CreateCall(m_lua_ir->lua_call_compiled_f, {m_lua_state_extern, num_args, num_rets});
+    builder.CreateCall(m_lua_ir->lua_call_compiled_f, {m_lua_state_global, num_args, num_rets});
 
     const llvm::Type* ret_type = func->getReturnType();
-    llvm::Value* ret = m_lua_ir->buildPopValue(builder, m_lua_state_extern, ret_type, -1);
+    llvm::Value* ret = m_lua_ir->buildPopValue(builder, m_lua_state_global, ret_type, -1);
 
     llvm::Constant* stack_pos = builder.getInt32(-(1)-1);
-    builder.CreateCall(m_lua_ir->lua_settop_f, {m_lua_state_extern, stack_pos});
+    builder.CreateCall(m_lua_ir->lua_settop_f, {m_lua_state_global, stack_pos});
 
     builder.CreateRet(ret);
 

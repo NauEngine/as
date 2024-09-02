@@ -34,6 +34,7 @@ struct FunctionTreeNode
 
     // Map from global function name to its index in children
     std::unordered_map<std::string, int> global_func_map;
+    std::vector<unsigned char> copy_closure;
 };
 
 std::shared_ptr<FunctionTreeNode> buildFunctionTree(
@@ -51,7 +52,7 @@ void fillUpValues(
 llvm::Constant* buildFunctionTreeIR(
     const std::shared_ptr<FunctionTreeNode>& node,
     const std::shared_ptr<LuaIR>& lua_ir,
-    llvm::LLVMContext& context);
+    llvm::Module& module);
 
 
 } // namespace as

@@ -90,6 +90,19 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     vm_set_number_f = m_lapiModule->getFunction("vm_set_number");
     vm_arith_f = m_lapiModule->getFunction("vm_arith");
 
+    // entry point functions
+    // module_entry_point_f = m_lapiModule->getFunction("module_entry_point");
+    // push_global_closure_f = m_lapiModule->getFunction("push_global_closure");
+
+    const auto module_entry_point_f_type = llvm::FunctionType::get(void_t, { lua_State_ptr_t, FunctionTree_ptr_t}, false);
+    module_entry_point_f = llvm::Function::Create(module_entry_point_f_type, llvm::Function::ExternalLinkage,
+                                  "module_entry_point", m_lapiModule.get());
+
+    const auto push_global_closure_f_type = llvm::FunctionType::get(void_t, { lua_State_ptr_t, FunctionTree_ptr_t, int32_t}, false);
+    push_global_closure_f = llvm::Function::Create(push_global_closure_f_type, llvm::Function::ExternalLinkage,
+                                  "push_global_closure", m_lapiModule.get());
+
+
     vm_num_f[OP_ADD] = m_lapiModule->getFunction("vm_NUM_ADD");
     vm_num_f[OP_SUB] = m_lapiModule->getFunction("vm_NUM_SUB");
     vm_num_f[OP_MUL] = m_lapiModule->getFunction("vm_NUM_MUL");

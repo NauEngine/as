@@ -162,6 +162,9 @@ extern int vm_get_type(TValue *value);
 extern lua_Number vm_get_number(TValue *value);
 extern void vm_set_number(TValue *value, lua_Number num);
 
+extern void module_entry_point(lua_State *L, FunctionTree* ftree_root);
+extern void push_global_closure(lua_State *L, FunctionTree* ftree_root, int closure_id);
+
 /*
 ** some macros for common tasks in `vm_OP_*' functions.
 */

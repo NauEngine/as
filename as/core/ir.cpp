@@ -131,7 +131,8 @@ llvm::Function* createInitFunc(llvm::Module& module,
     const std::string& module_name,
     llvm::GlobalVariable* vtable,
     llvm::GlobalVariable* runtime,
-    const std::string& runtime_name)
+    const std::string& runtime_name,
+    llvm::Function* custom_init)
 {
     llvm::LLVMContext& context = module.getContext();
     llvm::IRBuilder<> builder(context);
@@ -168,6 +169,11 @@ llvm::Function* createInitFunc(llvm::Module& module,
         const auto runtime_name_var = builder.CreateGlobalStringPtr(runtime_name, ".runtime_name");
         const auto runtime_value = builder.CreateCall(require_runtime_func, { core_arg, runtime_name_var });
         builder.CreateStore(runtime_value, runtime);
+    }
+
+    if (custom_init)
+    {
+        builder.CreateCall(custom_init);
     }
 
     builder.CreateRetVoid();

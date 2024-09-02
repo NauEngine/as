@@ -418,7 +418,7 @@ void vm_set_number(TValue *value, lua_Number num)
 
 struct FunctionTree* __stub_for_types(struct FunctionTree* ftree)
 {
-    return ftree->children[0];
+    return ftree->children;
 }
 
 #ifdef __cplusplus

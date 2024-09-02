@@ -4,6 +4,8 @@
 
 #include <stdio.h>
 
+#include "llvm/IR/IRBuilder.h"
+
 #include "as/core/core_utils.h"
 
 #include "lua_ir.h"
@@ -52,6 +54,7 @@ std::shared_ptr<FunctionTreeNode> buildFunctionTree(
 
     node->num_children = proto->sizep;
     node->children.resize(node->num_children);
+    node->copy_closure.resize(node->num_children, false);
 
     for (int i = 0; i < proto->sizep; ++i)
     {
@@ -99,33 +102,60 @@ void fillUpValues(
         const int bx = GETARG_Bx(*code);
         const std::string func_name = svalue(&parent->proto->k[bx]);
         parent->global_func_map[func_name] = child_id;
+        parent->copy_closure[child_id] = true;
     }
 }
 
+llvm::Constant* wrapArrayIntoGlobal(
+    llvm::Constant* array,
+    const char* array_name,
+    llvm::Module& module)
+{
+    auto& context = module.getContext();
+
+    auto array_global = new llvm::GlobalVariable(module, array->getType(), false,
+        llvm::GlobalValue::InternalLinkage, array, array_name);
+
+    auto idx_list =
+    {
+        llvm::Constant::getNullValue(llvm::IntegerType::get(context, 32)),
+        llvm::Constant::getNullValue(llvm::IntegerType::get(context, 32))
+    };
+
+    return llvm::ConstantExpr::getGetElementPtr(array->getType(), array_global, idx_list);
+
+}
 
 template <typename T>
-    llvm::Constant* buildIntConstantArray(
-        const std::vector<T>& array,
-        int bitsize,
-        llvm::LLVMContext& context)
+llvm::Constant* buildIntConstantArray(
+    const std::vector<T>& array,
+    int bitsize,
+    const char* array_name,
+    llvm::Module& module)
 {
-    std::vector<llvm::Constant *> const_array;
-    const_array.resize(array.size());
+    auto& context = module.getContext();
+
+    std::vector<llvm::Constant *> array_of_const;
+    array_of_const.resize(array.size());
 
     for (int i = 0; i < array.size(); ++i)
     {
-        const_array[i] = llvm::ConstantInt::get(context, llvm::APInt(bitsize, array[i]));
+        array_of_const[i] = llvm::ConstantInt::get(context, llvm::APInt(bitsize, array[i]));
     }
 
     auto array_type = llvm::ArrayType::get(llvm::IntegerType::get(context, bitsize), array.size());
-    return llvm::ConstantArray::get(array_type, const_array);
+    auto array_const = llvm::ConstantArray::get(array_type, array_of_const);
+
+    return wrapArrayIntoGlobal(array_const, array_name, module);
 }
 
 llvm::Constant* buildFunctionTreeIR(
     const std::shared_ptr<FunctionTreeNode>& node,
     const std::shared_ptr<LuaIR>& lua_ir,
-    llvm::LLVMContext& context)
+    llvm::Module& module)
 {
+    auto& context = module.getContext();
+
     std::vector<llvm::Constant*> ftree_fields;
 
     // lua_CFunction func;
@@ -142,12 +172,12 @@ llvm::Constant* buildFunctionTreeIR(
     ftree_fields.push_back(llvm::ConstantInt::get(context, llvm::APInt(8, node->num_upvalues)));
 
     // lu_byte *upvalue_types; // 0 - local, 1 - inherit upvalue
-    ftree_fields.push_back(buildIntConstantArray(node->upvalue_types, 8, context));
+    ftree_fields.push_back(buildIntConstantArray(node->upvalue_types, 8, "__upvalue_types__", module));
     // int *upvalue_indices;
-    ftree_fields.push_back(buildIntConstantArray(node->upvalue_indices, 32, context));
+    ftree_fields.push_back(buildIntConstantArray(node->upvalue_indices, 32, "__upvalue_indices__", module));
 
     // int num_children;
-    ftree_fields.push_back(llvm::ConstantInt::get(context, llvm::APInt(8, node->num_children)));
+    ftree_fields.push_back(llvm::ConstantInt::get(context, llvm::APInt(32, node->num_children)));
 
     // struct FunctionTree* children;
     std::vector<llvm::Constant *> child_array;
@@ -155,11 +185,29 @@ llvm::Constant* buildFunctionTreeIR(
 
     for (int i = 0; i < node->num_children; ++i)
     {
-        child_array[i] = buildFunctionTreeIR(node->children[i], lua_ir, context);
+        child_array[i] = buildFunctionTreeIR(node->children[i], lua_ir, module);
     }
 
-    const auto children_array_type = llvm::ArrayType::get(lua_ir->FunctionTree_t, node->num_children);
-    ftree_fields.push_back(llvm::ConstantArray::get(children_array_type, child_array));
+    // struct FunctionTree* children;  /* functions defined inside the function */
+    const auto children_array_t = llvm::ArrayType::get(lua_ir->FunctionTree_t, node->num_children);
+    const auto children_array_const = llvm::ConstantArray::get(children_array_t, child_array);
+    ftree_fields.push_back(wrapArrayIntoGlobal(children_array_const, "__children__", module));
+
+    // union Closure* closures;
+    // We take LClosure here and its unsafe. But it has same size as union Closure
+    const auto closure_array_t = llvm::ArrayType::get(lua_ir->LClosure_t, node->num_children);
+    const auto closure_array_const = llvm::Constant::getNullValue(closure_array_t);
+    ftree_fields.push_back(wrapArrayIntoGlobal(closure_array_const, "__closures__", module));
+
+    // lu_byte *copy_closure;
+    ftree_fields.push_back(buildIntConstantArray(node->copy_closure, 8, "__copy_closure__", module));
+
+    // llvm::errs() << *lua_ir->FunctionTree_t;
+    //
+    // for (auto& it : ftree_fields)
+    // {
+    //     llvm::errs() << *it->getType() << ", ";
+    // }
 
     return llvm::ConstantStruct::get(lua_ir->FunctionTree_t, ftree_fields);
 }

@@ -95,6 +95,10 @@ public:
     llvm::Function* vm_set_number_f = nullptr;
     llvm::Function* vm_arith_f = nullptr;
 
+    // entry point functions
+    llvm::Function* module_entry_point_f = nullptr;
+    llvm::Function* push_global_closure_f = nullptr;
+
     std::unordered_map<int, llvm::Function*> vm_num_f;
     std::unordered_map<int, TMS> vm_arith_tms_map;
 
@@ -107,8 +111,6 @@ public:
 
 private:
     std::unique_ptr<llvm::Module> m_lapiModule;
-    // std::unique_ptr<llvm::Module> m_lauxlibModule;
-    // std::unique_ptr<llvm::Module> m_luaVMModule;
 
     // lua vm opcode functions
     OPFunction op_functions[NUM_OPCODES];

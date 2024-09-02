@@ -259,6 +259,8 @@ typedef struct Proto {
 #define UPVAL_LOCAL 0
 #define UPVAL_INHERITED 1
 
+union Closure;
+
 typedef struct FunctionTree {
   lua_CFunction func;
 
@@ -272,6 +274,8 @@ typedef struct FunctionTree {
 
   int num_children;  /* size of func */
   struct FunctionTree* children;  /* functions defined inside the function */
+  union Closure* closures;
+  lu_byte *copy_closure;
 } FunctionTree;
 
 /* masks for new-style vararg */
