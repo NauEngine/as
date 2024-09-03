@@ -91,13 +91,7 @@ LuaLanguageScript::~LuaLanguageScript()
 
 void LuaLanguageScript::load(const std::string& filename, llvm::LLVMContext& context)
 {
-    const int result = luaL_loadfile(m_lua_state, filename.c_str());
-
-
-    const Closure* closure = clvalue(m_lua_state->top - 1);
-    m_proto = closure->l.p;
-
-//    m_proto = load_lua_source(m_lua_state, filename.c_str());
+    m_proto = load_lua_source(m_lua_state, filename.c_str());
 
     if (!m_proto)
     {
