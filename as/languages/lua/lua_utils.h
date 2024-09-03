@@ -11,6 +11,18 @@ struct Proto;
 namespace as
 {
 
+class LuaLocalState
+{
+public:
+    explicit LuaLocalState();
+    ~LuaLocalState();
+
+    [[nodiscard]] lua_State* get() const { return m_luaState; }
+
+private:
+    lua_State* m_luaState = nullptr;
+};
+
 class LuaStackGuard
 {
 public:
@@ -20,7 +32,7 @@ public:
   LuaStackGuard(const LuaStackGuard&) = delete;
   LuaStackGuard& operator=(const LuaStackGuard&) = delete;
 
- private:
+private:
   lua_State* const lua_state;
   const int top;
 };

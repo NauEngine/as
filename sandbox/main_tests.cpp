@@ -26,12 +26,12 @@ struct LoggerImpl : Logger
 {
   void warn(int a, int b) override
   {
-    std::cout << "W: a: " << a << "b: "  << b << std::endl;
+    std::cout << "W: a: " << a << " b: "  << b << std::endl;
   }
 
   int debug(int a, int b) override
   {
-    std::cout << "D: a: " << a << "b: "  << b << std::endl;
+    std::cout << "D: a: " << a << " b: "  << b << std::endl;
     return 10;
   }
 };

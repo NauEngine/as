@@ -8,11 +8,30 @@
 extern "C"
 {
 #include "lua/lua.h"
+#include "lua/lauxlib.h"
+#include "lua/lualib.h"
+#include "lua/lstate.h"
 }
 
 namespace as
 {
-  LuaStackGuard::LuaStackGuard(lua_State* lua_state):
+
+LuaLocalState::LuaLocalState()
+{
+    m_luaState = luaL_newstate();
+    luaL_openlibs(m_luaState);
+}
+
+LuaLocalState::~LuaLocalState()
+{
+    if (m_luaState)
+    {
+        lua_close(m_luaState);
+        m_luaState = nullptr;
+    }
+}
+
+LuaStackGuard::LuaStackGuard(lua_State* lua_state):
     lua_state(lua_state),
     top(lua_gettop(lua_state))
   {

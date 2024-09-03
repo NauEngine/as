@@ -1,3 +1,5 @@
+-- implements test_vm.h
+-- require logger implements logger.h
 
 local x = 10
 local z = 1
@@ -19,6 +21,7 @@ function foo(a, b) -- 10, 20
 end
 
 function bar(a)
+    logger:warn(10, 20)
     local t1, t2 = test()
     return a * 100 + y + t1 + t2
 end

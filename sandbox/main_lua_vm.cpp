@@ -8,6 +8,24 @@
 
 #include "scripts/test_vm.h"
 
+DEFINE_SCRIPT_INTERFACE(Logger,
+    virtual void warn(int a, int b) = 0;
+    virtual void debug(int a, int b) = 0;
+)
+
+struct LoggerImpl : Logger
+{
+    void warn(int a, int b) override
+    {
+        std::cout << "W: a: " << a << " b: "  << b << std::endl;
+    }
+
+    void debug(int a, int b) override
+    {
+        std::cout << "D: a: " << a << " b: "  << b << std::endl;
+    }
+};
+
 int main()
 {
     auto script_core = std::make_shared<as::Core>("../../sandbox");
@@ -15,12 +33,16 @@ int main()
 
     script_core->registerLanguage("lua", std::move(lua_language));
 
-    auto script_module = script_core->newScriptModule<TestScript>("scripts/test_vm.lua");
-    auto instances = script_module->newInstance();
-    std::cout << instances->foo(10, 20) << std::endl;
-    std::cout << instances->bar(200) << std::endl;
+    LoggerImpl logger;
+    script_core->registerInstance<Logger>(&logger, "logger");
 
-    delete instances;
+    auto script_module = script_core->newScriptModule<TestScript>("scripts/test_vm.lua");
+    const auto instance = script_module->newInstance();
+
+    std::cout << instance->foo(10, 20) << std::endl;
+    std::cout << instance->bar(200) << std::endl;
+
+    delete instance;
     script_module = nullptr;
     script_core = nullptr;
 
