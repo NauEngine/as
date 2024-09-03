@@ -48,6 +48,8 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     {
         TValue_t = llvm::StructType::getTypeByName(context, "struct.TValue");
     }
+    Value_t = llvm::StructType::getTypeByName(context, "union.Value");
+    ConstantString_t = llvm::StructType::getTypeByName(context, "struct.ConstantString");
     JClosure_t = llvm::StructType::getTypeByName(context, "struct.JClosure");
     FunctionTree_t = llvm::StructType::getTypeByName(context, "struct.FunctionTree");
 

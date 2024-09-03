@@ -268,6 +268,18 @@ void vm_OP_SETLIST(lua_State *L, int a, int b, int c) {
   unfixedstack(L);
 }
 
+    //	A Bx	Gbl[Kst(Bx)] := R(A)
+void vm_OP_SETGLOBAL(lua_State *L, TValue *k, JClosure *cl, int a, int bx)
+{
+    TValue *base = L->base;
+    TValue *ra = base + a;
+    TValue g;
+    sethvalue(L, &g, cl->env);
+    lua_assert(ttisstring(k + bx));
+    luaV_settable(L, &g, k + bx, ra);
+}
+
+
 /*	A Bx	R(A) := closure(KPROTO[Bx], R(A), ... ,R(A+n))	*/
 void vm_OP_CLOSURE(lua_State *L, JClosure *cl, int a, int bx)
 {
@@ -319,8 +331,27 @@ void vm_OP_VARARG(lua_State *L, JClosure *cl, int a, int b) {
   }
 }
 
+void prepare_strings(lua_State *L, FunctionTree* ftree)
+{
+    for (int i = 0; i < ftree->sizek; ++i)
+    {
+        if (ftree->k_strings->size > 0)
+        {
+            TValue* o = &ftree->k[i];
+            setsvalue2n(L, o, luaS_newlstr(L, ftree->k_strings[i].string, ftree->k_strings[i].size));
+        }
+    }
+
+    for (int i = 0; i < ftree->num_children; ++i)
+    {
+        prepare_strings(L, ftree->children + i);
+    }
+}
+
 void module_entry_point(lua_State *L, FunctionTree* ftree_root)
 {
+    prepare_strings(L, ftree_root);
+
     Closure* closure = luaF_newJclosure(L, ftree_root->num_upvalues, hvalue(gt(L)));
     closure->j.func = ftree_root;
     for (int i = 0; i < ftree_root->num_upvalues; ++i)

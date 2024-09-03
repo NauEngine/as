@@ -154,7 +154,7 @@ extern void vm_arith(lua_State *L, TValue* base, TValue* k, TValue* ra, int b, i
 
 extern JClosure *vm_get_current_closure(lua_State *L);
 extern TValue *vm_get_current_base(lua_State *L);
-extern TValue *vm_get_current_constants(LClosure *cl);
+extern TValue *vm_get_current_constants(JClosure *cl);
 
 extern int vm_get_type(TValue *value);
 

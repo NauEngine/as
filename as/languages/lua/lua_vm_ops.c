@@ -132,16 +132,6 @@ void vm_OP_SETTABLE(lua_State *L, TValue *ra, TValue *rb, TValue *rc)
     luaV_settable(L, ra, rb, rc);
 }
 
-//	A Bx	Gbl[Kst(Bx)] := R(A)
-void vm_OP_SETGLOBAL(lua_State *L, TValue *k, JClosure *cl, int a, int bx) {
-  TValue *base = L->base;
-  TValue *ra = base + a;
-  TValue g;
-  sethvalue(L, &g, cl->env);
-  lua_assert(ttisstring(k + bx));
-  luaV_settable(L, &g, k + bx, ra);
-}
-
 void vm_OP_SETUPVAL(lua_State *L, JClosure *cl, int a, int b) {
   TValue *base = L->base;
   TValue *ra = base + a;
@@ -397,8 +387,8 @@ JClosure *vm_get_current_closure(lua_State *L) {
   return &clvalue(L->ci->func)->j;
 }
 
-TValue *vm_get_current_constants(LClosure *cl) {
-  return cl->p->k;
+TValue *vm_get_current_constants(JClosure *cl) {
+  return cl->func->k;
 }
 
 int vm_get_type(TValue *value) {
@@ -416,9 +406,12 @@ void vm_set_number(TValue *value, lua_Number num)
     value->tt=LUA_TNUMBER;
 }
 
-struct FunctionTree* __stub_for_types(struct FunctionTree* ftree)
+struct FunctionTree* __stub_for_types(struct FunctionTree* ftree, struct ConstantString* constString)
 {
-    return ftree->children;
+    if (constString->size > 0)
+        return ftree->children;
+    else
+        return ftree->children + 1;
 }
 
 #ifdef __cplusplus

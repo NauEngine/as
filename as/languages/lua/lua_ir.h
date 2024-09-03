@@ -54,10 +54,12 @@ public:
     llvm::Type* double_t = nullptr;
     llvm::Type* float_t = nullptr;
     llvm::Type* bool_t = nullptr;
-    llvm::Type* char_ptr_t = nullptr;
+    llvm::PointerType* char_ptr_t = nullptr;
 
     llvm::Type* lua_State_t = nullptr;
-    llvm::Type* TValue_t = nullptr;
+    llvm::StructType* TValue_t = nullptr;
+    llvm::StructType* Value_t = nullptr;
+    llvm::StructType* ConstantString_t = nullptr;
     llvm::Type* JClosure_t = nullptr;
     llvm::StructType* FunctionTree_t = nullptr;
 

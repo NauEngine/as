@@ -261,6 +261,12 @@ typedef struct Proto {
 
 union Closure;
 
+typedef struct ConstantString {
+  int size;
+  const char* string;
+
+} ConstantString;
+
 typedef struct FunctionTree {
   lua_CFunction func;
 
@@ -276,6 +282,10 @@ typedef struct FunctionTree {
   struct FunctionTree* children;  /* functions defined inside the function */
   union Closure* closures;
   lu_byte *copy_closure;
+
+  int sizek;  /* size of `k' */
+  TValue* k;  /* function constants */
+  ConstantString* k_strings; /* compiled constant strings */
 } FunctionTree;
 
 /* masks for new-style vararg */
