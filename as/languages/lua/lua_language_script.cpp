@@ -229,6 +229,6 @@ llvm::Function* LuaLanguageScript::buildFunction(
 
     return func;
 }
-    
+
 } // namespace as
 
