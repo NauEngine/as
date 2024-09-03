@@ -32,6 +32,10 @@ public:
         const ScriptInterface& interface,
         llvm::Module& module) override;
 
+    void materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
+                     llvm::orc::JITDylib& lib,
+                     llvm::Module& module, llvm::LLVMContext& context) override {}
+
 private:
     std::unique_ptr<script::Module> m_module;
     std::string m_filename;

@@ -66,6 +66,19 @@ struct ILanguageScript
         const std::string& module_name,
         const ScriptInterface& interface,
         llvm::Module& module) = 0;
+
+    /**
+     * Выполнить какие-либо действия, необходимые для материализации данного скриптового модуля. Обычно используется
+     * для материализации вспомогательных объектов
+     * @param jit - LLVM Jit
+     * @param lib - LLVM Lib в рамках которой материализуется данный модуль
+     * @param module - LLVM Module
+     * @param context - LLVM Context
+     */
+    virtual void materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
+                             llvm::orc::JITDylib& lib,
+                             llvm::Module& module,
+                             llvm::LLVMContext& context) = 0;
 };
 
 } // namespace as

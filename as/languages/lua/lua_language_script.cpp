@@ -229,6 +229,12 @@ llvm::Function* LuaLanguageScript::buildFunction(
 
     return func;
 }
-    
+
+void LuaLanguageScript::materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::orc::JITDylib& lib,
+        llvm::Module& module, llvm::LLVMContext& context)
+{
+//    m_llvmCompiler->materialize(jit, lib, m_func_names);
+}
+
 } // namespace as
 
