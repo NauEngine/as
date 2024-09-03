@@ -761,20 +761,5 @@ union luai_Cast { double l_d; long l_l; };
 ** without modifying the main part of the file.
 */
 
-#if !defined(JIT_SUPPORT)
-
-/* extra variables for global_State */
-#define JIT_COMPILER_STATE
-
-/* jit function state */
-#define JIT_PROTO_STATE
-
-/* functions */
-#define JIT_NEWPROTO(L,p)
-#define JIT_FREEPROTO(L,p)
-#define JIT_PRECALL luaD_precall_lua
-
-#endif
-
 #endif
 

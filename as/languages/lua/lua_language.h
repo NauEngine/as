@@ -39,10 +39,6 @@ public:
     const std::string& instanceName,
     const std::shared_ptr<ScriptInterface>& interface) override;
 
-  // [AZ] TODO temporary
-  void compile(lua_State *L, Proto *p);
-  void freeProto(lua_State *L, Proto *p);
-
 private:
   lua_State* m_lua_state = nullptr;
   std::shared_ptr<LuaIR> m_lua_ir;

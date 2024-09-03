@@ -47,10 +47,6 @@ public:
 	    lua_State* L,
 	    Proto* p);
 
-    void materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
-        llvm::orc::JITDylib& lib,
-        const std::unordered_map<Proto*, std::string>& func_names);
-
 private:
 	class OPValues
 	{

@@ -35,7 +35,7 @@ Closure *luaF_newCclosure (lua_State *L, int nelems, Table *e) {
 Closure *luaF_newLclosure (lua_State *L, int nelems, Table *e) {
   Closure *c = cast(Closure *, luaM_malloc(L, sizeLclosure(nelems)));
   luaC_link(L, obj2gco(c), LUA_TFUNCTION);
-  c->l.precall = JIT_PRECALL;
+  c->l.precall = luaD_precall_lua;
   c->l.cl_type = CLOSURE_L;
   c->l.env = e;
   c->l.nupvalues = cast_byte(nelems);
@@ -148,12 +148,10 @@ Proto *luaF_newproto (lua_State *L) {
   f->linedefined = 0;
   f->lastlinedefined = 0;
   f->source = NULL;
-  JIT_NEWPROTO(L, f);
   return f;
 }
 
 void luaF_freeproto (lua_State *L, Proto *f) {
-  JIT_FREEPROTO(L, f);
   luaM_freearray(L, f->code, f->sizecode, Instruction);
   luaM_freearray(L, f->p, f->sizep, Proto *);
   luaM_freearray(L, f->k, f->sizek, TValue);

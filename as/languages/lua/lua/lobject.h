@@ -253,7 +253,6 @@ typedef struct Proto {
   lu_byte numparams;
   lu_byte is_vararg;
   lu_byte maxstacksize;
-  JIT_PROTO_STATE
 } Proto;
 
 #define UPVAL_LOCAL 0

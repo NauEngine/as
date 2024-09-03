@@ -10,18 +10,6 @@ extern "C" {
 #include "lua/lobject.h"
 
 
-void llvm_newproto (lua_State *L, Proto *f);
-void llvm_freeproto (lua_State *L, Proto *f);
-int llvm_precall_jit (lua_State *L, StkId func, int nresults);
-int llvm_precall_lua (lua_State *L, StkId func, int nresults);
-
-extern void llvm_compiler_free(lua_State *L, Proto *p);
-
-/* functions */
-#define JIT_NEWPROTO(L,f) llvm_newproto(L,f)
-#define JIT_FREEPROTO(L,f) llvm_freeproto(L,f)
-#define JIT_PRECALL llvm_precall_lua
-
 #include "lua/lapi.c"
 #include "lua/lcode.c"
 #include "lua/ldebug.c"
@@ -57,17 +45,6 @@ extern void llvm_compiler_free(lua_State *L, Proto *p);
 
 //#include "llvm_lmathlib.c" // [AZ] TODO
 #include "lua/lmathlib.c"   // [AZ] TODO
-
-#include "lua_hooks.cpp"
-
-void llvm_newproto (lua_State *L, Proto *f) {
-    (void)L;
-    f->jit_func = NULL;
-}
-
-void llvm_freeproto (lua_State *L, Proto *f) {
-    //llvm_compiler_free(L, f);
-}
 
 #ifdef __cplusplus
 }

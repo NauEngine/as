@@ -461,17 +461,6 @@ std::shared_ptr<FunctionTreeNode>  LuaLLVMCompiler::compile(
     return ftree;
 }
 
-void LuaLLVMCompiler::materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
-    llvm::orc::JITDylib& lib,
-    const std::unordered_map<Proto*, std::string>& func_names)
-{
-    for (auto [proto, func_name] : func_names)
-    {
-        auto func_addr = llvm::cantFail(jit->lookup(lib, func_name));
-        proto->jit_func = func_addr.toPtr<lua_CFunction>();
-    }
-}
-
 void LuaLLVMCompiler::сompileAllProtos(
     llvm::LLVMContext& context,
     const std::shared_ptr<LuaIR>& lua_ir,
