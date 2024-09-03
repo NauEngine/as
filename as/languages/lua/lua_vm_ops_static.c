@@ -295,9 +295,12 @@ void vm_OP_CLOSURE(lua_State *L, JClosure *cl, int a, int bx)
     for (int j = 0; j < nup; ++j)
     {
         if (child_func->upvalue_types[j] == UPVAL_LOCAL)
-            ncl->l.upvals[j] = cl->upvals[child_func->upvalue_indices[j]];
-        else {
+        {
             ncl->l.upvals[j] = luaF_findupval(L, base + child_func->upvalue_indices[j]);
+        }
+        else
+        {
+            ncl->l.upvals[j] = cl->upvals[child_func->upvalue_indices[j]];
         }
     }
     if (cl->func->copy_closure[bx])
