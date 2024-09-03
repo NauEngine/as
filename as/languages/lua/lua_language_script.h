@@ -43,11 +43,6 @@ public:
         const ScriptInterface& interface,
         llvm::Module& module) override;
 
-    void materialize(
-            const std::shared_ptr<llvm::orc::LLJIT>& jit,
-            llvm::orc::JITDylib& lib,
-            llvm::Module& module, llvm::LLVMContext& context) override;
-
 private:
     bool m_dumpCompiled = true;
     lua_State* m_lua_state = nullptr;
