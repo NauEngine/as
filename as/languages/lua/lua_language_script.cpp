@@ -78,6 +78,10 @@ llvm::Function* LuaLanguageScript::buildCustomInitFunction(llvm::Module& module)
     auto luaState = builder.CreateLoad(m_lua_ir->void_ptr_t, m_luaStateGlobalVar);
 //    auto luaState = m_luaStateGlobalVar;
     builder.CreateCall(m_lua_ir->module_entry_point_f, {luaState, m_ftreeRootGlobal});
+
+    // auto luaState2 = builder.CreateLoad(m_lua_ir->void_ptr_t, m_luaStateGlobalVar);
+    // //    auto luaState = m_luaStateGlobalVar;
+    // builder.CreateCall(m_lua_ir->module_entry_point_f, {luaState2, m_ftreeRootGlobal});
     builder.CreateRetVoid();
 
     return func;
@@ -141,8 +145,8 @@ llvm::Function* LuaLanguageScript::buildFunction(
 
     llvm::Value* closure_id_val = builder.getInt32(closure_id);
 
-    //auto luaState = builder.CreateLoad(m_lua_ir->void_ptr_t, m_luaStateGlobalVar);
-    auto luaState = m_luaStateGlobalVar;
+    auto luaState = builder.CreateLoad(m_lua_ir->void_ptr_t, m_luaStateGlobalVar);
+    //auto luaState = m_luaStateGlobalVar;
 
     builder.CreateCall(m_lua_ir->push_global_closure_f, {luaState, m_ftreeRootGlobal, closure_id_val});
 

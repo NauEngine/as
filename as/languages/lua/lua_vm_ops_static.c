@@ -305,7 +305,7 @@ void vm_OP_CLOSURE(lua_State *L, JClosure *cl, int a, int bx)
     }
     if (cl->func->copy_closure[bx])
     {
-        cl->func->closures[bx] = *ncl;
+        cl->func->closures[bx] = ncl;
     }
     unfixedstack(L);
     luaC_checkGC(L);
@@ -369,10 +369,8 @@ void prepare_strings(lua_State *L, FunctionTree* ftree)
     }
 }
 
-void module_entry_point(lua_State *L_, FunctionTree* ftree_root)
+void module_entry_point(lua_State *L, FunctionTree* ftree_root)
 {
-    //lua_State* L = (lua_State *)(*(void**)(void*)L_);
-    lua_State* L = L_;
     prepare_strings(L, ftree_root);
 
     Closure* closure = luaF_newJclosure(L, ftree_root->num_upvalues, hvalue(gt(L)));
@@ -384,13 +382,11 @@ void module_entry_point(lua_State *L_, FunctionTree* ftree_root)
     setclvalue(L, L->top, closure);
     incr_top(L);
     lua_call(L, 0, LUA_MULTRET);
-    int y = 9;
-    y;
 }
 
 void push_global_closure(lua_State *L, FunctionTree* ftree_root, int closure_id)
 {
-    Closure* cl = ftree_root->closures + closure_id;
+    Closure* cl = ftree_root->closures[closure_id];
     setclvalue(L, L->top, cl);
     incr_top(L);
 }

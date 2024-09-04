@@ -7,7 +7,7 @@
 ///#include "lua/lua.h"
 //#include "lua/lauxlib.h"
 //#include "lua/lualib.h"
-//#include "lua/lstate.h"
+#include "lua/lstate.h"
 //}
 
 struct Logger
@@ -28,4 +28,9 @@ void test()
 {
     Logger* logger = new LoggerImpl();
     int b = logger->warn(10);
+}
+
+void test3(lua_State** L_)
+{
+    lua_State* L = *L_;
 }

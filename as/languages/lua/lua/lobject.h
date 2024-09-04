@@ -279,7 +279,7 @@ typedef struct FunctionTree {
 
   int num_children;  /* size of func */
   struct FunctionTree* children;  /* functions defined inside the function */
-  union Closure* closures;
+  union Closure** closures;
   lu_byte *copy_closure;
 
   int sizek;  /* size of `k' */

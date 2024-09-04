@@ -70,13 +70,13 @@ typedef struct
 
 typedef struct
 {
+	const char* instance_name;
 	const char* name;
 	luaL_Reg* methods;
 } Metatable;
 
 typedef struct
 {
-	const char* instance_name;
 	int num_metatables;
 	Metatable* metatables;
 } InstanceMetatables;
