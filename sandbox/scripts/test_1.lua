@@ -1,4 +1,5 @@
 -- implements "test_script.h"
+-- require logger implements "logger.h"
 
 function foo(a, b)
     logger:warn(100, 200)
