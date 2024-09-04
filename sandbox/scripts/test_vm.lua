@@ -1,5 +1,5 @@
--- implements test_vm.h
--- require logger implements logger.h
+-- implements "test_vm.h"
+-- require logger implements "logger.h"
 
 function foo(a, b) -- 10, 20
     return a + b

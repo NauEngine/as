@@ -6,6 +6,7 @@
 
 #include "as/core/core.h"
 #include "as/languages/lua/lua_language.h"
+#include "as/languages/lua/lua_language_runtime.h"
 
 #include "features_test_fixture.h"
 
@@ -27,6 +28,7 @@ end
 
 static const char* CODE_SIMPLE_EXTERNAL = R"(
 -- implements "simple.h"
+-- require external implements "set_get.h"
 
 function foo()
     external:set(42)
@@ -95,7 +97,7 @@ protected:
 
     std::shared_ptr<as::ILanguageRuntime> createRuntime() const override
     {
-        return nullptr;
+        return std::make_shared<as::LuaLanguageRuntime>();
     }
 
     const char* getSimpleScript42() const override { return CODE_SIMPLE_42; }
@@ -148,6 +150,5 @@ TEST_F(LuaLanguageTest, CompileStaticInitTest)
 
 TEST_F(LuaLanguageTest, CompileLinkTest)
 {
-    GTEST_SKIP() << "LuaLanguage doen't support AOT yet";
     doCompileLinkTest();
 }

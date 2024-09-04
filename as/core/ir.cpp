@@ -259,7 +259,7 @@ std::unordered_map<std::string, std::string> getRequires(const std::string& file
     std::unordered_map<std::string, std::string> result;
 
     std::string line;
-    std::regex exp(pattern + "\\s*require\\s+(\\w+)\\s+implements\\s+(\\S+)");
+    std::regex exp(pattern + "\\s*require\\s+(\\w+)\\s+implements\\s+\"(\\S+)\"");
     std::smatch matches;
 
     while (std::getline(file, line))
@@ -292,6 +292,11 @@ std::shared_ptr<ScriptInterface> getInterface(const std::string& filename,
     CPPParser& cpp_parser)
 {
     std::ifstream ifs(getRelativeFileName(filename, interface_filename));
+    if (!ifs.is_open())
+    {
+        llvm::errs() << "Error opening file: " << getRelativeFileName(filename, interface_filename) << "\n";
+        exit(1);
+    }
     std::string interface_content{ std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>() };
     interface_content = "#define DEFINE_SCRIPT_INTERFACE(Type, I) struct Type { I };\n" + interface_content;
 
