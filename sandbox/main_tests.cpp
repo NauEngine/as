@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "is_language_runtime.h"
+#include "lua_language_runtime.h"
 #include "ts_language.h"
 #include "as/core/core.h"
 #include "as/core/script_module.h"
@@ -40,6 +41,7 @@ int main()
 {
   auto script_core = std::make_shared<as::Core>();
   auto ivnscript_runtime = std::make_shared<as::IvnScriptLanguageRuntime>("Tests");
+  auto lua_runtime = std::make_shared<as::LuaLanguageRuntime>();
   auto lua_language = std::make_shared<as::LuaLanguage>();
   auto squirrel_language = std::make_shared<as::SquirrelLanguage>();
   auto ivnscript_language = std::make_shared<as::IvnScriptLanguage>();
@@ -51,6 +53,7 @@ int main()
   script_core->registerLanguage("is", std::move(ivnscript_language));
   script_core->registerLanguage("ts", std::move(typescript_language));
   script_core->registerLanguage("cpp", std::move(cpp_language));
+  script_core->registerRuntime(std::move(lua_runtime));
   script_core->registerRuntime(std::move(ivnscript_runtime));
 
   LoggerImpl logger;

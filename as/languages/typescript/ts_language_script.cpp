@@ -90,6 +90,7 @@ std::unique_ptr<llvm::Module> TypeScriptLanguageScript::createModule(
 llvm::Function* TypeScriptLanguageScript::buildModule(const std::string& init_name,
     const std::string& module_name,
     const ScriptInterface& interface,
+    const std::unordered_map<std::string, std::shared_ptr<ScriptInterface>>& externalRequires,
     llvm::Module& module)
 {
     return nullptr;
