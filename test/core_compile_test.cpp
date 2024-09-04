@@ -43,16 +43,21 @@ public:
     MOCK_METHOD(std::shared_ptr<as::ILanguageScript>, newScript, (), (override));
 };
 
+typedef std::unordered_map<std::string, std::shared_ptr<as::ScriptInterface>> TRequires;
+
 class MockLanguageScript : public as::ILanguageScript
 {
 public:
     MOCK_METHOD(void, load, (const std::string& filename, llvm::LLVMContext& context), (override));
-    MOCK_METHOD(std::shared_ptr<as::ScriptInterface>, getInterface, (const std::string& filename,
-        as::CPPParser& cpp_paser), (override));
+    MOCK_METHOD(std::shared_ptr<as::ScriptInterface>, getInterface,
+        (const std::string& filename, as::CPPParser& cpp_paser), (override));
+    MOCK_METHOD(TRequires, getRequires,
+        (const std::string& filename, as::CPPParser& cpp_paser), (override));
     MOCK_METHOD(std::unique_ptr<llvm::Module>, createModule, (llvm::LLVMContext& context), (override));
     MOCK_METHOD(llvm::Function*, buildModule, (const std::string& init_name,
         const std::string& module_name,
         const as::ScriptInterface& interface,
+        const TRequires& externalRequires,
         llvm::Module& module), (override));
     MOCK_METHOD(void, materialize, (const std::shared_ptr<llvm::orc::LLJIT>& jit,
         llvm::orc::JITDylib& lib,

@@ -302,7 +302,7 @@ void FeaturesTestFixture::doExternalObjTest()
     ASSERT_NE(getSimpleExternalScript(), nullptr);
 
     MockExternalObj external;
-    ensureCore(true).registerInstance<SetGetScript>(&external, "external");
+    ensureCore(true).registerInstance("external", &external);
 
     ASSERT_TRUE(writeHeader<SimpleScript>());
     auto script_name = writeCode("test_external_obj", getSimpleExternalScript());

@@ -21,6 +21,7 @@ std::unique_ptr<llvm::Module> IRLanguageScript::createModule(llvm::LLVMContext& 
 llvm::Function* IRLanguageScript::buildModule(const std::string& init_name,
     const std::string& module_name,
     const as::ScriptInterface& interface,
+    const std::unordered_map<std::string, std::shared_ptr<as::ScriptInterface>>& externalRequires,
     llvm::Module& module)
 {
     return module.getFunction(init_name);

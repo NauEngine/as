@@ -24,11 +24,18 @@ public:
         return nullptr;
     }
 
+    std::unordered_map<std::string, std::shared_ptr<as::ScriptInterface>>
+        getRequires(const std::string& filename, as::CPPParser& cpp_paser) override
+    {
+        return std::unordered_map<std::string, std::shared_ptr<as::ScriptInterface>>();
+    }
+
     std::unique_ptr<llvm::Module> createModule(llvm::LLVMContext& context) override;
 
     llvm::Function* buildModule(const std::string& init_name,
         const std::string& module_name,
         const as::ScriptInterface& interface,
+        const std::unordered_map<std::string, std::shared_ptr<as::ScriptInterface>>& externalRequires,
         llvm::Module& module) override;
 
     void materialize(const std::shared_ptr<llvm::orc::LLJIT>& jit,
