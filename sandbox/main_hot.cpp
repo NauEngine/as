@@ -9,6 +9,7 @@
 #include "is_language.h"
 #include "is_language_runtime.h"
 #include "lua_language.h"
+#include "lua_language_runtime.h"
 #include "sq_language.h"
 #include "as/core/core.h"
 #include "as/core/file_watcher.h"
@@ -53,9 +54,10 @@ int main()
     script_core->registerLanguage("nut", std::make_shared<as::SquirrelLanguage>());
 
     script_core->registerLanguage("lua", std::make_shared<as::LuaLanguage>());
+    script_core->registerRuntime(std::make_shared<as::LuaLanguageRuntime>());
 
     LoggerImpl logger;
-    script_core->registerInstance<Logger>(&logger, "logger");
+    script_core->registerInstance("logger", &logger);
 
 
     signal(SIGINT, signalHandler);
