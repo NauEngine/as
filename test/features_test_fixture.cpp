@@ -120,7 +120,8 @@ as::Core& FeaturesTestFixture::ensureCore(bool register_language)
         return *m_core;
 
     m_core = std::make_unique<as::Core>(BASE_SCRIPTS_PATH);
-    m_core->registerLanguage(getLanguageName(), createLanguage());
+    if (register_language)
+        m_core->registerLanguage(getLanguageName(), createLanguage());
 
     if (auto runtime = createRuntime())
         m_core->registerRuntime(std::move(runtime));
@@ -318,7 +319,10 @@ void FeaturesTestFixture::doExternalObjTest()
     testing::Expectation set_call = EXPECT_CALL(external, set(42));
     EXPECT_CALL(external, get()).After(set_call).WillOnce(testing::Return(42));
 
-    instance->foo();
+    // external.set(42);
+    // EXPECT_EQ(external.get(), 42);
+
+    EXPECT_EQ(instance->foo(), 42);
 }
 
 void FeaturesTestFixture::doGlobalVarTest()
