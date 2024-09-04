@@ -5,26 +5,44 @@
 #ifndef LUA_METATABLES_H
 #define LUA_METATABLES_H
 
+#include <string>
+#include <unordered_map>
+
 namespace llvm
 {
     class Constant;
     class Module;
 }
 
-class LuaIR;
-
 namespace as
 {
 
+class LuaIR;
+struct ScriptInterface;
+
 class LuaExternMetatables
 {
-    llvm::Constant* buildIR();
+public:
+    static llvm::GlobalVariable* buildIR(
+        const std::unordered_map<std::string, std::shared_ptr<ScriptInterface>>& externalRequires,
+        const std::shared_ptr<LuaIR>& lua_ir,
+        llvm::Module& module);
+private:
+    static llvm::Constant* buildMetatableIR(
+        const std::string& instanceName,
+        const std::shared_ptr<ScriptInterface>& interface,
+        const std::shared_ptr<LuaIR>& lua_ir,
+        llvm::Module& module);
+
+    static llvm::Function* buildLuaCFunction(
+        llvm::FunctionType* methodType,
+        int methodPosition,
+        const std::string& methodName,
+        llvm::Value* interface_name_var,
+        const std::shared_ptr<LuaIR>& lua_ir,
+        llvm::Module& module);
+
 };
-
-// llvm::Constant* buildFunctionTreeIR(
-//     const std::shared_ptr<LuaIR>& lua_ir,
-//     llvm::Module& module);
-
 
 }
 

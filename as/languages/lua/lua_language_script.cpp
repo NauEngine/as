@@ -14,6 +14,7 @@
 #include "lua_ir.h"
 #include "lua_utils.h"
 #include "lua_ftree.h"
+#include "lua_extern_metatables.h"
 #include "as/core/ir.h"
 
 extern "C"
@@ -85,15 +86,17 @@ llvm::Function* LuaLanguageScript::buildCustomInitFunction(llvm::Module& module)
     auto& context = module.getContext();
     llvm::IRBuilder<> builder(context);
 
-    const auto initFunction_t = llvm::FunctionType::get(m_lua_ir->void_t, {}, false);
+    const auto initFunction_t = llvm::FunctionType::get(m_lua_ir->void_t, {m_lua_ir->void_ptr_t}, false);
     llvm::Function* func = llvm::Function::Create(initFunction_t, llvm::Function::InternalLinkage,
                                   "__custom_init__", module);
 
     llvm::BasicBlock* block = llvm::BasicBlock::Create(context, "entry", func);
     builder.SetInsertPoint(block);
 
+    llvm::Value* core = func->getArg(0);
+
     auto luaState = builder.CreateLoad(m_lua_ir->void_ptr_t, m_luaStateGlobalVar);
-    builder.CreateCall(m_lua_ir->module_entry_point_f, {luaState, m_ftreeRootGlobal});
+    builder.CreateCall(m_lua_ir->module_entry_point_f, {core, luaState, m_ftreeRootGlobal, m_metatablesListGlobal});
     builder.CreateRetVoid();
 
     return func;
@@ -110,9 +113,8 @@ llvm::Function* LuaLanguageScript::buildModule(const std::string& init_name,
     Proto* proto = loadLuaProto(m_lua_state, m_filename, m_dumpCompiled);
 
     m_functionTree = m_llvmCompiler->compile(context, module, m_lua_ir, m_lua_state, proto);
-    const auto ftree_const = buildFunctionTreeIR(m_functionTree, m_lua_ir, module);
-    m_ftreeRootGlobal = new llvm::GlobalVariable(module, m_lua_ir->FunctionTree_t, false,
-        llvm::GlobalValue::InternalLinkage, ftree_const, "__func_tree__");
+    m_ftreeRootGlobal = buildFunctionTreeIR(m_functionTree, m_lua_ir, module);
+    m_metatablesListGlobal = LuaExternMetatables::buildIR(externalRequires, m_lua_ir, module);
 
     m_luaStateGlobalVar = new llvm::GlobalVariable(module, m_lua_ir->lua_State_ptr_t, false, llvm::GlobalValue::PrivateLinkage,
                                                       llvm::ConstantPointerNull::get(m_lua_ir->void_ptr_t),

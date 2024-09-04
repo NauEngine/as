@@ -6,7 +6,7 @@ function foo(a, b) -- 10, 20
 end
 
 function bar(a)
-    -- logger:warn(10, 20)
+    logger:warn(10, 20)
     return a * 100
 end
 

@@ -11,6 +11,7 @@
 #include "lua_language.h"
 #include "lua_language_script.h"
 #include "lua_llvm_compiler.h"
+#include "lua_module_entry.h"
 
 extern "C"
 {
@@ -26,6 +27,8 @@ LuaLanguage::LuaLanguage()
 {
     m_lua_state = luaL_newstate();
     luaL_openlibs(m_lua_state);
+
+    __force_link_module_entry();
 }
 
 LuaLanguage::~LuaLanguage()
@@ -77,7 +80,7 @@ void LuaLanguage::createInterfaceMetatable(const std::shared_ptr<ScriptInterface
   std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>(module_name, context);
 
   auto var_name = ir::interface_name(interface->name);
-  auto type_name_var = ir::buildGlobalString(context, module.get(), var_name, interface->name);
+  auto type_name_var = ir::buildString(*module, var_name, interface->name);
 
   std::vector<std::string> decoratedNames(interface->methodNames.size());
   int countPureMethods = 0;

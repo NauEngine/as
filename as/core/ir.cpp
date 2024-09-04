@@ -27,15 +27,35 @@ llvm::FunctionType* buildInterfaceMethodType(llvm::FunctionType* signature, llvm
     return llvm::FunctionType::get(ret_type, args, false);
 }
 
-llvm::GlobalVariable* buildGlobalString(llvm::LLVMContext& context, llvm::Module* module, const std::string& name, const std::string& value)
+llvm::GlobalVariable* buildString(llvm::Module& module, const std::string& name, const std::string& value)
 {
+    auto& context = module.getContext();
     llvm::Constant* strConstant = llvm::ConstantDataArray::getString(context, value, true);
     llvm::Type* int8_t = llvm::Type::getInt8Ty(context);
 
     llvm::ArrayType* array_t = llvm::ArrayType::get(int8_t, value.size() + 1);
 
-    return new llvm::GlobalVariable(*module, array_t, true, llvm::GlobalValue::PrivateLinkage, strConstant, name);
+    return new llvm::GlobalVariable(module, array_t, true, llvm::GlobalValue::PrivateLinkage, strConstant, name);
 }
+
+llvm::Constant* wrapArrayIntoGlobal(
+    llvm::Constant* array,
+    const char* array_name,
+    llvm::Module& module)
+{
+    auto& context = module.getContext();
+
+    const auto array_global = new llvm::GlobalVariable(module, array->getType(), false,
+        llvm::GlobalValue::InternalLinkage, array, array_name);
+
+    const auto idx_list =
+    {
+        llvm::Constant::getNullValue(llvm::IntegerType::get(context, 32)),
+    };
+
+    return llvm::ConstantExpr::getGetElementPtr(array_global->getType(), array_global, idx_list);
+}
+
 
 llvm::Function* сreateFunctionDecl(
     llvm::Module* module,
@@ -173,7 +193,7 @@ llvm::Function* createInitFunc(llvm::Module& module,
 
     if (custom_init)
     {
-        builder.CreateCall(custom_init);
+        builder.CreateCall(custom_init, {core_arg});
     }
 
     builder.CreateRetVoid();

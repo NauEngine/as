@@ -68,19 +68,6 @@ typedef struct
 	val_t params[10]; /* an 'VOID' type ends the parameter list */
 } VmFuncInfo;
 
-typedef struct
-{
-	const char* instance_name;
-	const char* name;
-	luaL_Reg* methods;
-} Metatable;
-
-typedef struct
-{
-	int num_metatables;
-	Metatable* metatables;
-} InstanceMetatables;
-
 extern const VmFuncInfo vm_op_functions[];
 
 extern void vm_OP_MOVE(TValue *ra, TValue *rb);
@@ -169,9 +156,6 @@ extern int vm_get_type(TValue *value);
 
 extern lua_Number vm_get_number(TValue *value);
 extern void vm_set_number(TValue *value, lua_Number num);
-
-extern void module_entry_point(lua_State *L, FunctionTree* ftree_root);
-extern void push_global_closure(lua_State *L, FunctionTree* ftree_root, int closure_id);
 
 /*
 ** some macros for common tasks in `vm_OP_*' functions.

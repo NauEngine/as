@@ -15,6 +15,7 @@ struct LoggerImpl : Logger
 {
     void warn(int a, int b) override
     {
+        std::cout << "Hello from logger extension!" << std::endl;
         std::cout << "W: a: " << a << " b: "  << b << std::endl;
     }
 
@@ -31,8 +32,8 @@ int main()
     script_core->registerLanguage("lua", std::make_shared<as::LuaLanguage>());
     script_core->registerRuntime(std::make_shared<as::LuaLanguageRuntime>());
 
-    // LoggerImpl logger;
-    // script_core->registerInstance("logger", &logger);
+    LoggerImpl logger;
+    script_core->registerInstance("logger", &logger);
 
     auto script_module = script_core->newScriptModule<TestScript>("scripts/test_vm.lua");
     const auto instance = script_module->newInstance();

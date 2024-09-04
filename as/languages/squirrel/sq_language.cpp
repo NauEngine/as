@@ -119,7 +119,7 @@ void SquirrelLanguage::createInterfaceMetatable(const std::shared_ptr<ScriptInte
     std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>(module_name, context);
 
     auto var_name = ir::interface_name(interface->name);
-    auto type_name_var = ir::buildGlobalString(context, module.get(), var_name, interface->name);
+    auto type_name_var = ir::buildString(*module, var_name, interface->name);
 
     std::vector<std::string> decoratedNames(interface->methodNames.size());
     int countPureMethods = 0;

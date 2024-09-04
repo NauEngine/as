@@ -49,7 +49,7 @@ void fillUpValues(
         int child_id,
         Instruction* code);
 
-llvm::Constant* buildFunctionTreeIR(
+llvm::Value* buildFunctionTreeIR(
     const std::shared_ptr<FunctionTreeNode>& node,
     const std::shared_ptr<LuaIR>& lua_ir,
     llvm::Module& module);

@@ -64,6 +64,7 @@ private:
 
     llvm::GlobalVariable* m_luaStateGlobalVar = nullptr;
     llvm::Value* m_ftreeRootGlobal = nullptr;
+    llvm::Value* m_metatablesListGlobal = nullptr;
 
     void loadLua(const std::string& filename, lua_State* luaState, llvm::LLVMContext& context);
 

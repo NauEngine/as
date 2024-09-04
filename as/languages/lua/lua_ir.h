@@ -62,11 +62,15 @@ public:
     llvm::StructType* ConstantString_t = nullptr;
     llvm::Type* JClosure_t = nullptr;
     llvm::StructType* FunctionTree_t = nullptr;
+    llvm::StructType* InstanceMetatable_t = nullptr;
+    llvm::StructType* InstanceMetatableList_t = nullptr;
+    llvm::StructType* luaL_Reg_t = nullptr;
 
     llvm::Type* lua_State_ptr_t = nullptr;
     llvm::Type* TValue_ptr_t = nullptr;
     llvm::Type* JClosure_ptr_t = nullptr;
     llvm::Type* FunctionTree_ptr_t = nullptr;
+    llvm::Type* InstanceMetatableList_ptr_t = nullptr;
 
     llvm::FunctionType* lua_func_t = nullptr;
     llvm::Type* lua_func_ptr_t = nullptr;

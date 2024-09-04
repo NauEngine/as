@@ -53,11 +53,16 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     ConstantString_t = llvm::StructType::getTypeByName(context, "struct.ConstantString");
     JClosure_t = llvm::StructType::getTypeByName(context, "struct.JClosure");
     FunctionTree_t = llvm::StructType::getTypeByName(context, "struct.FunctionTree");
+    InstanceMetatable_t = llvm::StructType::getTypeByName(context, "struct.InstanceMetatable");
+    InstanceMetatableList_t = llvm::StructType::getTypeByName(context, "struct.InstanceMetatableList");
+    luaL_Reg_t = llvm::StructType::getTypeByName(context, "struct.luaL_Reg");
 
     lua_State_ptr_t = llvm::PointerType::getUnqual(lua_State_t);
     TValue_ptr_t = llvm::PointerType::getUnqual(TValue_t);
     JClosure_ptr_t = llvm::PointerType::getUnqual(JClosure_t);
+
     FunctionTree_ptr_t = llvm::PointerType::getUnqual(FunctionTree_t);
+    InstanceMetatableList_ptr_t = llvm::PointerType::getUnqual(InstanceMetatableList_t);
 
     lua_func_t = llvm::FunctionType::get(int32_t, {lua_State_ptr_t}, false);
     lua_func_ptr_t = llvm::PointerType::get(lua_func_t, 0);
@@ -93,11 +98,7 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     vm_set_number_f = m_lapiModule->getFunction("vm_set_number");
     vm_arith_f = m_lapiModule->getFunction("vm_arith");
 
-    // entry point functions
-    // module_entry_point_f = m_lapiModule->getFunction("module_entry_point");
-    // push_global_closure_f = m_lapiModule->getFunction("push_global_closure");
-
-    const auto module_entry_point_f_type = llvm::FunctionType::get(void_t, { lua_State_ptr_t, FunctionTree_ptr_t}, false);
+    const auto module_entry_point_f_type = llvm::FunctionType::get(void_t, { void_ptr_t, lua_State_ptr_t, FunctionTree_ptr_t, InstanceMetatableList_ptr_t}, false);
     module_entry_point_f = llvm::Function::Create(module_entry_point_f_type, llvm::Function::ExternalLinkage,
                                   "module_entry_point", m_lapiModule.get());
 

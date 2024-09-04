@@ -107,7 +107,13 @@ namespace as::ir
 
     // converts c++ interface signature into inner method type by adding 'this' pointer as first arg
     llvm::FunctionType* buildInterfaceMethodType(llvm::FunctionType* method_t, llvm::PointerType* interface_ptr_t);
-    llvm::GlobalVariable* buildGlobalString(llvm::LLVMContext& context, llvm::Module* module, const std::string& name, const std::string& value);
+    llvm::GlobalVariable* buildString(llvm::Module& module, const std::string& name, const std::string& value);
+
+    llvm::Constant* wrapArrayIntoGlobal(
+        llvm::Constant* array,
+        const char* array_name,
+        llvm::Module& module);
+
     llvm::Function* сreateFunctionDecl(
             llvm::Module* module,
             llvm::Type *result,
@@ -140,7 +146,7 @@ namespace as::ir
      * @param vtable - Переменная, в которой хранится vtable, может быть null, тогда vtable не будет регистрироваться
      * @param runtime - Переменная, куда класть runtime, может быть null, тогда runtime не нужен
      * @param runtime_name - Имя рантайма, может быть пустой строкой, тогда runtime не нужен
-     * @param custom_init - Функция для кастомной инициализации с сигнатурой void f(void)
+     * @param custom_init - Функция для кастомной инициализации с сигнатурой void f(core)
      * @return - init функция для данного модуля
      */
     llvm::Function* createInitFunc(llvm::Module& module,

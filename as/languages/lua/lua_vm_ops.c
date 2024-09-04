@@ -376,8 +376,6 @@ int vm_OP_CALL(lua_State *L, int a, int b, int c)
     return 0;
 }
 
-
-
 TValue *vm_get_current_base(lua_State *L)
 {
     return L->base;
@@ -406,8 +404,18 @@ void vm_set_number(TValue *value, lua_Number num)
     value->tt=LUA_TNUMBER;
 }
 
-struct FunctionTree* __stub_for_types(struct FunctionTree* ftree, struct ConstantString* constString)
+#include "lua_module_entry.h"
+
+// Special stub function to provide types in IR precompiles
+struct FunctionTree* __stub_for_types(
+    struct FunctionTree* ftree,
+    struct ConstantString* constString,
+    struct InstanceMetatable* m,
+    struct InstanceMetatableList* ml)
 {
+    m->instance_name = NULL;
+    ml->num_metatables = 0;
+
     if (constString->size > 0)
         return ftree->children;
     else

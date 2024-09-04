@@ -7,6 +7,7 @@
 #include "llvm/IR/IRBuilder.h"
 
 #include "as/core/core_utils.h"
+#include "as/core/ir.h"
 
 #include "lua_ir.h"
 
@@ -106,29 +107,6 @@ void fillUpValues(
     }
 }
 
-llvm::Constant* getConstPtr(llvm::LLVMContext& context, llvm::Constant *val) {
-    const auto idx_list =
-    {
-        llvm::Constant::getNullValue(llvm::IntegerType::get(context, 32)),
-        llvm::Constant::getNullValue(llvm::IntegerType::get(context, 32))
-    };
-
-    return llvm::ConstantExpr::getGetElementPtr(val->getType(), val, idx_list);
-}
-
-llvm::Constant* wrapArrayIntoGlobal(
-    llvm::Constant* array,
-    const char* array_name,
-    llvm::Module& module)
-{
-    auto& context = module.getContext();
-
-    const auto array_global = new llvm::GlobalVariable(module, array->getType(), false,
-        llvm::GlobalValue::InternalLinkage, array, array_name);
-
-    return getConstPtr(context, array_global);
-}
-
 template <typename T>
 llvm::Constant* buildIntConstantArray(
     const std::vector<T>& array,
@@ -149,7 +127,7 @@ llvm::Constant* buildIntConstantArray(
     auto array_type = llvm::ArrayType::get(llvm::IntegerType::get(context, bitsize), array.size());
     auto array_const = llvm::ConstantArray::get(array_type, array_of_const);
 
-    return wrapArrayIntoGlobal(array_const, array_name, module);
+    return ir::wrapArrayIntoGlobal(array_const, array_name, module);
 }
 
 unsigned getMaxValueSize(
@@ -171,50 +149,13 @@ llvm::Constant* buildKArray(
     llvm::Module& module)
 {
     auto& context = module.getContext();
-    // const unsigned max_value_size = getMaxValueSize(module, lua_ir);
-    //
-    // const auto opaque_value_t = llvm::StructType::create(context, "struct.OpaqueValue");
-    // const auto opaque_array_t = llvm::ArrayType::get(lua_ir->int8_t, max_value_size);
-    // opaque_value_t->setBody(opaque_array_t);
-    //
-    // // Определение типа struct lua_TValue
-    // const auto opaque_tvalue_t = llvm::StructType::create(context, "struct.OpaqueTValue");
-    //
-    // // struct lua_TValue содержит union Value и int tt
-    // opaque_tvalue_t->setBody(opaque_value_t, lua_ir->int32_t);
 
     std::vector<llvm::Constant*> array;
 
     for (int i = 0; i < proto->sizek; ++i)
     {
         const TValue* tval = &(proto->k[i]);
-        // llvm::Constant* value_const;
-        // switch(ttype(tval))
-        // {
-        //     case LUA_TSTRING:
-        //     // int placeholder
-        //     value_const = llvm::ConstantInt::get(context, llvm::APInt(32, 0));
-        //     break;
-        // case LUA_TBOOLEAN:
-        //     value_const = llvm::ConstantInt::get(context, llvm::APInt(32, !l_isfalse(tval)));
-        //     break;
-        // case LUA_TNUMBER:
-        //     value_const = llvm::ConstantFP::get(context, llvm::APFloat(nvalue(tval)));
-        //     break;
-        // case LUA_TNIL:
-        //     value_const = llvm::ConstantInt::get(context, llvm::APInt(32, 0));
-        //     break;
-        // default:
-        //     {
-        //         fprintf(stderr, "Unsupported TValue type!\n");
-        //         exit(1);
-        //     }
-        //     break;
-        // }
-        //
-        // tval->value.p
 
-        // Преобразование значения указателя в целочисленное представление
         const auto pointer_value = reinterpret_cast<uint64_t>(tval->value.p);
         llvm::Constant* value_int_const = llvm::ConstantInt::get(lua_ir->int64_t, pointer_value);
         llvm::Constant* value_const = llvm::ConstantExpr::getIntToPtr(value_int_const, lua_ir->char_ptr_t);
@@ -228,31 +169,8 @@ llvm::Constant* buildKArray(
     const auto array_type = llvm::ArrayType::get(lua_ir->TValue_t, array.size());
     const auto array_const = llvm::ConstantArray::get(array_type, array);
 
-    return wrapArrayIntoGlobal(array_const, "__k__", module);
+    return ir::wrapArrayIntoGlobal(array_const, "__k__", module);
 }
-
-llvm::Constant* buildString(const char *str, llvm::Module& module)
-{
-    auto& context = module.getContext();
-
-    const auto str_const = llvm::ConstantDataArray::getString(context, str, true);
-    const auto var_str = new llvm::GlobalVariable(module, str_const->getType(), true,
-        llvm::GlobalValue::InternalLinkage, str_const, ".str");
-
-    return getConstPtr(context, var_str);
-}
-
-    // const_type = TYPE_STRING;
-    // const_length = tsvalue(tval)->len;
-    // type = vm.t_constant_str->type;
-    // tmp_struct.push_back(GetGlobalStr(context, module, svalue(tval)));
-    // if (vm.t_constant_str->padding != nullptr)
-    // {
-    //     tmp_struct.push_back(vm.t_constant_str->padding);
-    // }
-    // value = llvm::ConstantStruct::getAnon(context, tmp_struct, false);
-    // break;
-
 
 llvm::Constant* buildStringArray(
     const Proto* proto,
@@ -270,7 +188,7 @@ llvm::Constant* buildStringArray(
 
         if (ttype(tval) == LUA_TSTRING)
         {
-            const auto string_const = buildString(svalue(tval), module);
+            const auto string_const = ir::buildString(module, ".str", svalue(tval));
             const auto length_const = llvm::ConstantInt::get(context, llvm::APInt(32, tsvalue(tval)->len));
             value_const = llvm::ConstantStruct::get(lua_ir->ConstantString_t, {length_const, string_const});
         }
@@ -287,10 +205,10 @@ llvm::Constant* buildStringArray(
     const auto array_type = llvm::ArrayType::get(lua_ir->ConstantString_t, array.size());
     const auto array_const = llvm::ConstantArray::get(array_type, array);
 
-    return wrapArrayIntoGlobal(array_const, "__strings__", module);
+    return ir::wrapArrayIntoGlobal(array_const, "__strings__", module);
 }
 
-llvm::Constant* buildFunctionTreeIR(
+llvm::Constant* buildFunctionTreeIRInner(
     const std::shared_ptr<FunctionTreeNode>& node,
     const std::shared_ptr<LuaIR>& lua_ir,
     llvm::Module& module)
@@ -326,19 +244,19 @@ llvm::Constant* buildFunctionTreeIR(
 
     for (int i = 0; i < node->num_children; ++i)
     {
-        child_array[i] = buildFunctionTreeIR(node->children[i], lua_ir, module);
+        child_array[i] = buildFunctionTreeIRInner(node->children[i], lua_ir, module);
     }
 
     // struct FunctionTree* children;  /* functions defined inside the function */
     const auto children_array_t = llvm::ArrayType::get(lua_ir->FunctionTree_t, node->num_children);
     const auto children_array_const = llvm::ConstantArray::get(children_array_t, child_array);
-    ftree_fields.push_back(wrapArrayIntoGlobal(children_array_const, "__children__", module));
+    ftree_fields.push_back(ir::wrapArrayIntoGlobal(children_array_const, "__children__", module));
 
     // union Closure* closures;
     // We take LClosure here and its unsafe. But it has same size as union Closure
     const auto closure_array_t = llvm::ArrayType::get(lua_ir->JClosure_ptr_t, node->num_children);
     const auto closure_array_const = llvm::Constant::getNullValue(closure_array_t);
-    ftree_fields.push_back(wrapArrayIntoGlobal(closure_array_const, "__closures__", module));
+    ftree_fields.push_back(ir::wrapArrayIntoGlobal(closure_array_const, "__closures__", module));
 
     // lu_byte *copy_closure;
     ftree_fields.push_back(buildIntConstantArray(node->copy_closure, 8, "__copy_closure__", module));
@@ -362,5 +280,14 @@ llvm::Constant* buildFunctionTreeIR(
     return llvm::ConstantStruct::get(lua_ir->FunctionTree_t, ftree_fields);
 }
 
+llvm::Value* buildFunctionTreeIR(
+        const std::shared_ptr<FunctionTreeNode>& node,
+        const std::shared_ptr<LuaIR>& lua_ir,
+        llvm::Module& module)
+{
+    auto const_value = buildFunctionTreeIRInner(node, lua_ir, module);
+    return new llvm::GlobalVariable(module, lua_ir->FunctionTree_t, false,
+         llvm::GlobalValue::InternalLinkage, const_value, "__func_tree__");
+}
 
 } // namespace as
