@@ -319,9 +319,6 @@ void FeaturesTestFixture::doExternalObjTest()
     testing::Expectation set_call = EXPECT_CALL(external, set(42));
     EXPECT_CALL(external, get()).After(set_call).WillOnce(testing::Return(42));
 
-    // external.set(42);
-    // EXPECT_EQ(external.get(), 42);
-
     EXPECT_EQ(instance->foo(), 42);
 }
 
