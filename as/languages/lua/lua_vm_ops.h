@@ -9,11 +9,7 @@ extern "C" {
 #include "lua_core.h"
 #include "lua/lobject.h"
 #include "lua/ltm.h"
-
-typedef struct {
-  TValue *k;
-  LClosure *cl;
-} func_state;
+#include "lua/lauxlib.h"
 
 #if defined(__x86_64__)
 typedef long lua_Long;
@@ -71,6 +67,19 @@ typedef struct
 	const char *name; /* function name */
 	val_t params[10]; /* an 'VOID' type ends the parameter list */
 } VmFuncInfo;
+
+typedef struct
+{
+	const char* name;
+	luaL_Reg* methods;
+} Metatable;
+
+typedef struct
+{
+	const char* instance_name;
+	int num_metatables;
+	Metatable* metatables;
+} InstanceMetatables;
 
 extern const VmFuncInfo vm_op_functions[];
 

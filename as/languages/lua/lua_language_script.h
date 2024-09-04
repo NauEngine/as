@@ -51,14 +51,17 @@ public:
 private:
     bool m_dumpCompiled = true;
     lua_State* m_lua_state = nullptr;
-    Proto* m_proto = nullptr;
+
+    std::string m_filename;
 
     const std::shared_ptr<LuaIR>& m_lua_ir;
     std::shared_ptr<LuaLLVMCompiler> m_llvmCompiler;
     std::shared_ptr<FunctionTreeNode> m_functionTree;
 
-    llvm::Value* m_luaStateGlobal = nullptr;
+    llvm::GlobalVariable* m_luaStateGlobalVar = nullptr;
     llvm::Value* m_ftreeRootGlobal = nullptr;
+
+    void loadLua(const std::string& filename, lua_State* luaState, llvm::LLVMContext& context);
 
     llvm::Function* buildCustomInitFunction(llvm::Module& module);
 

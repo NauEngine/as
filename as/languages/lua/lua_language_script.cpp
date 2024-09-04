@@ -18,56 +18,7 @@
 
 extern "C"
 {
-#include "lua/lobject.h"
 #include "lua/lauxlib.h"
-#include "lua/lstate.h"
-#include "lua/lparser.h"
-#include "lua/lfunc.h"
-#include "lua/ldo.h"
-}
-
-namespace
-{
-
-typedef struct {
-    FILE *file;
-    char buffer[LUAL_BUFFERSIZE];
-} FileReaderData;
-
-const char *file_reader(lua_State *L, void *data, size_t *size)
-{
-    FileReaderData *reader = (FileReaderData *)data;
-    if (feof(reader->file)) return NULL;
-    *size = fread(reader->buffer, 1, sizeof(reader->buffer), reader->file);
-    return reader->buffer;
-}
-
-Proto* load_lua_source(lua_State *L, const char *filename)
-{
-    FILE *f = fopen(filename, "r");
-    if (f == NULL)
-    {
-        luaL_error(L, "Cannot open file: %s", filename);
-        return NULL;
-    }
-
-    FileReaderData reader;
-    reader.file = f;
-
-    ZIO zio;
-    luaZ_init(L, &zio, file_reader, &reader);
-
-    Mbuffer buff;
-    luaZ_initbuffer(L, &buff);
-
-    const char *source_name = lua_pushfstring(L, "@%s", filename);
-    Proto *proto = luaY_parser(L, &zio, &buff, source_name);
-
-    fclose(f);
-    luaZ_freebuffer(L, &buff);
-    return proto;
-}
-
 }
 
 namespace as
@@ -91,19 +42,7 @@ LuaLanguageScript::~LuaLanguageScript()
 
 void LuaLanguageScript::load(const std::string& filename, llvm::LLVMContext& context)
 {
-    m_proto = load_lua_source(m_lua_state, filename.c_str());
-
-    if (!m_proto)
-    {
-        llvm::errs() << "Failed to load script file: " << lua_tostring(m_lua_state, -1) << "\n";
-        exit(1);
-    }
-
-    if (m_dumpCompiled)
-    {
-        llvm::errs() << "OPCODES: \n";
-        printLuaFunction(m_proto, true);
-    }
+    m_filename = filename;
 }
 
 std::shared_ptr<ScriptInterface> LuaLanguageScript::getInterface(const std::string& filename, CPPParser& cpp_paser)
@@ -136,7 +75,9 @@ llvm::Function* LuaLanguageScript::buildCustomInitFunction(llvm::Module& module)
     llvm::BasicBlock* block = llvm::BasicBlock::Create(context, "entry", func);
     builder.SetInsertPoint(block);
 
-    builder.CreateCall(m_lua_ir->module_entry_point_f, {m_luaStateGlobal, m_ftreeRootGlobal});
+    auto luaState = builder.CreateLoad(m_lua_ir->void_ptr_t, m_luaStateGlobalVar);
+//    auto luaState = m_luaStateGlobalVar;
+    builder.CreateCall(m_lua_ir->module_entry_point_f, {luaState, m_ftreeRootGlobal});
     builder.CreateRetVoid();
 
     return func;
@@ -149,20 +90,22 @@ llvm::Function* LuaLanguageScript::buildModule(const std::string& init_name,
 {
     auto& context = module.getContext();
 
-    m_functionTree = m_llvmCompiler->compile(context, module, m_lua_ir, m_lua_state, m_proto);
+    Proto* proto = loadLuaProto(m_lua_state, m_filename, m_dumpCompiled);
+
+    m_functionTree = m_llvmCompiler->compile(context, module, m_lua_ir, m_lua_state, proto);
     const auto ftree_const = buildFunctionTreeIR(m_functionTree, m_lua_ir, module);
     m_ftreeRootGlobal = new llvm::GlobalVariable(module, m_lua_ir->FunctionTree_t, false,
         llvm::GlobalValue::InternalLinkage, ftree_const, "__func_tree__");
 
-    m_luaStateGlobal = new llvm::GlobalVariable(module, m_lua_ir->lua_State_ptr_t, false, llvm::GlobalValue::ExternalLinkage,
-                                                      nullptr,
-                                                      LuaIR::LUA_STATE_GLOBAL_VAR);
+    m_luaStateGlobalVar = new llvm::GlobalVariable(module, m_lua_ir->lua_State_ptr_t, false, llvm::GlobalValue::PrivateLinkage,
+                                                      llvm::ConstantPointerNull::get(m_lua_ir->void_ptr_t),
+                                                      "__lua_state__");
 
     const auto customInitFunction = buildCustomInitFunction(module);
 
     const auto vtable = ir::buildVTable(module_name, interface, module, &LuaLanguageScript::buildFunction, this);
     ir::addMissingDeclarations(module);
-    const auto init_func =  ir::createInitFunc(module, init_name, module_name, vtable, nullptr, "", customInitFunction);
+    const auto init_func =  ir::createInitFunc(module, init_name, module_name, vtable, m_luaStateGlobalVar, "lua_runtime", customInitFunction);
 
     if (m_dumpCompiled)
     {
@@ -198,26 +141,29 @@ llvm::Function* LuaLanguageScript::buildFunction(
 
     llvm::Value* closure_id_val = builder.getInt32(closure_id);
 
-    builder.CreateCall(m_lua_ir->push_global_closure_f, {m_luaStateGlobal, m_ftreeRootGlobal, closure_id_val});
+    //auto luaState = builder.CreateLoad(m_lua_ir->void_ptr_t, m_luaStateGlobalVar);
+    auto luaState = m_luaStateGlobalVar;
+
+    builder.CreateCall(m_lua_ir->push_global_closure_f, {luaState, m_ftreeRootGlobal, closure_id_val});
 
     // 0 arg is pointer to structure, skip it
     for (int i = 1; i < signature->getNumParams(); ++i)
     {
         llvm::Value* arg = func->getArg(i);
-        m_lua_ir->buildPushValue(builder, m_luaStateGlobal, arg->getType(), arg);
+        m_lua_ir->buildPushValue(builder, luaState, arg->getType(), arg);
     }
 
     llvm::Constant* num_args = builder.getInt32(signature->getNumParams() - 1);
     llvm::Constant* num_rets = builder.getInt32(1);
 
 //    builder.CreateCall(m_lua_ir->lua_call_f, {m_lua_state_extern, num_args, num_rets});
-    builder.CreateCall(m_lua_ir->lua_call_compiled_f, {m_luaStateGlobal, num_args, num_rets});
+    builder.CreateCall(m_lua_ir->lua_call_compiled_f, {luaState, num_args, num_rets});
 
     const llvm::Type* ret_type = func->getReturnType();
-    llvm::Value* ret = m_lua_ir->buildPopValue(builder, m_luaStateGlobal, ret_type, -1);
+    llvm::Value* ret = m_lua_ir->buildPopValue(builder, luaState, ret_type, -1);
 
     llvm::Constant* stack_pos = builder.getInt32(-(1)-1);
-    builder.CreateCall(m_lua_ir->lua_settop_f, {m_luaStateGlobal, stack_pos});
+    builder.CreateCall(m_lua_ir->lua_settop_f, {luaState, stack_pos});
 
     builder.CreateRet(ret);
 

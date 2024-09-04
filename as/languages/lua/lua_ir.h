@@ -43,7 +43,6 @@ class LuaIR
 {
 public:
     constexpr static const char* LUA_MAIN_IR_MODULE = "__lua_main_module__";
-    constexpr static const char* LUA_STATE_GLOBAL_VAR = "__lua_state__";
 
     // IR types
     llvm::Type* int8_t = nullptr;
@@ -55,6 +54,7 @@ public:
     llvm::Type* float_t = nullptr;
     llvm::Type* bool_t = nullptr;
     llvm::PointerType* char_ptr_t = nullptr;
+    llvm::PointerType* void_ptr_t = nullptr;
 
     llvm::Type* lua_State_t = nullptr;
     llvm::StructType* TValue_t = nullptr;
@@ -104,7 +104,7 @@ public:
     std::unordered_map<int, llvm::Function*> vm_num_f;
     std::unordered_map<int, TMS> vm_arith_tms_map;
 
-    void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context, lua_State* lua_state);
+    void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context);
 
     llvm::Value* buildPopValue(llvm::IRBuilder<>& builder, llvm::Value* lua_state_ir, const llvm::Type* type, int stackPos) const;
     void buildPushValue(llvm::IRBuilder<>& builder, llvm::Value* lua_state_ir, const llvm::Type* type, llvm::Value* value) const;

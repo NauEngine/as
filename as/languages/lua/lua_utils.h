@@ -5,6 +5,8 @@
 #ifndef LUA_UTILS_H
 #define LUA_UTILS_H
 
+#include <string>
+
 struct lua_State;
 struct Proto;
 
@@ -38,6 +40,7 @@ private:
 };
 
 void printLuaFunction(const Proto* f, bool full);
+Proto* loadLuaProto(lua_State* luaState, const std::string& filename, bool dump);
 
 } //namespace as
 

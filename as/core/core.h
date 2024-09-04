@@ -55,11 +55,7 @@ public:
         return std::make_shared<ScriptModule<Interface>>(compiled_module);
     }
 
-    template<typename Interface>
-    void registerInstance(Interface* instance, const std::string& instance_name)
-    {
-        m_compile.registerInstance(instance, instance_name, getInterface<Interface>());
-    }
+    void registerInstance(const std::string& instance_name, void* instance);
 
     void registerRuntime(std::shared_ptr<ILanguageRuntime> runtime);
 
@@ -69,8 +65,11 @@ public:
 
     const void* requireRuntime(const char* name);
 
+    const void* requireInstance(const char* name);
+
 private:
     CoreCompile m_compile;
+    std::unordered_map<std::string, void*> m_instances;
     std::unordered_map<std::string, std::shared_ptr<ILanguageRuntime>> m_runtimes;
     std::unordered_map<std::string, std::shared_ptr<ScriptModuleRuntime>> m_modules;
 

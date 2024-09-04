@@ -152,6 +152,7 @@ namespace as::ir
                                    llvm::Function* custom_init = nullptr);
 
     std::string getImplements(const std::string& filepath, const std::string& pattern);
+    std::unordered_map<std::string, std::string> getRequires(const std::string& filepath, const std::string& pattern);
 
     std::string getRelativeFileName(const std::string& base_filename, const std::string& filename);
 

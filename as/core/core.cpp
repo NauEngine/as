@@ -44,6 +44,11 @@ extern "C" const void* __asRequireRuntime(as::Core* core, const char* name)
     return core->requireRuntime(name);
 }
 
+extern "C" const void* __asRequireInstance(as::Core* core, const char* name)
+{
+    return core->requireInstance(name);
+}
+
 namespace as
 {
 
@@ -59,6 +64,11 @@ Core::~Core()
 void Core::registerRuntime(std::shared_ptr<ILanguageRuntime> runtime)
 {
     m_runtimes[runtime->name()] = std::move(runtime);
+}
+
+void Core::registerInstance(const std::string& instance_name, void* instance)
+{
+    m_instances[instance_name] = instance;
 }
 
 void Core::registerVTable(const char* safe_name, ScriptModuleRuntime::FunctionPtr* vtable, int vtable_size)
@@ -85,6 +95,21 @@ const void* Core::requireRuntime(const char* name)
 
     const auto result = runtime->second->ptr();
     std::cout << "__asRequireRuntime(" << name << ") -> " << result << std::endl;
+
+    return result;
+}
+
+const void* Core::requireInstance(const char* name)
+{
+    const auto instance = m_instances.find(name);
+    if (instance == m_instances.end())
+    {
+        std::cout << "__asRequireInstance(" << name << ") -> not found" << std::endl;
+        return nullptr;
+    }
+
+    const auto result = instance->second;
+    std::cout << "__asRequireInstance(" << name << ") -> " << result << std::endl;
 
     return result;
 }

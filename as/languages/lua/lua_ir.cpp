@@ -23,7 +23,7 @@ extern "C"
 namespace as
 {
 
-void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context, lua_State* lua_state)
+void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context)
 {
     llvm::LLVMContext& context = *ts_context.getContext();
     // init lapi bc
@@ -41,6 +41,7 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     float_t = llvm::Type::getFloatTy(context);
     bool_t = llvm::Type::getInt1Ty(context);
     char_ptr_t = llvm::Type::getInt8PtrTy(context);
+    void_ptr_t = char_ptr_t;
 
     lua_State_t = llvm::StructType::getTypeByName(context, "struct.lua_State");
     TValue_t = llvm::StructType::getTypeByName(context, "struct.lua_TValue");
@@ -120,21 +121,6 @@ void LuaIR::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeCon
     vm_arith_tms_map[OP_POW] = TM_POW;
 
     prepareVMOpcodes(context);
-
-    // bound lua_State to global var
-    // TODO [AZ] handle errors
-
-    auto error = jit->getMainJITDylib().define(llvm::orc::absoluteSymbols({
-      {
-        jit->mangleAndIntern(LUA_STATE_GLOBAL_VAR),
-        { llvm::orc::ExecutorAddr::fromPtr(lua_state), llvm::JITSymbolFlags::Exported }
-      }
-    }));
-
-    if (error)
-    {
-        llvm::errs() << error;
-    }
 }
 
 void LuaIR::prepareVMOpcodes(llvm::LLVMContext& context)

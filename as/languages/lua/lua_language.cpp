@@ -45,7 +45,7 @@ void LuaLanguage::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadS
     m_llvmCompiler = std::make_shared<LuaLLVMCompiler>();
 
     m_lua_ir = std::make_shared<LuaIR>();
-    m_lua_ir->init(m_jit, m_ts_context, m_lua_state);
+    m_lua_ir->init(m_jit, m_ts_context);
 }
 
 std::shared_ptr<ILanguageScript> LuaLanguage::newScript()

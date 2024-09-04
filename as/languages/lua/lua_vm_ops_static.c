@@ -334,6 +334,24 @@ void vm_OP_VARARG(lua_State *L, JClosure *cl, int a, int b) {
   }
 }
 
+void prepare_metatable(lua_State *L, const Metatable* metatable)
+{
+    luaL_newmetatable(L, metatable->name);
+
+    lua_pushvalue(L, -1);
+    lua_setfield(L, -2, "__index");
+
+    luaL_register(L, NULL, metatable->methods);
+}
+
+void prepare_metatables(lua_State *L, const InstanceMetatables* metatables)
+{
+    for (int i = 0; i < metatables->num_metatables; ++i)
+    {
+        prepare_metatable(L, &metatables->metatables[i]);
+    }
+}
+
 void prepare_strings(lua_State *L, FunctionTree* ftree)
 {
     for (int i = 0; i < ftree->sizek; ++i)
@@ -351,8 +369,10 @@ void prepare_strings(lua_State *L, FunctionTree* ftree)
     }
 }
 
-void module_entry_point(lua_State *L, FunctionTree* ftree_root)
+void module_entry_point(lua_State *L_, FunctionTree* ftree_root)
 {
+    //lua_State* L = (lua_State *)(*(void**)(void*)L_);
+    lua_State* L = L_;
     prepare_strings(L, ftree_root);
 
     Closure* closure = luaF_newJclosure(L, ftree_root->num_upvalues, hvalue(gt(L)));
@@ -364,6 +384,8 @@ void module_entry_point(lua_State *L, FunctionTree* ftree_root)
     setclvalue(L, L->top, closure);
     incr_top(L);
     lua_call(L, 0, LUA_MULTRET);
+    int y = 9;
+    y;
 }
 
 void push_global_closure(lua_State *L, FunctionTree* ftree_root, int closure_id)

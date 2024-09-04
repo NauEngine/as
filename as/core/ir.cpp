@@ -228,6 +228,34 @@ std::string getImplements(const std::string& filepath, const std::string& patter
     return "";
 }
 
+std::unordered_map<std::string, std::string> getRequires(const std::string& filepath, const std::string& pattern)
+{
+    std::ifstream file(filepath);
+    if (!file.is_open()) {
+        llvm::errs() << "Error opening file: " << filepath << "\n";
+        exit(1);
+    }
+
+    std::unordered_map<std::string, std::string> result;
+
+    std::string line;
+    std::regex exp(pattern + "\\s*require\\s+(\\w+)\\s+implements\\s+(\\S+)");
+    std::smatch matches;
+
+    while (std::getline(file, line))
+    {
+        if (std::regex_match(line, matches, exp) && matches.size() == 3)
+        {
+            llvm::errs() << "Match: " << matches[1] << " -> " << matches[2] << "\n";
+            result[matches[1]] = matches[2];
+        }
+    }
+
+    file.close();
+
+    return result;
+}
+
 std::string getRelativeFileName(const std::string& base_filename, const std::string& filename)
 {
     if (filename.empty())
