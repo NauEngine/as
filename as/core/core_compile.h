@@ -60,8 +60,10 @@ private:
     [[nodiscard]]
     ILanguage* getLanguage(const std::string& language_name) const;
 
-    std::shared_ptr<ScriptModuleCompile> createScriptModule(const std::string& export_name,
+    std::shared_ptr<ScriptModuleCompile> createScriptModule(
+        const std::string& export_name,
         const ScriptInterface& interface,
+        const std::unordered_map<std::string, std::shared_ptr<ScriptInterface>>& externalRequires,
         std::shared_ptr<ILanguageScript> language_script);
 };
 

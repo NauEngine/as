@@ -19,13 +19,14 @@ namespace as {
 
 ScriptModuleCompile::ScriptModuleCompile(const std::string& export_name,
         const ScriptInterface& interface,
+        const std::unordered_map<std::string, std::shared_ptr<ScriptInterface>>& externalRequires,
         std::shared_ptr<ILanguageScript> language_script,
         llvm::LLVMContext& context,
         bool add_init):
     m_export_name(export_name),
     m_language_script(std::move(language_script))
 {
-    compile(interface, context, add_init);
+    compile(interface, externalRequires, context, add_init);
 }
 
 void ScriptModuleCompile::dump(llvm::raw_ostream& stream) const
@@ -104,13 +105,15 @@ InitFunction ScriptModuleCompile::materialize(std::shared_ptr<llvm::orc::LLJIT>&
     return init_func_addr.get().toPtr<void(void*)>();
 }
 
-void ScriptModuleCompile::compile(const ScriptInterface& interface,
+void ScriptModuleCompile::compile(
+    const ScriptInterface& interface,
+    const std::unordered_map<std::string, std::shared_ptr<ScriptInterface>>& externalRequires,
     llvm::LLVMContext& context,
     bool add_init)
 {
     m_module = std::move(m_language_script->createModule(context));
     const auto init_name = add_init ? "" : "init_" + m_export_name;
-    m_language_script->buildModule(init_name, m_export_name, interface, *m_module);
+    m_language_script->buildModule(init_name, m_export_name, interface, externalRequires, *m_module);
 }
 
 } // as

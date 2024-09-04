@@ -48,6 +48,16 @@ struct ILanguageScript
     virtual std::shared_ptr<ScriptInterface> getInterface(const std::string& filename, CPPParser& cpp_paser) = 0;
 
     /**
+     * Получить зависимости от внешних интерфейсов которые использует  скрипт из файла
+     * @param filename - имя (и путь) до файла
+     * @param cpp_parser - Parser для C++ кода
+     * @return возвращает мапу имя инстанса -> соответствующий интерфейс
+     */
+    virtual std::unordered_map<std::string, std::shared_ptr<ScriptInterface>>
+        getRequires(const std::string& filename, CPPParser& cpp_paser) = 0;
+
+
+    /**
      * Создать LLVM модуль
      * @param context - LLVM Context
      * @return Созданный модуль
@@ -65,6 +75,7 @@ struct ILanguageScript
     virtual llvm::Function* buildModule(const std::string& init_name,
         const std::string& module_name,
         const ScriptInterface& interface,
+        const std::unordered_map<std::string, std::shared_ptr<ScriptInterface>>& externalRequires,
         llvm::Module& module) = 0;
 
     /**

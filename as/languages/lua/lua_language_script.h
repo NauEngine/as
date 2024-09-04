@@ -36,11 +36,15 @@ public:
 
     std::shared_ptr<ScriptInterface> getInterface(const std::string& filename, CPPParser& cpp_paser) override;
 
+    std::unordered_map<std::string, std::shared_ptr<ScriptInterface>>
+        getRequires(const std::string& filename, CPPParser& cpp_paser) override;
+
     std::unique_ptr<llvm::Module> createModule(llvm::LLVMContext& context) override;
 
     llvm::Function* buildModule(const std::string& init_name,
         const std::string& module_name,
         const ScriptInterface& interface,
+        const std::unordered_map<std::string, std::shared_ptr<ScriptInterface>>& externalRequires,
         llvm::Module& module) override;
 
     void materialize(

@@ -54,9 +54,11 @@ std::unique_ptr<llvm::Module> IvnScriptLanguageScript::createModule(
     return std::make_unique<llvm::Module>("is_module", context);
 }
 
-llvm::Function* IvnScriptLanguageScript::buildModule(const std::string& init_name,
+llvm::Function* IvnScriptLanguageScript::buildModule(
+    const std::string& init_name,
     const std::string& module_name,
     const ScriptInterface& interface,
+    const std::unordered_map<std::string, std::shared_ptr<ScriptInterface>>& externalRequires,
     llvm::Module& module)
 {
     auto& context = module.getContext();

@@ -22,6 +22,7 @@ class ScriptModuleCompile {
 public:
     explicit ScriptModuleCompile(const std::string& export_name,
         const ScriptInterface& interface,
+        const std::unordered_map<std::string, std::shared_ptr<ScriptInterface>>& externalRequires,
         std::shared_ptr<ILanguageScript> language_script,
         llvm::LLVMContext& context,
         bool add_init);
@@ -35,7 +36,11 @@ private:
     std::unique_ptr<llvm::Module> m_module;
     std::shared_ptr<ILanguageScript> m_language_script;
 
-    void compile(const ScriptInterface& interface, llvm::LLVMContext& context, bool add_init);
+    void compile(
+        const ScriptInterface& interface,
+        const std::unordered_map<std::string, std::shared_ptr<ScriptInterface>>& externalRequires,
+        llvm::LLVMContext& context,
+        bool add_init);
     llvm::orc::JITDylib* getModuleLib(std::shared_ptr<llvm::orc::LLJIT>& jit);
 };
 

@@ -57,6 +57,23 @@ std::shared_ptr<ScriptInterface> LuaLanguageScript::getInterface(const std::stri
     return ir::getInterface(filename, interface_filename, cpp_paser);
 }
 
+std::unordered_map<std::string, std::shared_ptr<ScriptInterface>>
+    LuaLanguageScript::getRequires(const std::string& filename, CPPParser& cpp_paser)
+{
+    std::unordered_map<std::string, std::shared_ptr<ScriptInterface>> result;
+
+    auto externalRequires = ir::getRequires(m_filename, "--");
+
+    for (auto& [name, interface_filename] : externalRequires)
+    {
+        auto interface = ir::getInterface(filename, interface_filename, cpp_paser);
+        result[name] = std::move(interface);
+    }
+
+    return std::move(result);
+}
+
+
 std::unique_ptr<llvm::Module> LuaLanguageScript::createModule(
         llvm::LLVMContext& context)
 {
@@ -76,12 +93,7 @@ llvm::Function* LuaLanguageScript::buildCustomInitFunction(llvm::Module& module)
     builder.SetInsertPoint(block);
 
     auto luaState = builder.CreateLoad(m_lua_ir->void_ptr_t, m_luaStateGlobalVar);
-//    auto luaState = m_luaStateGlobalVar;
     builder.CreateCall(m_lua_ir->module_entry_point_f, {luaState, m_ftreeRootGlobal});
-
-    // auto luaState2 = builder.CreateLoad(m_lua_ir->void_ptr_t, m_luaStateGlobalVar);
-    // //    auto luaState = m_luaStateGlobalVar;
-    // builder.CreateCall(m_lua_ir->module_entry_point_f, {luaState2, m_ftreeRootGlobal});
     builder.CreateRetVoid();
 
     return func;
@@ -90,6 +102,7 @@ llvm::Function* LuaLanguageScript::buildCustomInitFunction(llvm::Module& module)
 llvm::Function* LuaLanguageScript::buildModule(const std::string& init_name,
     const std::string& module_name,
     const ScriptInterface& interface,
+    const std::unordered_map<std::string, std::shared_ptr<ScriptInterface>>& externalRequires,
     llvm::Module& module)
 {
     auto& context = module.getContext();

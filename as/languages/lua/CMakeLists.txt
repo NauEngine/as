@@ -12,6 +12,8 @@ add_library(LuaIntegration STATIC
     lua_core.h
     lua_ftree.cpp
     lua_ftree.h
+    lua_extern_metatables.cpp
+    lua_extern_metatables.h
     lua_utils.cpp
     lua_bytecode_printer.cpp
     lua_loader.cpp
