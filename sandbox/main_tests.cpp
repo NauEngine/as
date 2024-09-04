@@ -54,7 +54,7 @@ int main()
   script_core->registerRuntime(std::move(ivnscript_runtime));
 
   LoggerImpl logger;
-  script_core->registerInstance<Logger>(&logger, "logger");
+  script_core->registerInstance("logger", &logger);
 
   auto test_1_lua = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_1.lua");
   auto test_2_lua = script_core->newScriptModule<TestScript>("../../sandbox/scripts/test_2.lua");
