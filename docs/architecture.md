@@ -218,7 +218,7 @@ std::shared_ptr<ScriptModule<Interface>> newScriptModule(const std::string& file
 template<typename Interface>
 void registerLanguage(const std::string& language_name, const std::shared_ptr<ILanguage>& language)
 
-void registerInstance(Interface* instance, const std::string& instance_name);
+void registerInstance(const std::string& instance_name, Interface* instance);
 ```
 Методы для вызова соотв. методов внутреннего `CoreCompile`
 
