@@ -50,7 +50,7 @@ void prepare_strings(lua_State *L, const FunctionTree* ftree)
 {
     for (int i = 0; i < ftree->sizek; ++i)
     {
-        if (ftree->k_strings->size > 0)
+        if (ftree->k_strings[i].size > 0)
         {
             TValue* o = &ftree->k[i];
             setsvalue2n(L, o, luaS_newlstr(L, ftree->k_strings[i].string, ftree->k_strings[i].size));

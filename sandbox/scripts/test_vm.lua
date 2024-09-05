@@ -7,7 +7,7 @@ end
 
 function bar(a)
     logger:warn(10, 20)
-    return a * 100
+    return a * foo(10, 20)
 end
 
 
