@@ -34,11 +34,6 @@ LuaLanguageScript::LuaLanguageScript(
 
 }
 
-LuaLanguageScript::~LuaLanguageScript()
-{
-
-}
-
 void LuaLanguageScript::load(const std::string& filename, llvm::LLVMContext& context)
 {
     m_filename = filename;

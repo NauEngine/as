@@ -26,7 +26,7 @@ class LuaLanguage final : public ILanguage
 {
 public:
   LuaLanguage();
-  ~LuaLanguage() override;
+  ~LuaLanguage() override = default;
 
   const char* prefix() override { return "lua"; }
 
@@ -42,9 +42,6 @@ public:
 private:
   std::shared_ptr<LuaIR> m_lua_ir;
   std::shared_ptr<LuaLLVMCompiler> m_llvmCompiler;
-  std::set<std::string> m_createdMetatables;
-
-  std::shared_ptr<llvm::orc::LLJIT> m_jit;
   llvm::orc::ThreadSafeContext m_ts_context;
 };
 

@@ -36,9 +36,8 @@ struct FunctionTreeNode;
 class LuaLLVMCompiler
 {
 public:
-	explicit LuaLLVMCompiler();
-
-	~LuaLLVMCompiler();
+	LuaLLVMCompiler() = default;
+	~LuaLLVMCompiler() = default;
 
 	std::shared_ptr<FunctionTreeNode> compile(
 	    llvm::LLVMContext& context,

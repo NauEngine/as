@@ -95,16 +95,6 @@ llvm::Value* LuaLLVMCompiler::getProtoConstant(llvm::LLVMContext& context, TValu
 	return val;
 }
 
-LuaLLVMCompiler::LuaLLVMCompiler()
-{
-
-}
-
-LuaLLVMCompiler::~LuaLLVMCompiler()
-{
-
-}
-
 void LuaLLVMCompiler::prepareOpcodeData(int codeLen)
 {
 	op_hints.resize(codeLen);
@@ -833,7 +823,7 @@ void LuaLLVMCompiler::сompileSingleProto(
 	}
 
     optimizer->inlineAll(node->function);
-    //optimizer->runOptimizationPasses(func);
+    optimizer->runOptimizationPasses(node->function);
 }
 
 }	// namespace as

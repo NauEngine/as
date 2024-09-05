@@ -29,7 +29,7 @@ public:
     explicit LuaLanguageScript(
         const std::shared_ptr<LuaIR>& lua_ir,
         const std::shared_ptr<LuaLLVMCompiler>& llvmCompiler);
-    ~LuaLanguageScript() override;
+    ~LuaLanguageScript() override = default;
 
     void load(const std::string& filename, llvm::LLVMContext& context) override;
 
@@ -62,8 +62,6 @@ private:
     llvm::GlobalVariable* m_luaStateGlobalVar = nullptr;
     llvm::Value* m_ftreeRootGlobal = nullptr;
     llvm::Value* m_metatablesListGlobal = nullptr;
-
-    void loadLua(const std::string& filename, lua_State* luaState, llvm::LLVMContext& context);
 
     llvm::Function* buildCustomInitFunction(llvm::Module& module);
 

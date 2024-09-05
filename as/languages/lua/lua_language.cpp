@@ -28,20 +28,14 @@ LuaLanguage::LuaLanguage()
     __force_link_module_entry();
 }
 
-LuaLanguage::~LuaLanguage()
-{
-
-}
-
 void LuaLanguage::init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context)
 {
-    m_jit = std::move(jit);
     m_ts_context = std::move(ts_context);
 
     m_llvmCompiler = std::make_shared<LuaLLVMCompiler>();
 
     m_lua_ir = std::make_shared<LuaIR>();
-    m_lua_ir->init(m_jit, m_ts_context);
+    m_lua_ir->init(m_ts_context);
 }
 
 std::shared_ptr<ILanguageScript> LuaLanguage::newScript()

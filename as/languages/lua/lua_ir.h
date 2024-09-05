@@ -108,7 +108,7 @@ public:
     std::unordered_map<int, llvm::Function*> vm_num_f;
     std::unordered_map<int, TMS> vm_arith_tms_map;
 
-    void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext ts_context);
+    void init(llvm::orc::ThreadSafeContext ts_context);
 
     llvm::Value* buildPopValue(llvm::IRBuilder<>& builder, llvm::Value* lua_state_ir, const llvm::Type* type, int stackPos) const;
     void buildPushValue(llvm::IRBuilder<>& builder, llvm::Value* lua_state_ir, const llvm::Type* type, llvm::Value* value) const;
