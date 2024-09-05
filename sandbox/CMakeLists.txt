@@ -5,6 +5,11 @@ target_link_libraries(SandboxSq SquirrelIntegration)
 add_executable(SandboxLuaVM main_lua_vm.cpp)
 target_link_libraries(SandboxLuaVM LuaIntegration)
 
+add_executable(SandboxLuaVMAOT main_lua_vm.cpp)
+target_link_libraries(SandboxLuaVMAOT LuaIntegration)
+target_link_scripts(SandboxLuaVMAOT
+    scripts/test_vm.lua)
+
 add_executable(SandboxTests main_tests.cpp)
 target_link_libraries(SandboxTests
     LuaIntegration
