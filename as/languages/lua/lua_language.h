@@ -37,26 +37,15 @@ public:
   void registerInstance(
     void* instance,
     const std::string& instanceName,
-    const std::shared_ptr<ScriptInterface>& interface) override;
+    const std::shared_ptr<ScriptInterface>& interface) override {}
 
 private:
-  lua_State* m_lua_state = nullptr;
   std::shared_ptr<LuaIR> m_lua_ir;
   std::shared_ptr<LuaLLVMCompiler> m_llvmCompiler;
   std::set<std::string> m_createdMetatables;
 
   std::shared_ptr<llvm::orc::LLJIT> m_jit;
   llvm::orc::ThreadSafeContext m_ts_context;
-
-  void buildLuaCFunction(
-    llvm::LLVMContext& context,
-    llvm::Module* module,
-    llvm::FunctionType* methodType,
-    int methodPosition,
-    const std::string& methodName,
-    llvm::Value* type_name_var) const;
-
-  void createInterfaceMetatable(const std::shared_ptr<ScriptInterface>& interface);
 };
 
 }

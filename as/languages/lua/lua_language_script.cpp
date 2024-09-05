@@ -26,10 +26,8 @@ namespace as
 {
 
 LuaLanguageScript::LuaLanguageScript(
-    lua_State* state,
     const std::shared_ptr<LuaIR>& lua_ir,
     const std::shared_ptr<LuaLLVMCompiler>& llvmCompiler):
-    m_lua_state(state),
     m_lua_ir(lua_ir),
     m_llvmCompiler(llvmCompiler)
 {
@@ -108,11 +106,12 @@ llvm::Function* LuaLanguageScript::buildModule(const std::string& init_name,
     const std::unordered_map<std::string, std::shared_ptr<ScriptInterface>>& externalRequires,
     llvm::Module& module)
 {
+    LuaLocalState localLua;
     auto& context = module.getContext();
 
-    Proto* proto = loadLuaProto(m_lua_state, m_filename, m_dumpCompiled);
+    Proto* proto = loadLuaProto(localLua.get(), m_filename, m_dumpCompiled);
 
-    m_functionTree = m_llvmCompiler->compile(context, module, m_lua_ir, m_lua_state, proto);
+    m_functionTree = m_llvmCompiler->compile(context, module, m_lua_ir, localLua.get(), proto);
     m_ftreeRootGlobal = buildFunctionTreeIR(m_functionTree, m_lua_ir, module);
     m_metatablesListGlobal = LuaExternMetatables::buildIR(externalRequires, m_lua_ir, module);
 
@@ -142,7 +141,6 @@ llvm::Function* LuaLanguageScript::buildFunction(
     llvm::Module& module,
     llvm::LLVMContext& context)
 {
-    LuaStackGuard stack_guard(m_lua_state);
     const LLVMOptimizer optimizer(&module);
 
     if (!m_functionTree->global_func_map.contains(bare_name))

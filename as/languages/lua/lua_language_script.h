@@ -27,7 +27,6 @@ class LuaLanguageScript final : public ILanguageScript
 {
 public:
     explicit LuaLanguageScript(
-        lua_State* state,
         const std::shared_ptr<LuaIR>& lua_ir,
         const std::shared_ptr<LuaLLVMCompiler>& llvmCompiler);
     ~LuaLanguageScript() override;
@@ -54,8 +53,6 @@ public:
 
 private:
     bool m_dumpCompiled = true;
-    lua_State* m_lua_state = nullptr;
-
     std::string m_filename;
 
     const std::shared_ptr<LuaIR>& m_lua_ir;
