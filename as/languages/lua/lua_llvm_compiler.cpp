@@ -673,11 +673,6 @@ void LuaLLVMCompiler::сompileSingleProto(
 		Instruction instruction = bcontext.code[i];
 		int opcode = GET_OPCODE(instruction);
 
-	    if (op_hints[i] & HINT_SKIP_OP)
-	    {
-	        continue;
-	    }
-
 		llvm::CallInst* call = nullptr;
 
 	    if (!(op_hints[i] & HINT_NO_OPCODE_FUNC))

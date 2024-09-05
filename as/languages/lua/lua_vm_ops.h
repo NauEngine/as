@@ -19,13 +19,7 @@ typedef long long lua_Long;
 
 typedef unsigned int hint_t;
 #define HINT_NONE				0
-#define HINT_C_NUM_CONSTANT		(1<<0)
-#define HINT_Bx_NUM_CONSTANT	(1<<1)
-#define HINT_NOT				(1<<2)
 #define HINT_FOR_CONST			(1<<3)
-#define HINT_SKIP_OP			(1<<4)
-#define HINT_MINI_VM			(1<<5)
-#define HINT_NO_SUB				(1<<6)
 #define HINT_NO_OPCODE_FUNC		(1<<7)
 #define HINT_NUMERIC_ARITH		(1<<7)
 
@@ -105,8 +99,6 @@ extern void vm_OP_CONCAT(lua_State *L, int a, int b, int c);
 extern void vm_OP_JMP(lua_State *L, int sbx);
 
 extern int vm_OP_EQ(lua_State *L, TValue *k, int a, int b, int c);
-extern int vm_OP_EQ_NC(lua_State *L, TValue *k, int b, lua_Number nc);
-extern int vm_OP_NOT_EQ_NC(lua_State *L, TValue *k, int b, lua_Number nc);
 
 extern int vm_OP_LT(lua_State *L, TValue *k, int a, int b, int c);
 

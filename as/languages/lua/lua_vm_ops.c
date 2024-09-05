@@ -230,28 +230,6 @@ int vm_OP_EQ(lua_State *L, TValue *k, int a, int b, int c) {
   return ret;
 }
 
-int vm_OP_EQ_NC(lua_State *L, TValue *k, int b, lua_Number nc) {
-  TValue *base = L->base;
-  int ret;
-  TValue *rb = RK(b);
-  if (ttisnumber(rb)) {
-    ret = !luai_numeq(nvalue(rb), nc);
-    return ret;
-  }
-  return 1;
-}
-
-int vm_OP_NOT_EQ_NC(lua_State *L, TValue *k, int b, lua_Number nc) {
-  TValue *base = L->base;
-  int ret;
-  TValue *rb = RK(b);
-  if (ttisnumber(rb)) {
-    ret = luai_numeq(nvalue(rb), nc);
-    return ret;
-  }
-  return 0;
-}
-
 int vm_OP_LT(lua_State *L, TValue *k, int a, int b, int c) {
   TValue *base = L->base;
   int ret;
