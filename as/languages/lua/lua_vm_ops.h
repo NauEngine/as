@@ -66,21 +66,21 @@ extern const VmFuncInfo vm_op_functions[];
 
 extern void vm_OP_MOVE(TValue *ra, TValue *rb);
 
-extern void vm_OP_LOADK(TValue *var, TValue *value);
+extern void vm_OP_LOADK(TValue *ra, TValue *k);
 
-extern void vm_OP_LOADBOOL(TValue *base, int a, int b, int c);
+extern void vm_OP_LOADBOOL(TValue *ra, int b);
 
-extern void vm_OP_LOADNIL(TValue *base, int a, int b);
+extern void vm_OP_LOADNIL(TValue *ra, TValue *rb);
 
 extern void vm_OP_GETUPVAL(JClosure *cl, TValue *ra, int b);
 
-extern void vm_OP_GETGLOBAL(lua_State *L, TValue *k, JClosure *cl, int a, int bx);
+extern void vm_OP_GETGLOBAL(lua_State *L, JClosure *cl, TValue *ra, TValue *k);
 
 extern void vm_OP_GETTABLE(lua_State *L, TValue* ra, TValue* rb, TValue* rc);
 
 extern void vm_OP_SETGLOBAL(lua_State *L, TValue *k, JClosure *cl, int a, int bx);
 
-extern void vm_OP_SETUPVAL(lua_State *L, JClosure *cl, int a, int b);
+extern void vm_OP_SETUPVAL(lua_State *L, JClosure *cl, TValue *ra, int b);
 
 extern void vm_OP_SETTABLE(lua_State *L, TValue *ra, TValue *rb, TValue *rc);
 

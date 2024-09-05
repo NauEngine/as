@@ -8,6 +8,7 @@
 #include "as/languages/lua/lua_language_runtime.h"
 
 #include "scripts/test_vm.h"
+#include "scripts/opcode_test.h"
 #include "scripts/logger.h"
 
 
@@ -40,6 +41,12 @@ int main()
 
     std::cout << instance->foo(10, 20) << std::endl;
     std::cout << instance->bar(200) << std::endl;
+
+    auto opcode_module = script_core->newScriptModule<OpCodeTest>("scripts/opcode_test.lua");
+    const auto opcode_instance = opcode_module->newInstance();
+
+    opcode_instance->run_all();
+
 
     delete instance;
     script_module = nullptr;

@@ -37,18 +37,18 @@ void vm_OP_MOVE(TValue *ra, TValue *rb)
 }
 
 //	A Bx	R(A) := Kst(Bx)
-void vm_OP_LOADK(TValue *var, TValue *value) {
-  setobj_VM(var, value);
+void vm_OP_LOADK(TValue *ra, TValue *k) {
+  setobj_VM(ra, k);
 }
 
-void vm_OP_LOADBOOL(TValue *base, int a, int b, int c) {
-  TValue *ra = base + a;
+//	A B C	R(A) := (Bool)B; if (C) pc++
+// We do branching ecternaly
+void vm_OP_LOADBOOL(TValue *ra, int b) {
   setbvalue(ra, b);
 }
 
-void vm_OP_LOADNIL(TValue *base, int a, int b) {
-  TValue *ra = base + a;
-  TValue *rb = base + b;
+//  A B	R(A) := ... := R(B) := nil
+void vm_OP_LOADNIL(TValue *ra, TValue *rb) {
   do {
     setnilvalue(rb--);
   } while (rb >= ra);
@@ -60,14 +60,11 @@ void vm_OP_GETUPVAL(JClosure *cl, TValue *ra, int b) {
 }
 
 /*	A Bx	R(A) := Gbl[Kst(Bx)]		*/
-void vm_OP_GETGLOBAL(lua_State *L, TValue *k, JClosure *cl, int a, int bx) {
-  TValue *base = L->base;
-  TValue *ra = base + a;
-  TValue *rb = k + bx;
+void vm_OP_GETGLOBAL(lua_State *L, JClosure *cl, TValue *ra, TValue *k) {
   TValue g;
   sethvalue(L, &g, cl->env);
   lua_assert(ttisstring(rb));
-  luaV_gettable(L, &g, rb, ra);
+  luaV_gettable(L, &g, k, ra);
 }
 
 //	A B C	R(A) := R(B)[RK(C)]
@@ -132,9 +129,8 @@ void vm_OP_SETTABLE(lua_State *L, TValue *ra, TValue *rb, TValue *rc)
     luaV_settable(L, ra, rb, rc);
 }
 
-void vm_OP_SETUPVAL(lua_State *L, JClosure *cl, int a, int b) {
-  TValue *base = L->base;
-  TValue *ra = base + a;
+//	A B	UpValue[B] := R(A)
+void vm_OP_SETUPVAL(lua_State *L, JClosure *cl, TValue *ra, int b) {
   UpVal *uv = cl->upvals[b];
   setobj(L, uv->v, ra);
   luaC_barrier(L, uv, ra);
@@ -142,8 +138,7 @@ void vm_OP_SETUPVAL(lua_State *L, JClosure *cl, int a, int b) {
 
 /*	A B C k	R[A] := {}					*/
 void vm_OP_NEWTABLE(lua_State *L, int a, int b_fb2int, int c_fb2int) {
-  Table *h;
-  h = luaH_new(L, b_fb2int, c_fb2int);
+  Table* h = luaH_new(L, b_fb2int, c_fb2int);
   sethvalue(L, L->base + a, h);
   luaC_checkGC(L);
 }
