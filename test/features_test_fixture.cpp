@@ -411,9 +411,19 @@ void FeaturesTestFixture::doCompileLinkTest()
     auto& core = ensureCore(false);
     core.registerLanguage(getLanguageName(), std::make_shared<IRLanguage>());
 
+    // IRLanguage загружает скомпилированный модуль, в котором нет публичной
+    // init-функции, зато есть ctor функция, которая регистрирует приватную
+    // init-функцию.
+    //
+    // Порядок поиска модулей - сначала зарегистрированные init-функции, потом
+    // компиляция и материализация. На первый вызов зарегистрированной
+    // функции нет, она появляется в момент метериализации модуля. Но, так как
+    // публичной функции тоже, компиляция заканчивается nullptr
     auto module = ensureCore(true).newScriptModule<SimpleScript>(script_name);
     ASSERT_EQ(module, nullptr);
 
+    // А в момент второго вызова уже есть зарегистрированная приватная
+    // init-функция. Поэтому второй вызов выдает модуль
     auto module2 = ensureCore(true).newScriptModule<SimpleScript>(script_name);
     ASSERT_NE(module2, nullptr);
 
