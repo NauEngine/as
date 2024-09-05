@@ -1,15 +1,3 @@
-add_executable(SandboxInterface main_interface.cpp)
-target_link_libraries(SandboxInterface
-    AScript
-    ${llvm_libs}
-)
-
-add_executable(SandboxScripts main_scripts.cpp)
-target_link_libraries(SandboxScripts
-    LuaIntegration
-    SquirrelIntegration
-    IvnScriptIntegration
-)
 
 add_executable(SandboxSq main_sq.cpp)
 target_link_libraries(SandboxSq SquirrelIntegration)
@@ -23,7 +11,6 @@ target_link_libraries(SandboxTests
     SquirrelIntegration
     IvnScriptIntegration
     CppScriptIntegration
-    TypeScriptIntegration
 )
 
 add_executable(SandboxCompiler

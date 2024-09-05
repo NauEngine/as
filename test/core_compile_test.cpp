@@ -37,9 +37,6 @@ class MockLanguage : public as::ILanguage
 public:
     MOCK_METHOD(const char *, prefix, (), (override));
     MOCK_METHOD(void, init, (std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext context), (override));
-    MOCK_METHOD(void, registerInstance, (void* instance,
-      const std::string& instanceName,
-      const std::shared_ptr<as::ScriptInterface>& cppInterface), (override));
     MOCK_METHOD(std::shared_ptr<as::ILanguageScript>, newScript, (), (override));
 };
 
@@ -73,19 +70,6 @@ TEST(CoreCompileTest, NewLanguageInitTest)
     EXPECT_CALL(*language, init(testing::_, testing::_));
 
     compile->registerLanguage("foo", language);
-}
-
-TEST(CoreCompileTest, RegiterInstanceTest)
-{
-    auto compile = std::make_shared<as::CoreCompile>("", false);
-    auto language = std::make_shared<MockLanguage>();
-    SomeObject obj;
-
-    EXPECT_CALL(*language, init(testing::_, testing::_));
-    EXPECT_CALL(*language, registerInstance(&obj, "obj", testing::_));
-
-    compile->registerLanguage("foo", language);
-    compile->registerInstance(&obj, "obj", compile->getInterface(SimpleScript::getSourceCode()));
 }
 
 TEST(CoreCompileTest, NewScriptModuleTest)

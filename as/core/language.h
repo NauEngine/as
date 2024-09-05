@@ -41,17 +41,6 @@ struct ILanguage
     virtual void init(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ThreadSafeContext context) = 0;
 
     /***
-     * Регистрация внешнего объекта.
-     * @param instance - указатель на объект
-     * @param instanceName - имя, под которым зарегистрировать этот объект
-     * @param cppInterface - интерфейс этого объекта
-     */
-    virtual void registerInstance(
-        void* instance,
-        const std::string& instanceName,
-        const std::shared_ptr<ScriptInterface>& cppInterface) = 0;
-
-    /***
      * Создать экземпляр ILanguageScript для загрузки скриптового модуля
      * @return Возвращает новый экземпляр ILanguageScript, который будет использоваться для загрузки скриптового модуля
      */

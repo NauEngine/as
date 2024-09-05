@@ -72,14 +72,6 @@ void CoreCompile::registerLanguage(const std::string& language_name, std::shared
     m_languages[language_name] = std::move(language);
 }
 
-void CoreCompile::registerInstance(void* instance, const std::string& instance_name, const std::shared_ptr<ScriptInterface>& interface)
-{
-    for (auto& [name, language]: m_languages)
-    {
-        language->registerInstance(instance, instance_name, interface);
-    }
-}
-
 std::shared_ptr<ScriptModuleCompile> CoreCompile::newScriptModule(
         const std::string& filename,
         const std::string& language_name)

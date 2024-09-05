@@ -58,11 +58,6 @@ public:
     {
     }
 
-    void registerInstance(void* instance, const std::string& instanceName,
-        const std::shared_ptr<as::ScriptInterface>& cppInterface) override
-    {
-    }
-
     std::shared_ptr<as::ILanguageScript> newScript() override
     {
         return std::make_shared<IRLanguageScript>();

@@ -25,12 +25,6 @@ public:
     {
     }
 
-    void registerInstance(void* instance,
-        const std::string& instanceName,
-        const std::shared_ptr<ScriptInterface>& cppInterface) override
-    {
-    }
-
     std::shared_ptr<ILanguageScript> newScript() override;
 
 private:

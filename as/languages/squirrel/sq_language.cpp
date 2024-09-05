@@ -75,42 +75,42 @@ std::shared_ptr<as::ILanguageScript> SquirrelLanguage::newScript()
     return std::make_shared<SquirrelLanguageScript>(m_sq_vm, m_sq_ir);
 }
 
-void SquirrelLanguage::registerInstance(void* instance, const std::string& instanceName, const std::shared_ptr<ScriptInterface>& interface)
-{
-    if (m_createdMetatables.find(interface->name) == m_createdMetatables.end())
-    {
-        createInterfaceMetatable(interface);
-    }
-
-    sq_newtable(m_sq_vm);
-
-    if (instance == nullptr) {
-        llvm::errs() << "Error: instance is null.\n";
-        return;
-    }
-
-    // Bind user data (pointer at instance) to __instance key in instance table
-    sq_pushstring(m_sq_vm, "__instance", -1);
-    sq_pushuserpointer(m_sq_vm, instance);
-    sq_newslot(m_sq_vm, -3, SQFalse);
-
-    // Set a metatable as a delegate for instance table
-    HSQOBJECT metatable = m_createdMetatables[interface->name];
-    sq_pushobject(m_sq_vm, metatable);
-    if (SQ_FAILED(sq_setdelegate(m_sq_vm, -2))) {
-        llvm::errs() << "Failed to set metatable for table '" << instanceName << "'. Stack type: " << sq_gettype(m_sq_vm, -2) << "\n";
-        return;
-    }
-
-    // Storing instance table in the root table
-    sq_pushroottable(m_sq_vm);
-    sq_pushstring(m_sq_vm, instanceName.c_str(), -1);
-    sq_push(m_sq_vm, -3);
-    sq_newslot(m_sq_vm, -3, SQFalse);
-    
-    // Clear stack
-    sq_pop(m_sq_vm, sq_gettop(m_sq_vm));
-}
+// void SquirrelLanguage::registerInstance(void* instance, const std::string& instanceName, const std::shared_ptr<ScriptInterface>& interface)
+// {
+//     if (m_createdMetatables.find(interface->name) == m_createdMetatables.end())
+//     {
+//         createInterfaceMetatable(interface);
+//     }
+//
+//     sq_newtable(m_sq_vm);
+//
+//     if (instance == nullptr) {
+//         llvm::errs() << "Error: instance is null.\n";
+//         return;
+//     }
+//
+//     // Bind user data (pointer at instance) to __instance key in instance table
+//     sq_pushstring(m_sq_vm, "__instance", -1);
+//     sq_pushuserpointer(m_sq_vm, instance);
+//     sq_newslot(m_sq_vm, -3, SQFalse);
+//
+//     // Set a metatable as a delegate for instance table
+//     HSQOBJECT metatable = m_createdMetatables[interface->name];
+//     sq_pushobject(m_sq_vm, metatable);
+//     if (SQ_FAILED(sq_setdelegate(m_sq_vm, -2))) {
+//         llvm::errs() << "Failed to set metatable for table '" << instanceName << "'. Stack type: " << sq_gettype(m_sq_vm, -2) << "\n";
+//         return;
+//     }
+//
+//     // Storing instance table in the root table
+//     sq_pushroottable(m_sq_vm);
+//     sq_pushstring(m_sq_vm, instanceName.c_str(), -1);
+//     sq_push(m_sq_vm, -3);
+//     sq_newslot(m_sq_vm, -3, SQFalse);
+//
+//     // Clear stack
+//     sq_pop(m_sq_vm, sq_gettop(m_sq_vm));
+// }
 
 void SquirrelLanguage::createInterfaceMetatable(const std::shared_ptr<ScriptInterface>& interface)
 {
