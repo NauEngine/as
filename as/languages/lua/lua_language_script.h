@@ -52,7 +52,7 @@ public:
             llvm::Module& module, llvm::LLVMContext& context) override;
 
 private:
-    bool m_dumpCompiled = true;
+    bool m_dumpCompiled = false;
     std::string m_filename;
 
     const std::shared_ptr<LuaIR>& m_lua_ir;

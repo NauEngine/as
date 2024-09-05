@@ -94,8 +94,6 @@ const void* Core::requireRuntime(const char* name)
     }
 
     const auto result = runtime->second->ptr();
-    std::cout << "__asRequireRuntime(" << name << ") -> " << result << std::endl;
-
     return result;
 }
 

@@ -150,7 +150,7 @@ void run_calls()
 
 int main()
 {
-    run_benchmarks();
-    //run_calls();
+    //run_benchmarks();
+    run_calls();
     return 0;
 }

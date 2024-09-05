@@ -6,6 +6,7 @@
 #include "as/core/core.h"
 #include "as/core/script_module.h"
 #include "as/languages/lua/lua_language.h"
+#include "as/languages/lua/lua_language_runtime.h"
 
 #include "benchmark_runner_luaas.h"
 
@@ -29,8 +30,9 @@ std::unique_ptr<IBenchmarkRunner> getRunnerLuaAs()
 void BenchmarkRunnerLuaAs::prepare(const std::string& filename)
 {
     m_core = std::make_shared<as::Core>();
-    auto lua_language = std::make_shared<as::LuaLanguage>();
-    m_core->registerLanguage("lua", std::move(lua_language));
+
+    m_core->registerLanguage("lua", std::make_shared<as::LuaLanguage>());
+    m_core->registerRuntime(std::make_shared<as::LuaLanguageRuntime>());
 
     m_scriptModuleCase = m_core->newScriptModule<TestCase>(filename);
     m_testCase = m_scriptModuleCase->newInstance();
@@ -61,8 +63,9 @@ void BenchmarkRunnerLuaAs::shutdown()
 void BenchmarkRunnerLuaAs::prepare_calls(const std::string& filename)
 {
     m_core = std::make_shared<as::Core>();
-    auto lua_language = std::make_shared<as::LuaLanguage>();
-    m_core->registerLanguage("lua", std::move(lua_language));
+
+    m_core->registerLanguage("lua", std::make_shared<as::LuaLanguage>());
+    m_core->registerRuntime(std::make_shared<as::LuaLanguageRuntime>());
 
     m_scriptModuleCalls = m_core->newScriptModule<TestCalls>(filename);
     m_testCalls = m_scriptModuleCalls->newInstance();
