@@ -1,45 +1,41 @@
-Описание Архитектуры Agnostic Script
+Architecture
 ====================================
 
 tl;dr;
 ------
-Две основные идеи скриптовой системы Agnostic Script - это представление
-скриптовых модулей как обычных объектов C++, и использование инфраструктуры
-[LLVM](https://llvm.org/) для поддержки различных языков программирования для
-скриптов.
 
-Представление скриптовых модулей в виде объектов C++ позволяет эффективно
-интегрировать их с игровым движком и управлять их жизненным циклом. Этот метод
-также обеспечивает производительность, сопоставимую с нативной реализацией.
+The two foundations of the Agnostic Script system are: representing script modules as regular C++ objects and using [LLVM](https://llvm.org/) infrastructure to support various programming languages for scripts.
 
-Использование инфраструктуры LLVM решает задачи JIT-компиляции скриптов во время
-разработки и AOT-компиляции для релизных версий.
+Encapsulating script modules in C++ objects allows for their efficient integration with the game engine and
+managing their lifecycle. This approach also provides performance that is comparable to that of the native implementation.
+
+Making use of LLVM infrastructure helps achieve scripts JIT-compilation for development and their AOT-compilation for release versions.
 
 ```c++
 #include "as/core/core.h"
 #include "as/languages/lua/lua_language.h"
 
-// объявление интерфейса, который должен быть реализован в скриптовых модулях
+// Declare an interface that has to be implemented within scripting modules.
 DEFINE_SCRIPT_INTERFACE(TestScript,
     virtual int add(int a, int b) = 0;
 )
 
 int main()
 {
-    // создаем скриптовую систему, указываем корневую директорию со скриптами
+    // Create scripting system and setup a root directory containing the scripts.
     auto script_core = std::make_shared<as::Core>("../sandbox/scripts");
 
-    // создаем и регистрируем поддержку языка Lua в скриптовой систему
+    // Add and register Lua as a language supported by the system.
     auto language = std::make_shared<as::LuaLanguage>();
     script_core->registerLanguage("lua", std::move(language));
 
-    // создаем модуль на основе скрипта из файла test.lua
+    // Create a module from the script in test.lua.
     auto module = script_core->newScriptModule<TestScript>("test.lua");
 
-    // создаем экземпляр объекта на основе модуля
+    // Create an instance from the module
     auto instane = module->newInstance();
 
-    // вызываем функцию у объекта
+    // Calling object's member function.
     assert(instane->add(10, 20) == 30);
 
     // You're breathtaking (c) Keanu Reeves
@@ -48,145 +44,100 @@ int main()
 ```
 
 
-Описание работы
+Using Agnostic Script
 ---------------
 
-### Основные концепции
+### Key Concepts
 
-#### Скриптовые модули
+#### Script Modules
 
-В скриптовой системе основной единицей компиляции является модуль. Каждый модуль
-должен реализовывать один и только один интерфейс. Для каждого модуля, в
-зависимости от реализации, автоматически генерируется список доступных методов.
-Затем, с использованием фреймворка LLVM, создается байткод для этих методов,
-формируя виртуальную таблицу методов (VMT) для данного модуля.
+In the scripting system, the main compilation unit is a module. Each module has to implement exactly one interface. For each module an implementation-dependent list of available methods is automatically generated. Then, bytecode for these methods is created with the LLVM framework. As a result, a virtual method table (VMT) for the module is constructed.
 
-#### Режимы работы
+#### Operating Modes
 
-Скриптовая система поддерживает два режима работы:
-- **JIT-компиляция**: компиляция скриптов во время выполнения.
-- **AOT-компиляция**: компиляция скриптов на этапе сборки проекта.
+The scripting system supports two operating modes:
 
-Режим JIT-компиляции используется преимущественно на стадии разработки,
-предоставляя возможность динамической перезагрузки скриптов. Режим
-AOT-компиляции преобразует скрипты в байткод на этапе сборки, что делает его
-подходящим для релизных версий приложений. Возможна одновременная работа в обоих
-режимах, что позволяет, например, поддерживать пользовательские расширения.
+- **JIT compilation**: script compilation at runtime.
+- **AOT compilation**: script compilation during the project build stage.
+JIT compilation is primarily used during development, allowing for dynamic script reloading. 
+AOT compilation converts scripts into bytecode at the build stage, making it suitable for release versions of applications. Both modes can work simultaneously, which enables support for user extensions, for example.
 
-#### Функция `init`
+#### `init` function
 
-Функция `init` служит точкой входа для модуля. При её вызове происходит
-регистрация виртуальной таблицы методов модуля в скриптовой системе, связывание
-с runtime-библиотекой, а также выполнение любой необходимой логики инициализации
-модуля.
+The `init` function is the entry point for the module. When called, it registers the module's VMT in the scripting system and links it to the runtime library. Also, it can perform any necessary module initialization logic.
 
-#### Runtime-библиотека
+#### Runtime library
 
-Для реализации некоторых языков может потребоваться дополнительная логика,
-например, управление памятью. В таких случаях используется runtime-библиотека.
-Эта библиотека регистрируется в скриптовой системе и становится доступной в коде
-модуля.
+Some languages might require additional logic, such as memory management. In such cases, a runtime library can be used. This library is registered in the scripting system and becomes available in the module's code.
 
-### Логика работы
+### Workflow
 
-В общем случае процесс работы одинаков для обоих режимов: JIT и AOT. Он включает
-два основных шага: компиляцию модуля в промежуточное представление (IR) и
-последующую материализацию.
+Workflow is generally the same for both modes: JIT and AOT. It includes two main steps which are compiling the 
+module into an intermediate representation (IR) and subsequent materialization.
 
-В JIT-режиме поддерживается возможность перезагрузки модуля. Каждый модуль
-загружается в отдельную библиотеку (LLVM JIT Library), что позволяет выгружать
-и заменять весь модуль без влияния на другие модули. После выгрузки код модуля
-повторно компилируется и материализуется.
+Module reloading is supported in JIT mode. That is, each module is loaded into a separate library (LLVM JIT Library), which provides an opportunity for unloading and replacing the entire module without affecting other modules. After unloading, the module's code is recompiled and materialized.
 
-При вызове функции `init` происходит замена существующей виртуальной таблицы
-методов, что позволяет уже созданным объектам использовать обновленную логику
-работы.
+When the `init` function is called, the existing virtual method table is replaced, letting already created objects to use the updated logic.
 
-### Компиляция
+### Compilation
 
-Результатом компиляции является функция `init`, которая связывает скриптовый
-модуль с системой. Компиляция проходит через несколько стадий:
-- Определение интерфейса, который реализует модуль.
-- Генерация LLVM-модуля.
-- Создание функции `init`.
+Successful compilation results in the `init` function binding the script module with the system.
+Compilation includes several stages:
+- Definition of the interface implemented by the module
+- LLVM-module generation
+- `init` function creation.
 
-#### Определение интерфейса
+#### Interface definition
 
-Интерфейс, реализуемый модулем, указывается в коде с помощью специальных
-конструкций языка, например, через комментарий. Имя файла с декларацией
-интерфейса (`.h`) подключается к игровому коду, что обеспечивает его интеграцию.
+The interface implemented by the module is specified in code with special language constructs, for instance, comments.
+The name of the file containing the interface declaration (`.h`) is included into the game code, ensuring its integration.
 
-#### Генерация LLVM-модуля
+#### LLVM-module generation
 
-Для каждой функции модуля генерируется IR-код. Кроме того, создается IR-код с
-декларацией глобальной переменной, содержащей виртуальную таблицу методов
-интерфейса. Также на этом этапе генерируется весь необходимый код для работы
-модуля, включая глобальные переменные, связи с runtime-библиотекой, функции
-инициализации и другие элементы.
+IR code is generated for each function of the module. Additionally, IR code is created containing the declaration of a global variable that stores the virtual method table of the interface. At this stage, all necessary code for the module's operation is also generated, including global variables, links to the runtime library, initialization functions, and other elements.
 
-#### Генерация функции `init`
+#### `init` function generation
 
-Функция `init` связывает код модуля со скриптовой системой: регистрирует
-виртуальную таблицу методов, получает доступ к runtime-библиотекам и вызывает
-функции инициализации.
+The init function links the module code to the scripting system; that is, it registers the virtual method table, 
+retrieves access to runtime libraries, and calls initialization functions.
 
-- **Для JIT-режима**: функция объявляется глобальной, чтобы её можно было
-вызвать из скриптовой системы.
-- **Для AOT-режима**: функция `init` объявляется внутренней, и дополнительно
-создается функция `cotr`, которая вызывается при загрузке модуля и регистрирует
-`init`-функцию. Это позволяет обеспечить позднее связывание модулей с
-runtime-библиотеками. Функция `init` модуля вызывается при первом создании
-объекта этого модуля.
+- For **JIT mode**: the function is declared as global so it can be called from the scripting system.
+- For **AOT mode**: the function is declared as internal, and an additional `ctor` function is created. This function is called when the module is loaded and registers the `init` function. This ensures late binding of modules to runtime libraries. The module `init` function is called the first time an object of that module is created.
 
-### Материализация
+### Materialization
 
-Материализация применяется только в JIT-режиме. В этом процессе с помощью
-средств LLVM создается байткод для текущей платформы выполнения и вызывается
-функция `init`.
+Materialization occurs only in JIT mode. At this stage, bytecode is generated for the current execution platform using LLVM tools, and the `init` function is called.
 
-Для AOT-режима вместо материализации выполняется загрузка предварительно
-сгенерированного модуля.
+For AOT mode, instead of materialization, the pre-generated module is loaded.
 
-
-Детали реализации
+Implementation details
 -----------------
 
-Собственно у скриптовой системы две части `Core` и `CoreCompile`
+The script system consists of two components: `Core` and `CoreCompile`.
 
 ### `Core`
 
-Система отвечает за представление скриптовых модулей в виде объектов C++.
-Компонент `Core` содержит экземпляр `CoreCompile` и методы для вызова его
-функций.
+The system is responsible for encapsulating script modules in C++ objects. A `Core` component contains an instance of `CoreCompile` and methods for calling its functions.
 
-Система создает фабрики объектов на основе указанного имени файла. Каждая
-фабрика хранит указатель на виртуальную таблицу методов (virtual table),
-описанных в данном модуле и реализующих заданный интерфейс. Эти фабрики затем
-создают экземпляры объектов, использующие соответствующую таблицу методов.
+The system creates object factories from the specified filename. Each factory stores a pointer to the VMT of methods described in the module and implementing the specified interface. These factories then create instances of objects that use the corresponding virtual method table.
 
-Для регистрации фабрики с каждым скриптовым модулем связана функция `init`,
-которая регистрирует таблицу методов и обеспечивает интеграцию модуля с
-runtime-библиотекой, необходимой для поддержки конкретного языка.
+To register the factory, each script module is associated with an `init` function, which registers the method table. 
+The function also ensures the module integration with the runtime library that is required for supporting the specific language.
 
-Существуют два способа получения функции `init`:
-- **Во время выполнения**: через `CoreCompile`, когда указанный модуль
-компилируется и материализуется с помощью инфраструктуры LLVM.
-- **Во время компиляции**: когда каждый модуль уже скомпилирован в байт-код.
-В этом случае создается секция статической инициализации, которая регистрирует
-`init`-функцию модуля для конкретного имени файла.
+There are two ways to obtain the `init` function:
 
-#### Конструктор `Core`
+- **At runtime**: via CoreCompile, when the specified module is compiled and materialized using the LLVM infrastructure.
+- **At compile time**: when each module has already been compiled into bytecode. In this case, a static initialization section is created that registers the module `init` function for the specific filename.
+
+#### `Core` constructor
 ```c++
 explicit Core(const std::string& base_path = "");
 ```
 
-Создает новый экземпляр `Core`.
-- `base_path` - корневая директория со скриптами.
+Creates a `Core` instance.
+- `base_path` - root directory containing the scripts.
 
-Так как имя файла используется для идентификации модуля, оно должно совпадать
-как для JIT-компиляции, так и для AOT-компиляции. Это позволяет согласовать
-директории со скриптами как во время выполнения JIT-компиляции, так и при
-AOT-компиляции.
+Since the filename is used to identify the module, it has to match for both JIT and AOT compilation. This allows for directory consistency for scripts during both JIT compilation at runtime and AOT compilation.
 
 #### `newScriptModule`
 ```c++
@@ -195,23 +146,22 @@ std::shared_ptr<ScriptModule<Interface>> newScriptModule(const std::string& file
     const std::string& language_name = "")
 ```
 
-Создание фабрики для объектов скриптового модуля
-- **`filename`** — имя файла со скриптом.
-- **`language_name`** — язык для данного модуля. Если не указан, язык
-определяется по расширению файла.
-- **Возвращаемое значение** — указатель на фабрику или `nullptr`, если для
-данного имени файла не может быть создана фабрика. Фабриками управляет `Core`.
+Creates a factory for script module objects.
+- **`filename`** — script file name.
+- **`language_name`** — module language. If not specified, the language is deduced from the file extension.
+- **returns** a pointer to the constructed factory or `nullptr`, on factory creation failure for the given filename.
+Factories are managed by `Core`.
 
-Логика создания фабрики
-1. **Кеширование фабрик**: Все созданные фабрики кешируются. Первым делом ищется
-уже готовая фабрика для данного имени файла.
-2. **Поиск в кеше**: Если в кеше фабрики нет, ищется `init`-функция для данного
-имени файла, которая могла быть зарегистрирована от скомпилированного модуля.
-3. **Компиляция модуля**: Если `init`-функция не была зарегистрирована,
-вызывается компиляция данного модуля посредством `CoreCompile`.
-4. **Вызов `init`-функции**: После получения `init`-функции она вызывается. В
-момент вызова регистрируется таблица методов для данного модуля, после чего
-создается и кешируется фабрика.
+Factory creation workflow:
+1. **Caching factories**
+Each created factory is cached. When a factory is requested, firstly, a suitable cached factory is searched.
+2. **Cache search**
+In case there is no suitable factory cached, a suitable `init` function that has been associated with the compiled module is searched.
+3. **Module compilation**
+In case a suitable `init` function has not been found, module compilation is dispatched via `CoreCompile`.
+4. **Calling `init`**
+The retrieved `init` function is called. At the same moment a VMT for the module is registered. Finally, a factory
+is constructed and cached.
 
 #### `registerLanguage`, `registerInstance`
 ```c++
@@ -220,15 +170,15 @@ void registerLanguage(const std::string& language_name, const std::shared_ptr<IL
 
 void registerInstance(const std::string& instance_name, Interface* instance);
 ```
-Методы для вызова соотв. методов внутреннего `CoreCompile`
+Proxy functions for calling the corresponding methods of the underlying `CoreCompile` object.
 
 #### `registerRuntime`
 ```c++
 void registerRuntime(std::shared_ptr<ILanguageRuntime> runtime);
 ```
 
-Регистрация runtime библиотеки для поддержки языка.
-- **`runtime`** — собственно экземпляр библиотеки.
+Registers a runtime library for language support.
+- **`runtime`** — library object
 
 #### `reload`
 
@@ -236,8 +186,8 @@ void registerRuntime(std::shared_ptr<ILanguageRuntime> runtime);
 void reload(const std::string& filename);
 ```
 
-Перезагрузка указанного модуля
-- **`filename`** - имя файла модуля
+Reloads the specified module.
+- **`filename`** - module file name
 
 #### `registerVTable`, `requireRuntime`
 ```c++
@@ -246,12 +196,11 @@ void registerVTable(const char* name, ScriptModuleRuntime::FunctionPtr* vtable, 
 const void* requireRuntime(const char* name);
 ```
 
-Внутренние функции для вызова в `init`-функциях модулей. `registerVTable` -
-регистрирует (или обновляет) таблицу виртуальных методов модуля.
-`requireRuntime` - получает runtime библиотеку по имени.
+Internal function for calling within module `init` functions.
+`registerVTable` - registers (and updates) the module virtual table.
+`requireRuntime` - retrieves a runtime library by its name.
 
-Для вызова функций используются обертки в виде `extern "C"`функций, таким
-образом их проще вызывать из модулей:
+In order to simplify function calling from modules wrapers (`extern "C"` functions) are used for call.
 
 ```c++
 extern "C" void __asRegisterVTable(as::Core* core, const char* name, as::ScriptModuleRuntime::FunctionPtr* vtable, int vtable_size)
@@ -267,27 +216,25 @@ extern "C" const void* __asRequireRuntime(as::Core* core, const char* name)
 
 ### `ScriptModule<Interface>`
 
-Обертка над скриптовым модулем. Необходима для создания объекта заданного типа
-с таблицей виртуальных методов из модуля
+A wrapper around the script module. It is necessary for creating an object of a specified type with a virtual method table from the module.
 
 #### `newInstance`
 ```c++
 Interface* newInstance();
 ```
 
-Собственно функция для создания нового экземпляра объекта
+Function for creating an instance of the object.
 
 ### `CoreCompile`
 
-Система отвечает за компиляцию и материализацию модулей. Используется в
-JIT-режиме и AOT-режиме на этапе компиляции
+The system is responsible for compiling and materializing modules. It is used both in JIT mode and AOT mode at compilation type.
 
 #### `registerLanguage`
 ```c++
 void registerLanguage(const std::string& language_name, std::shared_ptr<ILanguage> language);
 ```
 
-Зарегистрировать реализацию поддержки языка
+Registers language support implementation.
 
 #### `newScriptModule`
 ```c++
@@ -299,24 +246,22 @@ std::shared_ptr<ScriptModuleCompile> newScriptModule(const ScriptInterface& inte
     const std::string& language_name = "");
 ```
 
-Создать обертку над скриптовым модулем для его компиляции и материализации или
-созранении в виде байт-кода для заданной платформы
+Create a wrapper around the script module for its compilation and materialization or for saving it as bytecode for the specified platform.
 
 ### `ScriptModuleCompile`
 
-Обертка над скриптовым модулем на стадии компиляции для связи с инфраструктурой
-LLVM. Содержит необходимую общую логику для компиляции и материализации модуля
+A wrapper around the script module during the compilation stage for integration with the LLVM infrastructure. It contains the necessary common logic for compiling and materializing the module.
 
 #### `dump`
 ```c++
 void dump(llvm::raw_ostream& stream) const;
 ```
 
-Сгенерировать IR файл для данного модуля
+Generates IR file for the specified module.
 
 #### `materialize`
 ```c++
 InitFunction materialize(std::shared_ptr<llvm::orc::LLJIT>& jit, llvm::orc::ThreadSafeContext ts_context);
 ```
 
-Материализовать код модуля и вернуть указатель на `init`-функцию
+Materializes module code and retrieves a pointer to its `init` function.

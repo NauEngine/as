@@ -1,59 +1,43 @@
-Реализация поддержки нового скриптового языка
+How To: Introducing A New Language
 =============================================
 
-В этом документе описан текущий подход к реализации поддержки скриптовых языков,
-однако в процессе разработки стало понятно что можно сделать проще и лучше.
-Поэтому рекомендуется сначала ознакомиться с документов про [дальнейшее развитие
-проекта](./docs/whats_next.md), выполнить предлагаемый там рефакторинг, а после
-этого переписать этот документ :)
+This document describes the current approach to implementing support for scripting languages; however, during the development process, it became clear that it could be simplified and improved. Therefore, it is recommended to first look through the document on the further development of the project, perform the proposed refactoring there, and then rewrite this document :)
 
-Для поддержки скриптового языка, необходимо реализовать три интерфейса:
-- `ILanguage` - базовый интерфейс. Собственно он регистрирустеся в скриптовой
-системе. Создается один экземпляр на все приложение
-- `ILanguageScript` - интерфейс для загрузки модуля. Создается по экземпляру
-на каждый модуль данного языка
-- `ILanguageRuntime` - интерфейс для храненения runtime для поддержки языка
-(различные сборщики мусора, какая-то другая общая логика). Не является
-обязательным
+To add a scripting language support, three interfaces have to be implemented:
+
+ILanguage - the base interface. It is registered in the scripting system. One instance is created for the entire application.
+ILanguageScript - the interface for loading a module. One instance is created for each module of this language.
+ILanguageRuntime - the interface for storing the runtime for language support (various garbage collectors, some other common logic). It is not mandatory.
 
 `ILanguage`
 -----------
 
 ### `init`
-Инициализация какой-то общей логики поддержки компиляции скриптового языка. Все
-что связано с материализацией модулей данного языка, должно быть реализовано в
-runtime объекте. Для AOT-компиляции никаких экземпляров `ILanguage` или
-`ILanguageScript` не существует
+Initialization of some common logic for supporting the compilation of a scripting language. Everything related to the materialization of modules for this language should be implemented in the runtime object. For AOT compilation, instances of `ILanguage` or `ILanguageScript` do not exist.
 
 ### `newScript`
-Создание нового экземпляра `ILanguageScript` с логикой загрузки (компиляции и
-метериализации) модуля данного языка
+Creation of a new instance of `ILanguageScript` with the logic for loading (compilation and materialization) the module of this language.
 
 `ILanguageScript`
 -----------------
-Данный интерфейс отвечает за загрузку модуля, его компиляцию (для
-AOT-компиляции и JIT-компиляции), а также за материализацию (только JIT).
+This interface is responsible for loading the module, its compilation (for AOT and JIT compilation), as well as for materialization (only JIT).
 
-Во время компиляции последовательно вызываются функции: `load`, `createModule` и
-`buildModule`
+During the compilation, the following functions are called one after the other: `load`, `createModule` and
+`buildModule`.
 
 ### `load`
-Загрузить код скрипта из файла. В зависимости от процедуры компиляции языка, в
-данной функции может происходить все - от простой загрузки файла в строку (для
-последующей компиляции), до генерации LLVM модуля
+Load the script code from a file. Depending on the language compilation procedure, this function can perform everything from simply loading the file into a string (for subsequent compilation) to generating an LLVM module.
 
 ### `createModule`
-Создать экземпляр LLVM модуля для данного скриптового модуля. В большинстве
-случаев там будет достаточно:
+Create an LLVM module instance for the given script module, In most cases, the following code is enough:
 ```cpp
 return std::make_unique<llvm::Module>("is_module", context);
 ```
 
 ### `buildModule`
-Скомпилировать модуль и вернуть LLVM init-функцию для даннного модуля
-
+Compiles the module and retrieves the LLVM `init`-function for the module.
 ### `getInterface`
-Получить интерфейс, реализованный в указанном файле
+Retrieves the inteface that is implemented in the given file.
 
 ### `materialize`
-Материализовать данный модуль. Используется только в режиме JIT-компиляции
+Materializes the module. The function is used only in JIT mode.

@@ -1,25 +1,25 @@
-Тестирование реализации языков
+How To: Testing
 ==============================
 
-Для создания тестов для реализации языка, надо сделать следующее:
-- Создать наследника класса `FeaturesTestFixture`
-- Реализовать три обязательных метода:
+In order to create tests for a language support implementation, the following steps should be followed:
+- Define a subclass of `FeaturesTestFixture`
+- Implement 3 abstract methods:
     ```c++
     const char* getLanguageName() const override { /* ... */ }
     std::shared_ptr<as::ILanguage> createLanguage() const override { /* ... */ }
     std::shared_ptr<as::ILanguageRuntime> createRuntime() const override { /* ... */ }
     ```
-- Подготовить варианты кода на данном языке, и переопределить методы для получения этого кода. Вполне нормальная
-ситуация, когда в языке не поддерживаются весь функицонал. Для таких случаев код определять не надо, и тесты тоже не
-надо вызывать
-- Вызвать тесты на поддерживаемый функционал
+- Using the respective language, write code samples for each virtual test function in `FeaturesTestFixture`. 
+Then, override each test function so that it would return the corresponding code sample (a pointer to a null-terminated
+string). It is acceptable if some of these functions are not supported by the language or not required for the test. In such case, these functions are not to be overridden (and no code samples are necessary).
+- Call the supplied test functions
 
 
-Варианты кода для реализации
+Code samples
 ----------------------------
 
 ### `getSimpleScript42()`
-Реализация интерфейса `SimpleScript`, функция `foo` возвращает `42`.
+`SimpleScript` interface implementation, `foo` function returns `42`.
 ```c++
 static const char* CODE_SIMPLE_42 = R"(
 -- implements "simple.h"
@@ -33,7 +33,7 @@ const char* getSimpleScript42() const override { return CODE_SIMPLE_42; }
 ```
 
 ### `getSimpleScript4242()`
-Реализация интерфейса `SimpleScript`, функция `foo` возвращает `4242`.
+`SimpleScript` interface implementation, `foo` function returns `4242`.
 ```c++
 static const char* CODE_SIMPLE_42 = R"(
 -- implements "simple.h"
@@ -47,8 +47,8 @@ const char* getSimpleScript4242() const override { return CODE_SIMPLE_4242; }
 ```
 
 ### `getSimpleExternalScript()`
-Реализация интерфейса `SimpleScript`, функция `foo` сначала вызывает метод `set` с параметром `42` у внешнего объекта
-`external`, который реализует интерфейс `SetGetScript`, потом вызывает метод `get` и возвращает полученный результат
+`SimpleScript` interface implementation. `foo` function firstly calls `set` method of an external object implementing 
+`SetGetScript` interface and passes value `42` to it. Secondly, it calls `get` method and returns the resulted value.
 ```c++
 static const char* CODE_SIMPLE_EXTERNAL = R"(
 -- implements "simple.h"
@@ -63,8 +63,7 @@ const char* getSimpleExternalScript() const override { return CODE_SIMPLE_EXTERN
 ```
 
 ### `getIntegerScript()`
-Реализация интерфейса `IntegerScript`. Функция `pass` возвращает переданный параметр, функция `mul` возвращает 
-произведение переданных параметров. Функция `add` возвращает сумма переданных параметров
+`SimpleScript` interface implementation. `pass` function returns the parameter, `mul` function returns a product of the parameters, `add` function returns a sum of the parameters.
 ```c++
 static const char* CODE_INTEGER = R"(
 -- implements "integer.h"
@@ -86,8 +85,7 @@ const char* getIntegerScript() const override { return CODE_INTEGER; }
 ```
 
 ### `getDoubleScript()`
-Реализация интерфейса `DoubleScript`. Функция `pass` возвращает переданный параметр, функция `mul` возвращает
-произведение переданных параметров. Функция `add` возвращает сумма переданных параметров
+`DoubleScript` interface implementation. `pass` function returns the parameter, `mul` function returns a product of the parameters, `add` function returns a sum of the parameters.
 ```c++
 static const char* CODE_DOUBLE = R"(
 -- implements "double.h"
@@ -109,8 +107,7 @@ const char* getDoubleScript() const override { return CODE_DOUBLE; }
 ```
 
 ### `getSetGetGlobalScript()`
-Реализация интерфейса `SetGetScript`. Функция `set` устанавливает глобальную переменную, функция `get` возвращает
-значение глобальной переменной
+`SetGetScript` interface implementation. `set` function sets a global variable, `get` function retrieves its value.
 ```c++
 static const char* CODE_SET_GET_GLOBAL = R"(
 -- implements "set_get.h"
@@ -130,11 +127,11 @@ const char* getSetGetGlobalScript() const override { return CODE_SET_GET_GLOBAL;
 ```
 
 
-Тесты на поддерживаемый функционал
+Tests for the supported functionality
 ----------------------------------
 
 ### `SimpleTest`
-Проверка что скрипт вообще компилируется. Требует наличие скрипта `getSimpleScript42()`
+Checks whether the script gets compiled. `getSimpleScript42()` script implementation is required.
 ```c++
 TEST_F(LuaLanguageTest, SimpleTest)
 {
@@ -143,7 +140,7 @@ TEST_F(LuaLanguageTest, SimpleTest)
 ```
 
 ### `IntegerTest`
-Проверка что поддерживается передача значения типа `int`. Требует наличие скрипта `getIntegerScript()`
+Checks whether passing an `int` value to a function is supported. `getIntegerScript()` script implementation is required.
 ```c++
 TEST_F(LuaLanguageTest, IntegerTest)
 {
@@ -152,10 +149,9 @@ TEST_F(LuaLanguageTest, IntegerTest)
 ```
 
 ### `DoubleTest`
-Проверка что поддерживается передача значения типа `double`. Требует наличие скрипта `getDobuleScript()`. В качестве
-параметра в функцию `doDoubleTest` передается как трактуется `double` в реализации данного скрипта. Возможны следующие
-варианты: `TreatDouble::AsDouble` - как `double`, `TreatDouble::AsFloat` - как `float` и `TreatDouble::AsInteger` - как
-`int`
+Checks whether passing an `double` value to a function is supported. `getDoubleScript()` script implementation is required.
+`double` interpretation by the tested script should be passed to `doDoubleTest` function.
+The options are:`TreatDouble::AsDouble`, `TreatDouble::AsFloat` and `TreatDouble::AsInteger`.
 ```c++
 TEST_F(LuaLanguageTest, DoubleTest)
 {
@@ -164,7 +160,7 @@ TEST_F(LuaLanguageTest, DoubleTest)
 ```
 
 ### `ExternalObjTest`
-Проверка что поддерживается доступ к внешним объектам. Требует наличие скрипта `getSimpleExternalScript()`
+Checks whether access to external objects is supported. `getSimpleExternalScript()` script implementation is required.
 ```c++
 TEST_F(LuaLanguageTest, ExternalObjTest)
 {
@@ -173,7 +169,7 @@ TEST_F(LuaLanguageTest, ExternalObjTest)
 ```
 
 ### `GlobalVarTest`
-Проверка что поддерживаются глобальные переменные на все инстансы скрипта. Требует наличие скрипта `getSetGetGlobalScript()`
+Checks whether global variables are supported. `getSetGetGlobalScript()` script implementation is required.
 ```c++
 TEST_F(LuaLanguageTest, GlobalVarTest)
 {
@@ -182,8 +178,8 @@ TEST_F(LuaLanguageTest, GlobalVarTest)
 ```
 
 ### `ModulesTest`
-Проверка что может быть несколько реализаций одного интерфейса. Требует наличие скриптов `getSimpleScript42()` и
-`getSimpleScript4242()`
+Checks whether multiple implementations of a single interface are supported. `getSimpleScript42()` and
+`getSimpleScript4242()` script implementations are required.
 ```c++
 TEST_F(LuaLanguageTest, ModulesTest)
 {
@@ -192,7 +188,7 @@ TEST_F(LuaLanguageTest, ModulesTest)
 ```
 
 ### `HotReloadTest`
-Проверка что работает перезагрузка скрипта. Требует наличие скриптов `getSimpleScript42()` и `getSimpleScript4242()`
+Checks whether script overloading is supported. `getSimpleScript42()` and `getSimpleScript4242()` script implementations are required.
 ```c++
 TEST_F(LuaLanguageTest, HotReloadTest)
 {
@@ -201,9 +197,7 @@ TEST_F(LuaLanguageTest, HotReloadTest)
 ```
 
 ### `CompileStaticInitTest`
-Проверка что скрипт компилируется в IR код. Проверяется что регистрируется статический конструктор, в котором
-вызывается функция регистрации `init`, а также что в `init` вызывается регистрация vtable. Требует наличие скрипта
-`getSimpleScript42()`
+Checks whether a script gets compiled into IR code. Also checks whether a static constructor calling the `init` function gets registered. Also checks whether a VMT get registered by `init` function. `getSimpleScript42()` script implementation is required.
 ```c++
 TEST_F(LuaLanguageTest, CompileStaticInitTest)
 {
@@ -212,15 +206,14 @@ TEST_F(LuaLanguageTest, CompileStaticInitTest)
 ```
 
 ### `CompileLinkTest`
-Проверка что сгенерированный IR код может быть загружен без использования реализации языка. Таким образом опосредованно
-проверяется что для данного языка поддерживается AOT компиляция. Логика теста следующая:
-- Создается компилятор, с поддержкой языка
-- Скрипт компилируется в IR код
-- Создается скриптовая система с поддержкой _только_ IR языка
-- В скриптовой системе регистрируется runtime для языка (если есть)
-- Модуль материализуется и выполняется
+Checks whether the generated IR code can be loaded without using the language implementation. This implicitly confirms that AOT compilation is supported for the given language. The test logic is as follows:
+- A compiler with the language support is created.
+- The script is compiled into IR code.
+A script system with support for _only_ the language's IR code is created.
+- The runtime for the language is registered in the script system (if available).
+- The module is materialized and executed.
 
-Требует наличие скрипта `getSimpleScript42()`.
+`getSimpleScript42()` script implementation is required.
 
 ```c++
 TEST_F(CppLanguageTest, CompileLinkTest)
@@ -231,8 +224,7 @@ TEST_F(CppLanguageTest, CompileLinkTest)
 
 
 ### `CompileDebugInfoTest`
-Проверка что в сгенерированном IR коде есть отладочная информация. Требует наличие скрипта `getSimpleScript42()`. В
-качестве параметра в функцию `doCompileDebugInfoTest` передается регулярное выражения для поиска функции `foo` по имени
+Checks that the generated IR code contains debug information. `getSimpleScript42()` script implementation is required. A regex for searching the `foo` function by its name should be passed to the function.
 ```c++
 TEST_F(CppLanguageTest, CompileDebugInfoTest)
 {
