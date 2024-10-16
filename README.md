@@ -8,9 +8,9 @@ Getting Started
 - `cmake`, `ninja`, any C++ compiler
 - `LLVM 17.0.6`. For macOS and arm64, if it is not supplied, the pre-built binaries are downloaded automatically.
 
-The environment variable LLVM_ROOT_DIR should be set to the directory where the LLVM 17.0.6 binaries are located 
+The environment variable `LLVM_ROOT_DIR` should be set to the directory where the LLVM 17.0.6 binaries are located 
 (this directory should contain `bin`, `include`, `lib`, and other directories). 
-In case the variable is not set, the binaries are downloaded during the cmake run.
+In case the variable is not set, the binaries are downloaded during the `cmake` run.
 However, currently, downloading is only supported for macOS, arm64.
 
 ```shell

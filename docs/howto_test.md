@@ -107,7 +107,7 @@ const char* getDoubleScript() const override { return CODE_DOUBLE; }
 ```
 
 ### `getSetGetGlobalScript()`
-`SetGetScript` interface implementation. `set` function sets a global variable, `get` function retrieves its value.
+`SetGetScript` interface implementation. `set` function sets a global variable, `get` function returns its value.
 ```c++
 static const char* CODE_SET_GET_GLOBAL = R"(
 -- implements "set_get.h"
@@ -188,7 +188,7 @@ TEST_F(LuaLanguageTest, ModulesTest)
 ```
 
 ### `HotReloadTest`
-Checks whether script overloading is supported. `getSimpleScript42()` and `getSimpleScript4242()` script implementations are required.
+Checks whether script hot reloading is supported. `getSimpleScript42()` and `getSimpleScript4242()` script implementations are required.
 ```c++
 TEST_F(LuaLanguageTest, HotReloadTest)
 {

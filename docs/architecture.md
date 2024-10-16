@@ -72,7 +72,7 @@ Some languages might require additional logic, such as memory management. In suc
 
 ### Workflow
 
-Workflow is generally the same for both modes: JIT and AOT. It includes two main steps which are compiling the 
+Workflow is generally the same for both modes: JIT and AOT. It includes two main steps which are: compiling the 
 module into an intermediate representation (IR) and subsequent materialization.
 
 Module reloading is supported in JIT mode. That is, each module is loaded into a separate library (LLVM JIT Library), which provides an opportunity for unloading and replacing the entire module without affecting other modules. After unloading, the module's code is recompiled and materialized.
@@ -98,7 +98,7 @@ IR code is generated for each function of the module. Additionally, IR code is c
 
 #### `init` function generation
 
-The init function links the module code to the scripting system; that is, it registers the virtual method table, 
+The `init` function links the module code to the scripting system; that is, it registers the virtual method table, 
 retrieves access to runtime libraries, and calls initialization functions.
 
 - For **JIT mode**: the function is declared as global so it can be called from the scripting system.
@@ -126,7 +126,7 @@ The function also ensures the module integration with the runtime library that i
 
 There are two ways to obtain the `init` function:
 
-- **At runtime**: via CoreCompile, when the specified module is compiled and materialized using the LLVM infrastructure.
+- **At runtime**: via `CoreCompile`, when the specified module is compiled and materialized using the LLVM infrastructure.
 - **At compile time**: when each module has already been compiled into bytecode. In this case, a static initialization section is created that registers the module `init` function for the specific filename.
 
 #### `Core` constructor
@@ -153,13 +153,13 @@ Creates a factory for script module objects.
 Factories are managed by `Core`.
 
 Factory creation workflow:
-1. **Caching factories**
+1. **Caching factories**:
 Each created factory is cached. When a factory is requested, firstly, a suitable cached factory is searched.
-2. **Cache search**
+2. **Cache search**:
 In case there is no suitable factory cached, a suitable `init` function that has been associated with the compiled module is searched.
-3. **Module compilation**
+3. **Module compilation**:
 In case a suitable `init` function has not been found, module compilation is dispatched via `CoreCompile`.
-4. **Calling `init`**
+4. **Calling `init`**:
 The retrieved `init` function is called. At the same moment a VMT for the module is registered. Finally, a factory
 is constructed and cached.
 
@@ -187,7 +187,7 @@ void reload(const std::string& filename);
 ```
 
 Reloads the specified module.
-- **`filename`** - module file name
+- **`filename`** — module file name
 
 #### `registerVTable`, `requireRuntime`
 ```c++
@@ -197,8 +197,8 @@ const void* requireRuntime(const char* name);
 ```
 
 Internal function for calling within module `init` functions.
-`registerVTable` - registers (and updates) the module virtual table.
-`requireRuntime` - retrieves a runtime library by its name.
+`registerVTable` — registers (and updates) the module virtual table.
+`requireRuntime` — retrieves a runtime library by its name.
 
 In order to simplify function calling from modules wrapers (`extern "C"` functions) are used for call.
 
@@ -246,7 +246,7 @@ std::shared_ptr<ScriptModuleCompile> newScriptModule(const ScriptInterface& inte
     const std::string& language_name = "");
 ```
 
-Create a wrapper around the script module for its compilation and materialization or for saving it as bytecode for the specified platform.
+Creates a wrapper around the script module for its compilation and materialization or for saving it as bytecode for the specified platform.
 
 ### `ScriptModuleCompile`
 

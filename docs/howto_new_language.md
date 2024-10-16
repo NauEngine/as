@@ -1,13 +1,13 @@
 How To: Introducing A New Language
 =============================================
 
-This document describes the current approach to implementing support for scripting languages; however, during the development process, it became clear that it could be simplified and improved. Therefore, it is recommended to first look through the document on the further development of the project, perform the proposed refactoring there, and then rewrite this document :)
+This document describes the current approach to implementing support for scripting languages; however, during the development process, it became clear that it could be simplified and improved. Therefore, it is recommended to first look through [the document on the further development of the project](whats_next.md), perform the proposed refactoring there, and then rewrite this document :)
 
 To add a scripting language support, three interfaces have to be implemented:
 
-ILanguage - the base interface. It is registered in the scripting system. One instance is created for the entire application.
-ILanguageScript - the interface for loading a module. One instance is created for each module of this language.
-ILanguageRuntime - the interface for storing the runtime for language support (various garbage collectors, some other common logic). It is not mandatory.
+- `ILanguage` - the base interface. It is registered in the scripting system. One instance is created for the entire application.
+- `ILanguageScript` - the interface for loading a module. One instance is created for each module of this language.
+- `ILanguageRuntime` - the interface for storing the runtime for language support (various garbage collectors, some other common logic). It is not mandatory.
 
 `ILanguage`
 -----------
