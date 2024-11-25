@@ -1,4 +1,4 @@
-as_proto
+Agnostic Scripting Project
 ========
 
 Getting Started
