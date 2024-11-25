@@ -4,50 +4,47 @@ as_proto
 Getting Started
 ---------------
 
-### Пререквизиты
-- `cmake`, `ninja`, какой-нибудь C++ компилятор
-- `LLVM 17.0.6`. Для macOS, arm64 поддерживается скачиванием собранных бинарных файлов
+### Prerequisites
+- `cmake`, `ninja`, any C++ compiler
+- `LLVM 17.0.6`. For macOS and arm64, if it is not supplied, the pre-built binaries are downloaded automatically.
 
-Переменная окружения `LLVM_ROOT_DIR` должна указывать на директорию, в которой содержатся собранные бинарные файлы LLVM
-версии 17.0.6 (в этой директории должны быть директории `bin`, `include`, `lib` и другие). Если эта переменная не
-указана, то при выполнении `cmake` собранные бинарные файлы будут скачаны. Однако на текущий момент скачивание
-поддерживается только для macOS, arm64
+The environment variable `LLVM_ROOT_DIR` should be set to the directory where the LLVM 17.0.6 binaries are located 
+(this directory should contain `bin`, `include`, `lib`, and other directories). 
+In case the variable is not set, the binaries are downloaded during the `cmake` run.
+However, currently, downloading is only supported for macOS, arm64.
 
 ```shell
 git clone git@github.com:NauEngine/as_proto.git
 cd as_proto
 ```
 
-#### Сборка из командной строки
+#### Build from command line
 ```shell
 cmake -DCMAKE_BUILD_TYPE=Debug -G Ninja -S . -B ./build
 cmake --build ./build --target AScriptTest -j 8
 ./build/test/AScriptTest
 ```
 
-#### Сборка из CLion
-Просто открыть проект с CLion и прописать переменную окружения `LLVM_ROOT_DIR`
+#### Build with CLion
+Simply open the project with CLion and set `LLVM_ROOT_DIR` environment variable.
 
 
-### Отладка
+### Debugging
 
-В jit включена поддержка Debug Info, и, если верить обрывочным сведеньям в интернете, отладчики GDB и LLDB поддерживают
-Debug Info в jit'ed коде.
+Debug Info support is enabled in the JIT, and according to information on the internet, 
+GDB and LLDB debuggers support Debug Info in JITed code.
 
-В macOS в LLDB по умолчанию отключена поддержка отладки jit'ed кода, ее надо включать индивидуально. Можно включить
-один раз, добавив файл `~/.lldbinit` со следующим содержанием:
+In macOS and LLDB JITed code debugging is disabled by default, and it has to be enabled manually. You can enable it 
+by adding a file `~/.lldbinit` with the following content:
 ```
 settings set plugin.jit-loader.gdb.enable on
 ```
+As a result, the debugging will be functioning both in CLion (in macOS CLion uses embedded LLDB by default) and in LLDB.
 
-После этого отладка заработает как в CLion (на macOS в CLion по умолчанию используется встроенный LLDB), так и просто в
-LLDB
-
-
-Документация
+Reference
 ------------
-- [Стандарт оформления кода](./docs/coding_style_guide.md)
-- [Описание архитектуры](./docs/architecture.md)
-- [Описание текущих тестов](./docs/howto_test.md)
-- [Реализация поддержки нового скриптового языка](./docs/howto_new_language.md)
-- [Дальнейшее развитие](./docs/whats_next.md)
+- [Coding Style Guide](./docs/coding_style_guide.md)
+- [Architecture](./docs/architecture.md)
+- [How To: Testing](./docs/howto_test.md)
+- [How To: Introducing A New Language](./docs/howto_new_language.md)
+- [What's Next](./docs/whats_next.md)
